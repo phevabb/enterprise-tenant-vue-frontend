@@ -1,21 +1,100 @@
-import axios from 'axios';
+
+import axios from 'axios'
+
+
+
+// https://1-phevabb2997-gi1xzy3j.leapcell.dev/api/
+
+ 
 
 const api = axios.create({
-  
-
-  baseURL: ' https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
-  
-  
-
-  /*baseURL: 'http://127.0.0.1:8000/api/', */
-
+  // baseURL: 'http://127.0.0.1:8000/api/',
+  baseURL: 'https://1-phevabb2997-gi1xzy3j.leapcell.dev/api/',
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  }
-});
+    'Accept': 'application/json',
+  },
+})
 
-export const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
+// Helper: normalize to a pathname we can test
+function resolvePath(config) {
+  try {
+    const url = new URL(config.url, config.baseURL)
+    // e.g. "/api/login/" -> "api/login/"
+    return url.pathname.replace(/^\/+/, '')
+  } catch {
+    // Fallback if URL constructor fails (rare)
+    return (config.url || '').replace(/^\/+/, '')
+  }
+}
+
+api.interceptors.request.use(
+  (config) => {
+    // Let the browser set multipart boundary if FormData
+    if (config.data instanceof FormData) {
+      // Axios will remove Content-Type so the browser can set a boundary
+      delete config.headers['Content-Type']
+    }
+
+    // Determine if request is public
+    const path = resolvePath(config)          // e.g. "api/login/"
+    const publicPaths = [
+      'api/login/',                 // login
+      'api/password-reset/',        // request password reset
+      'api/password-reset/confirm/' // confirm password reset
+    ]
+    const isPublic = publicPaths.some(p => path.startsWith(p))
+
+    if (!isPublic) {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Token ${token}`
+
+  } else {
+    // No token found, optionally handle this case (e.g., redirect to login)
+    
+  }
+}
+
+
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Optional: central 401/403 handling (logout or redirect)
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    const status = error?.response?.status
+    if (status === 401) {
+     
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      // Optionally: window.location.hash = '#/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
+export const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
+
+
+
+export const get_administrators = () => api.get("administrators/");
+export const get_administrators_count = () => api.get("administrators/count/");
+export const create_administrator = (payload) => api.post("administrators/", payload);
+export const update_administrator = (id, payload) => api.put(`administrators/${id}/`, payload);
+export const delete_administrator = (id) => api.delete(`administrators/${id}/`);
+
+// AUTH APIs
+
+export const login = (payload) => api.post('login/', payload)
+export const logout = () => api.post('logout/')
+export const changepassword = (data) => api.post('change-password/', data);
+export const resetpassword = (data) => api.post('password-reset/', data);
+export const resetpasswordconfirm = (data) => api.post('confirm/', data);
+
 
 // fee structure APIs 
 export const get_fee_structures = () => api.get("fees/fee-structures"); // APPLIED
@@ -30,12 +109,28 @@ export const delete_payment = (id) => api.delete(`fees/payments/${id}/`);
 
 // Student APIs
 export const st = () => api.get("student/students");
+export const get_num_of_students_insignt = () => api.get("student/students/total/");
+export const get_students_grouped_by_class_insignt = () => api.get("student/students/per_class/");
+
 export const create_student = (payload) => api.post("student/create/", payload);
 export const update_student = (id, payload) => api.put(`student/create/${id}/`, payload);
 export const delete_student = (id) => api.delete(`student/students/${id}/`);
 
+
+
 // student fee records APIs
 export const get_student_fee_record = () => api.get("fees/student-fee-records");
+
+export const get_expected_fees_insight = () => api.get("fees/student-fee-records/expected_fees/");
+export const get_collected_vs_pending_insight = () => api.get("fees/student-fee-records/collection_summary/");
+export const percentage_paid_by_class_insight = () => api.get("fees/student-fee-records/unpaid_percentage_by_class/");
+export const students_with_balance_insight = () => api.get("fees/student-fee-records/students_with_balance/");
+
+
+
+
+
+
 export const create_student_fee_record = (payload) => api.post("fees/student-fee-records/", payload);
 export const update_student_fee_record = (id, payload) => api.put(`fees/student-fee-records/${id}/`, payload);
 export const delete_student_fee_record = (id) => api.delete(`fees/student-fee-records/${id}/`); 
@@ -64,6 +159,9 @@ export const delete_class = (id) => api.delete(`student/classes/${id}/`);
 
 // staff APIs
 export const get_staff = () => api.get("staff/staff-profiles");
+export const num_of_staff_insight = () => api.get("staff/staff-profiles/total_teachers");
+
+
 export const create_staff = (payload) => api.post("staff/staff-profiles/", payload);  
 export const update_staff = (id, payload) => api.patch(`staff/staff-profiles/${id}/`, payload);
 export const delete_staff = (id) => api.delete(`staff/staff-profiles/${id}/`);
