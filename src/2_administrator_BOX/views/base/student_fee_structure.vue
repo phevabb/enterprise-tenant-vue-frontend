@@ -156,6 +156,8 @@
     </div>
 
     <!-- Grade/Class -->
+       <div v-if="!formFee.is_discount" class="mb-3">
+        
     <div class="mb-3">
       <CFormLabel for="grade_class">Class (Grade)</CFormLabel>
       <CFormSelect id="grade_class" v-model="formFee.gradeClassId">
@@ -163,8 +165,10 @@
         <option v-for="gc in gradeClasses" :key="gc.id" :value="gc.id">{{ gc.name }}</option>
       </CFormSelect>
     </div>
+    </div>   
 
     <!-- Term -->
+   
     <div class="mb-3">
       <CFormLabel for="term">Term</CFormLabel>
       <CFormSelect id="term" v-model="formFee.termId">
@@ -172,6 +176,7 @@
         <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.name }}</option>
       </CFormSelect>
     </div>
+     
 
     <!-- Amount -->
     <div class="mb-3">
@@ -269,16 +274,7 @@ import { useToast } from 'vue-toastification'
 const toast = useToast()  
 
 
-/**
- * API simulation aligned to your JPA model:
- * FeeStructure {
- *   id: number,
- *   academicYear: { id, name },
- *   gradeClass:   { id, name },
- *   term:         { id, name },
- *   amount: string|number
- * }
- */
+
 import {st, get_academic_years, get_classes, get_terms, create_fee_structure, get_fee_structures, update_fee_structure, delete_fee_structure } from '@/services/api.js'
 
 const feeStructureApi = {
@@ -287,15 +283,18 @@ const feeStructureApi = {
     return res?.data || []
   },
 
-  async listGradeClasses() {
-    const res = await get_classes()
-    return res?.data || []
-  },
-
   async listTerms() {
     const res = await get_terms()
     return res?.data || []
   },
+
+  async listGradeClasses() {
+    const res = await get_classes()
+
+    return res?.data || []
+  },
+
+  
 
   async listFeeStructures() {
     // Assuming you have an API for fetching all fee structures
@@ -472,6 +471,9 @@ function formatAmount(v) {
   if (Number.isNaN(n)) return v
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
+
+
+
 function resetForm() {
   formFee.academicYearId = ''
   formFee.gradeClassId = ''
@@ -483,17 +485,43 @@ function resetForm() {
   editingId.value = null
 }
 function validateForm() {
-  if (!formFee.academicYearId || !formFee.gradeClassId || !formFee.termId) {
-    formValidationMessage.value = 'Academic Year, Class and Term are required.'
+  if (!formFee.academicYearId || !formFee.termId) {
+    formValidationMessage.value = 'Academic Year and Term are required.'
     return false
   }
-  if (formFee.amount === '' || Number(formFee.amount) < 0) {
-    formValidationMessage.value = 'Amount must be a non-negative number.'
+
+  if (formFee.is_discount && !formFee.gradeClassId) {
+    formFee.gradeClassId = CRECHE_CLASS_ID
+  }
+
+  if (!formFee.is_discount && !formFee.gradeClassId) {
+    formValidationMessage.value = 'Class is required for non-discounted fees.'
     return false
   }
+
+  if (formFee.is_discount && formFee.discounted_student_ids.length === 0) {
+  formValidationMessage.value = 'Please select at least one discounted student.'
+  return false
+}
+
+
+  if (formFee.amount === '' || formFee.amount === null) {
+  formValidationMessage.value = 'Amount is required.'
+  return false
+}
+
+if (Number(formFee.amount) < 0) {
+  formValidationMessage.value = 'Amount cannot be negative.'
+  return false
+}
+
+
   formValidationMessage.value = ''
   return true
 }
+
+const CRECHE_CLASS_ID = 1
+
 
 /* ---------- Select All for current filtered view ---------- */
 function toggleSelectAll() {

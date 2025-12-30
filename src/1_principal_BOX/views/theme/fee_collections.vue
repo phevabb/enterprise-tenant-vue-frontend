@@ -74,10 +74,14 @@ const errorMessage = ref('')
 const records = ref([])
 
 function formatNumber(value) {
-  if (value === null || value === undefined) return '0'
-  // Ensures 2 decimal places + comma formatting
-  return Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  if (value === null || value === undefined) return '0.00'
+
+  return Number(value).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
 }
+
 
 
 // single search term

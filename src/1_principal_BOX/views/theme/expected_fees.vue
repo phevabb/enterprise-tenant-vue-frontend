@@ -5,7 +5,7 @@
       <CCardHeader class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2">
         <div>
           <h5 class="mb-0">Fee Overview </h5>
-          <small class="text-body-secondary">Projected Collections</small>
+          <small class="text-body-secondary">Projected Revenue per class </small>
         </div>
 
         <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
@@ -36,8 +36,8 @@
                 <CTableHeaderCell scope="col" style="width: 60px;">#</CTableHeaderCell>
                 <CTableHeaderCell scope="col">Class</CTableHeaderCell>
                 <CTableHeaderCell scope="col">Term</CTableHeaderCell>
-                <CTableHeaderCell scope="col">Academic Year</CTableHeaderCell>
-                <CTableHeaderCell scope="col">Expected Amount</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Academic Year </CTableHeaderCell>
+                <CTableHeaderCell scope="col">Expected Amount (GHS)</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
             <CTableBody>
@@ -46,7 +46,7 @@
                 <CTableDataCell>{{ row.grade_class_name }}</CTableDataCell>
                 <CTableDataCell>{{ row.term_name }}</CTableDataCell>
                 <CTableDataCell>{{ row.academic_year_name }}</CTableDataCell>
-                <CTableDataCell>{{ row.expected_amount }}</CTableDataCell>
+                <CTableDataCell>{{ formatNumber(row.expected_amount) }}</CTableDataCell>
               </CTableRow>
             </CTableBody>
           </CTable>
@@ -91,6 +91,15 @@ async function loadRecords() {
   } finally {
     isLoading.value = false
   }
+}
+
+function formatNumber(value) {
+  if (value === null || value === undefined) return '0.00'
+
+  return Number(value).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
 }
 
 onMounted(() => loadRecords())

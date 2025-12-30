@@ -51,10 +51,7 @@
         <CCardBody>
           <p class="text-body-secondary small">Record and manage payments.</p>
 
-          <!-- Error -->
-          <CAlert color="danger" v-if="errorMessage" class="py-2">
-            {{ errorMessage }}
-          </CAlert>
+      
 
           <!-- Loading -->
           <div class="d-flex align-items-center gap-2 mb-2" v-if="isLoading">
@@ -321,6 +318,7 @@ async createPayment(payload) {
     // payload: { studentFeeRecordId, date?, amount, payment_method? }
     const response = await create_payment(payload)
 
+
    
 
     // Axios response: receipt_url is in response.data
@@ -339,6 +337,9 @@ async createPayment(payload) {
     // Return the data for any further UI updates
     return data
   } catch (error) {
+
+    toast.error(error.response?.data?.amount[0] || 'Failed to create payment.')  
+
     // Bubble up for global handler/toast
     throw error
   }
@@ -413,6 +414,7 @@ const selectedIds = ref([])
 const showFormModal = ref(false)
 const isEdit = ref(false)
 const editingId = ref(null)
+
 const formPayment = reactive({
   studentFeeRecordId: '',
   date: '',
@@ -476,13 +478,18 @@ function formatAmount(v) {
   if (Number.isNaN(n)) return v
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
+
+
 function resetForm() {
   formPayment.studentFeeRecordId = ''
   formPayment.date = ''
   formPayment.amount = ''
+  recordSearch.value = ''
+  filteredStudentFeeRecords.value = []
   formValidationMessage.value = ''
   editingId.value = null
 }
+
 function validateForm() {
   if (!formPayment.studentFeeRecordId) {
     formValidationMessage.value = 'Student Fee Record is required.'
@@ -513,6 +520,8 @@ async function loadStudentFeeRecords() {
 
   return (studentFeeRecords.value = x)
 }
+
+
 async function loadPayments() {
   isLoading.value = true
   errorMessage.value = ''
@@ -522,7 +531,7 @@ async function loadPayments() {
 
       return (payments.value = rows)
     } catch (err) {
-      return (errorMessage.value = err?.message || 'Failed to load payments.')
+      return (errorMessage.value =  'Failed to load payments.')
     }
   } finally {
     return (isLoading.value = false)
@@ -613,7 +622,7 @@ const payload = {
         toast.success('Payment added successfully.')
 
       })
-      .catch((err) => (formValidationMessage.value = err?.message || 'Failed to add payment.'))
+      .catch((err) => (formValidationMessage.value = err?.response?.data?.amount[0] || 'Failed to add payment.'))
       .finally(done)
   }
 }

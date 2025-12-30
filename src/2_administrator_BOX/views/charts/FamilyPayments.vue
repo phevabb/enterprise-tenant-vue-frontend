@@ -280,17 +280,33 @@ const createPayment = async (data) => {
     return res.data
 
   } catch (err) {
-    
-    const backendMsg = err.response?.data?.message?.toLowerCase() || ''
-    let msg = 'Failed to add payment.'
+  const data = err.response?.data || {}
+
+  let msg = 'Failed to add payment.'
+
+  // 1️⃣ DRF field validation (highest priority)
+  if (Array.isArray(data.amount) && data.amount.length) {
+    msg = data.amount[0]
+  }
+  // 2️⃣ Generic DRF non-field errors
+  else if (Array.isArray(data.non_field_errors) && data.non_field_errors.length) {
+    msg = data.non_field_errors[0]
+  }
+  // 3️⃣ Custom backend message
+  else if (typeof data.message === 'string') {
+    const backendMsg = data.message.toLowerCase()
 
     if (backendMsg.includes('constraint') || backendMsg.includes('foreign')) {
       msg = 'Cannot add payment because it is linked to missing or invalid records.'
+    } else {
+      msg = data.message
     }
-
-    toast.error(msg, { position: 'top-right' })
-    throw err
   }
+
+  toast.error(msg, { position: 'top-right' })
+  throw err
+}
+
 }
 
 
@@ -456,6 +472,8 @@ const submitForm = async () => {
     await fetchPayments()
     closeFormModal()
   } catch (err) {
+    
+
     errorMessage.value = 'Failed to save payment.'
   }
 }
