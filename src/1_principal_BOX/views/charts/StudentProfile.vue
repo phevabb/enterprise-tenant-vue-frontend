@@ -20,7 +20,7 @@
                 style="min-width: 260px;"
               />
 
-              
+
 
 
               <CButton color="light" class="text-primary border-primary" size="sm" @click="openAddModal">
@@ -44,9 +44,9 @@
                 <CTableHeaderCell>Current Class</CTableHeaderCell>
                 <CTableHeaderCell>Dad's Contact</CTableHeaderCell>
                 <CTableHeaderCell>Mom's Contact</CTableHeaderCell>
-                
-                
-               
+
+
+
                 <CTableHeaderCell>Status</CTableHeaderCell>
                 <CTableHeaderCell class="text-end">Actions</CTableHeaderCell>
               </CTableRow>
@@ -98,7 +98,7 @@
       </CCard>
     </CCol>
   </CRow>
-  
+
   <CModal :visible="showDeleteModal" @close="cancelDelete" size="md">
   <CModalHeader class="bg-danger text-white">
     <CModalTitle>Confirm Deletion</CModalTitle>
@@ -141,13 +141,13 @@
                 </CFormSelect>
             </div>
 
-           
 
-           
 
-            <div class="col-md-6">  
+
+
+            <div class="col-md-6">
             <CFormLabel>Current Class</CFormLabel>
-                    
+
             <CFormSelect v-model="form.current_class">
               <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
                 {{ cls.label }}
@@ -155,41 +155,41 @@
             </CFormSelect>
             </div>
 
-            
+
           </div>
         </CTab>
 
-        
+
 
         <CTab title="Parental Info" itemKey="Parental Info">
           <div class="row g-3">
             <div class="col-md-6">
-             
+
               <CFormLabel>Contact of Father</CFormLabel>
               <CFormInput v-model="form.contact_of_father" />
-              
+
             </div>
             <div class="col-md-6">
-              
-              
+
+
               <CFormLabel>Contact of Mother</CFormLabel>
               <CFormInput v-model="form.contact_of_mother" />
-              
+
             </div>
           </div>
         </CTab>
 
-        
+
       </CTabs>
 
 
-      
+
       <div class="text-end">
 
-              <CButton 
-        color="primary" 
-        class="px-4" 
-        :disabled="loading" 
+              <CButton
+        color="primary"
+        class="px-4"
+        :disabled="loading"
         @click="submitForm"
       >
         <CIcon icon="cil-save" class="me-2" />
@@ -220,7 +220,7 @@ import { ref, computed,  onMounted } from 'vue'
 import {st} from '@/services/api'
 import {create_student} from '@/services/api'
 import {update_student} from '@/services/api'
-import {delete_student} from '@/services/api' 
+import {delete_student} from '@/services/api'
 
 
 async function fetchUsers() {
@@ -233,9 +233,9 @@ async function fetchUsers() {
 
 
     students.value = response.data;
-    
-    
-    
+
+
+
   }  catch (err) {
 
 
@@ -313,11 +313,11 @@ const currentStudent = ref(null)
 
 const form = ref({
   // nested user object used throughout the modal
-  
+
     full_name: '',
     gender: '',            // 'male' | 'female'
     nationality: '',
-    date_of_birth: '',     // 'YYYY-MM-DD' string for <input type="date"> 
+    date_of_birth: '',     // 'YYYY-MM-DD' string for <input type="date">
 
   // class selections (strings to satisfy CFormSelect)
   current_class: '',            // e.g., 'jhs 1'
@@ -325,10 +325,10 @@ const form = ref({
 
   // other top-level fields
   familyId: '',
-  immunized: false,
-  allergies: false,
+  is_immunized: false,
+  has_allergies: false,
   allergic_foods: '',
-  hasPeculiarHealthIssues: false,
+  has_peculiar_health_issues: false,
   health_issues: '',
   name_of_father: '',
   occupation_of_father: '',
@@ -382,10 +382,10 @@ const openEditModal = (student) => {
 
     familyId: '',
 
-    immunized: student.is_immunized === 'yes',
-    allergies: student.has_allergies === 'yes',
+    is_immunized: student.is_immunized === 'yes',
+    has_allergies: student.has_allergies === 'yes',
     allergic_foods: student.allergic_foods || '',
-    hasPeculiarHealthIssues: student.has_peculiar_health_issues === 'yes',
+    has_peculiar_health_issues: student.has_peculiar_health_issues === 'yes',
     health_issues: student.health_issues || '',
 
     name_of_father: student.name_of_father || '',
@@ -437,15 +437,15 @@ const prepareStudentPayload = (payload) => {
     },
     current_class: payload.current_class,
     house_number: payload.houseNumber,
-    
+
     last_school_attended: payload.lastSchoolAttended,
     class_seeking_admission_to: payload.class_seeking_admission_to,
-    is_immunized: payload.immunized ? "yes" : "no",
-    has_allergies: payload.allergies ? "yes" : "no",
+    is_immunized: payload.is_immunized ? "yes" : "no",
+    has_allergies: payload.has_allergies ? "yes" : "no",
 
     allergic_foods: payload.allergic_foods,
 
-    hasPeculiarHealthIssues: payload.hasPeculiarHealthIssues ? "yes" : "no",
+    has_peculiar_health_issues: payload.has_peculiar_health_issues ? "yes" : "no",
 
     contact_of_father: payload.contact_of_father,
     contact_of_mother: payload.contact_of_mother,
@@ -458,7 +458,7 @@ const prepareStudentPayload = (payload) => {
     nationality_of_father: payload.nationalityOfFather,
     nationality_of_mother: payload.nationalityOfMother,
 
-    
+
     peculiar_health_issues: payload.healthIssues,
     other_related_info: payload.otherRelatedInfo
   };
@@ -522,7 +522,7 @@ const submitForm = async () => {
     form.value.date_of_birth = form.value.date_of_birth || '2002-02-02';
 
     // ✅ Required field validation
-    
+
 
     // ✅ Clean up form: trim strings and convert empty strings to null
     function deepClean(obj) {
@@ -582,13 +582,13 @@ const submitForm = async () => {
     const response = await create_student(payload);
 
 
-  
+
 
     if (response && response.data) {
-    
+
 
       // ✅ Update the table immediately with the new student record
-  
+
       students.value.push(response.data);
 
       toast.success('Student created successfully!', { position: 'top-right' });
@@ -605,7 +605,7 @@ const submitForm = async () => {
     }}
 
   } catch (err) {
-   
+
 
   const serverData = err?.e?.response
 

@@ -20,7 +20,7 @@
                 style="min-width: 260px;"
               />
 
-              
+
 
 
               <CButton color="light" class="text-primary border-primary" size="sm" @click="openAddModal">
@@ -64,7 +64,7 @@
 
                 <CTableHeaderCell>#</CTableHeaderCell>
                 <CTableHeaderCell>Name</CTableHeaderCell>
-        
+
                 <CTableHeaderCell>Current Class</CTableHeaderCell>
                 <CTableHeaderCell>Dad's Contact</CTableHeaderCell>
                 <CTableHeaderCell>Mom's Contact</CTableHeaderCell>
@@ -93,16 +93,16 @@
 
   <!-- Data rows -->
   <CTableRow v-else v-for="(student, idx) in filteredStudents" :key="student.id">
-    
-    
+
+
     <CTableDataCell class="text-center">
-                    <CFormCheck v-model="selectedIds" :value="student.id" aria-label="Select row" />
+                    <CFormCheck v-model="selectedIds" :value="Number(student.id)" aria-label="Select row" />
     </CTableDataCell>
 
 
     <CTableHeaderCell>{{ idx + 1 }}</CTableHeaderCell>
     <CTableDataCell>{{ student.user.full_name }}</CTableDataCell>
-    <CTableDataCell>{{ student.current_class }}</CTableDataCell>
+    <CTableDataCell>{{ classValueToLabel(student.current_class) }}</CTableDataCell>
     <CTableDataCell>{{ student.contact_of_father }}</CTableDataCell>
     <CTableDataCell>{{ student.contact_of_mother }}</CTableDataCell>
 
@@ -129,13 +129,13 @@
       </CCard>
     </CCol>
   </CRow>
-  
+
   <CModal :visible="showDeleteModal" @close="cancelDelete" size="md">
   <CModalHeader class="bg-danger text-white">
     <CModalTitle>Confirm Deletion</CModalTitle>
   </CModalHeader>
   <CModalBody>
-    Are you sure you want to delete <strong>{{ studentToDelete?.full_name }}</strong>?
+    Are you sure you want to delete <strong>{{ studentToDelete?.user?.full_name }}</strong>?
   </CModalBody>
   <CModalFooter>
     <CButton color="secondary" variant="outline" @click="cancelDelete">Cancel</CButton>
@@ -163,106 +163,233 @@
 
 
 
-  <!-- Modal -->
-  <CModal :visible="showFormModal" @close="closeFormModal" size="xl">
-    <CModalHeader class="bg-primary text-white">
-      <CModalTitle>
-        <CIcon icon="cil-education" class="me-2" /> {{ isEdit ? 'Edit Student Profile' : 'Add New Student' }}
-      </CModalTitle>
-    </CModalHeader>
-    <CModalBody class="p-4">
+<!-- Modal -->
 
 
-      <CTabs variant="pills" class="mb-3" :activeItemKey="0">
-        <CTab title="Personal Info" active itemKey="personal-info">
-          <div class="row g-3">
+<!-- Redesigned Modal -->
+<CModal :visible="showFormModal" @close="closeFormModal" size="xl" class="student-modal-premium">
 
-            <div class="col-md-6">
-              <CFormLabel>Full Name</CFormLabel>
+  <!-- HEADER -->
+  <CModalHeader class="modal-header-premium">
+    <CModalTitle class="d-flex align-items-center gap-2">
+      <CIcon icon="cil-education" size="lg" />
+      {{ isEdit ? 'Edit Student Profile' : 'Add New Student' }}
+    </CModalTitle>
+  </CModalHeader>
+
+  <CModalBody class="modal-body-premium">
+
+    <!-- TABS -->
+    <CTabs variant="pills" class="premium-tabs" :activeItemKey="'personal-info'">
+
+      <!-- ================= STUDENT INFO ================= -->
+      <CTab title="Student Info" itemKey="personal-info">
+        <div class="card-premium">
+          <div class="card-title-premium">
+            <CIcon icon="cil-user" /> Student Information
+          </div>
+
+          <div class="row g-4">
+            <div class="col-md-8">
+              <CFormLabel>Full Name  <span class="text-danger">*</span> </CFormLabel>
               <CFormInput v-model="form.full_name" />
             </div>
 
-            <div class="col-md-3">
-              <CFormLabel>Gender</CFormLabel>
-                <CFormSelect v-model="form.gender">
-                <option disabled value="">Choose Gender</option>
+            <div class="col-md-4">
+              <CFormLabel>Gender <span class="text-danger">*</span> </CFormLabel>
+              <CFormSelect v-model="form.gender">
+                <option disabled selected>Select gender</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
-                </CFormSelect>
+              </CFormSelect>
             </div>
 
-           
-
-           
-
-            <div class="col-md-6">  
-              <CFormLabel>Current Class</CFormLabel>                    
+            <div class="col-md-6">
+              <CFormLabel>Current Class <span class="text-danger">*</span> </CFormLabel>
               <CFormSelect v-model="form.current_class">
-                <option disabled value="" selected>Select current class</option>
+                <option disabled selected>Select class</option>
                 <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
                   {{ cls.label }}
                 </option>
               </CFormSelect>
             </div>
 
-     
-
-            
-          </div>
-        </CTab>
-
-        
-
-        <CTab title="Parental Info" itemKey="Parental Info">
-          <div class="row g-3">
             <div class="col-md-6">
-             
-              <CFormLabel>Contact of Father</CFormLabel>
+              <CFormLabel>Class Seeking Admission</CFormLabel>
+
+              <CFormSelect v-model="form.class_seeking_admission_to">
+                <option disabled selected>Select class</option>
+                <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
+                  {{ cls.label }}
+                </option>
+              </CFormSelect>
+            </div>
+
+            <div class="col-md-6">
+              <CFormLabel>Date of Birth</CFormLabel>
+              <CFormInput type="date" v-model="form.date_of_birth" />
+            </div>
+
+            <div class="col-md-6">
+              <CFormLabel>Nationality</CFormLabel>
+              <CFormInput v-model="form.nationality" />
+            </div>
+          </div>
+        </div>
+      </CTab>
+
+      <!-- ================= PARENT INFO ================= -->
+      <CTab title="Parent Info" itemKey="parental-info">
+        <div class="card-premium">
+          <div class="card-title-premium">
+            <CIcon icon="cil-people" /> Father’s Information
+          </div>
+
+          <div class="row g-4 mb-4">
+            <div class="col-md-6">
+              <CFormLabel>Name</CFormLabel>
+              <CFormInput v-model="form.name_of_father" />
+            </div>
+            <div class="col-md-6">
+              <CFormLabel>Contact of Father <span class="text-danger">*</span> </CFormLabel>
               <CFormInput v-model="form.contact_of_father" />
-              
             </div>
             <div class="col-md-6">
-              
-              
-              <CFormLabel>Contact of Mother</CFormLabel>
+              <CFormLabel>Occupation</CFormLabel>
+              <CFormInput v-model="form.occupation_of_father" />
+            </div>
+            <div class="col-md-6">
+              <CFormLabel>Nationality</CFormLabel>
+              <CFormInput v-model="form.nationality_of_father" />
+            </div>
+          </div>
+
+          <div class="card-title-premium">
+            <CIcon icon="cil-people" /> Mother’s Information
+          </div>
+
+          <div class="row g-4">
+            <div class="col-md-6">
+              <CFormLabel>Name</CFormLabel>
+              <CFormInput v-model="form.name_of_mother" />
+            </div>
+            <div class="col-md-6">
+              <CFormLabel>Contact of Mother <span class="text-danger">*</span></CFormLabel>
               <CFormInput v-model="form.contact_of_mother" />
-              
+            </div>
+            <div class="col-md-6">
+              <CFormLabel>Occupation</CFormLabel>
+              <CFormInput v-model="form.occupation_of_mother" />
+            </div>
+            <div class="col-md-6">
+              <CFormLabel>Nationality</CFormLabel>
+              <CFormInput v-model="form.nationality_of_mother" />
+            </div>
+          </div>
+
+          <div class="mt-4 card-switch-premium">
+            <CFormSwitch
+              v-model="form.is_discounted_student"
+              label="Discounted Student"
+              color="primary"
+            />
+          </div>
+        </div>
+      </CTab>
+
+      <!-- ================= HEALTH INFO ================= -->
+      <CTab title="Health Info" itemKey="health-info">
+        <div class="card-premium">
+          <div class="card-title-premium">
+            <CIcon icon="cil-heart" /> Health Information
+          </div>
+
+          <div class="row g-4">
+            <div class="col-md-4">
+              <div class="card-switch-premium">
+                <CFormSwitch v-model="form.is_immunized" label="Immunized" color="success" />
+              </div>
             </div>
 
-            <div class="col-md-4 d-flex align-items-center mt-4">
-  <CFormLabel class="me-3 mb-0">Discounted Student</CFormLabel>
-  <CFormSwitch 
-    color="primary"
-    v-model="form.is_discounted_student"
-    label="Yes"
-  />
-</div>
+            <div class="col-md-4">
+              <div class="card-switch-premium">
+                <CFormSwitch v-model="form.has_allergies" label="Has Allergies" color="warning" />
+              </div>
+            </div>
 
+           <!-- <div class="col-md-4">
+              <div class="card-switch-premium">
+                <CFormSwitch
+                  v-model="form.has_peculiar_health_issues"
+                  label="Special Health Issues"
+                  color="danger"
+                />
+              </div>
+            </div>
+             -->
 
+            <div class="col-12" v-if="form.has_allergies">
+              <CFormLabel>Allergic Foods</CFormLabel>
+              <CFormInput v-model="form.allergic_foods" />
+            </div>
+
+          <!---
+            <div class="col-12" v-if="form.has_peculiar_health_issues">
+              <CFormLabel>Health Notes</CFormLabel>
+              <CFormTextarea v-model="form.health_issues" rows="3" />
+            </div>
+
+            -->
           </div>
-        </CTab>
+        </div>
+      </CTab>
 
-        
-      </CTabs>
+      <!-- ================= OTHER INFO ================= -->
+      <CTab title="Other Info" itemKey="other-info">
+        <div class="card-premium">
+          <div class="card-title-premium">
+            <CIcon icon="cil-notes" /> Additional Information
+          </div>
 
+          <div class="row g-4">
+            <div class="col-md-6">
+              <CFormLabel>Last School Attended</CFormLabel>
+              <CFormInput v-model="form.lastSchoolAttended" />
+            </div>
 
-      
-      <div class="text-end">
+            <div class="col-md-6">
+              <CFormLabel>House Address</CFormLabel>
+              <CFormInput v-model="form.houseNumber" />
+            </div>
 
-              <CButton 
-        color="primary" 
-        class="px-4" 
-        :disabled="loading" 
-        @click="submitForm"
-      >
+            <div class="col-12">
+              <CFormLabel>Additional Info / Health Note</CFormLabel>
+              <CFormTextarea v-model="form.otherRelatedInfo" rows="4" />
+            </div>
+
+            <div class="col-md-6 mt-3 d-flex gap-4">
+              <CFormSwitch v-model="form.active" label="Active Student" />
+
+            </div>
+          </div>
+        </div>
+      </CTab>
+
+    </CTabs>
+
+    <!-- FOOTER -->
+    <div class="footer-premium text-end">
+      <CButton color="light" class="me-3" @click="closeFormModal">Cancel</CButton>
+      <CButton color="primary" @click="submitForm">
         <CIcon icon="cil-save" class="me-2" />
-        <span v-if="loading">Processing...</span>
-        <span v-else>{{ isEdit ? 'Update' : 'Create' }}</span>
+        {{ isEdit ? 'Update Student' : 'Create Student' }}
       </CButton>
+    </div>
 
-      </div>
-    </CModalBody>
-  </CModal>
+  </CModalBody>
+</CModal>
+
+
 
 </template>
 
@@ -271,6 +398,8 @@
 import { useToast } from 'vue-toastification'
 const toast = useToast()
 const loading = ref(false)
+
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 const showDeleteModal = ref(false)
@@ -279,11 +408,11 @@ const students = ref([])
 
 
 
-import { ref, computed,  onMounted } from 'vue'
+
 import {st} from '@/services/api'
 import {create_student} from '@/services/api'
 import {update_student} from '@/services/api'
-import {delete_student} from '@/services/api' 
+import {delete_student} from '@/services/api'
 
 const selectedIds = ref([])
 const showDeleteBulkModal = ref(false)
@@ -299,31 +428,28 @@ function closeBulkDeleteConfirm() {
 }
 
 
+
 async function confirmDeleteBulk() {
-  const ids = [...selectedIds.value]
+  const ids = selectedIds.value.map(n => Number(n)) // 👈 normalize
   if (ids.length === 0) return
 
   isDeleting.value = true
-
   try {
     for (const id of ids) {
       await delete_student(id)
     }
-
     const toDelete = new Set(ids)
-    students.value = students.value.filter(s => !toDelete.has(s.id))
-
+    students.value = students.value.filter(s => !toDelete.has(Number(s.id)))
     selectedIds.value = []
     showDeleteBulkModal.value = false
-
     toast.success('Selected students deleted successfully!')
-  } catch (error) {
-
+  } catch (err) {
     toast.error('Failed to delete selected students.')
   } finally {
     isDeleting.value = false
   }
 }
+
 
 
 async function fetchUsers() {
@@ -332,10 +458,11 @@ async function fetchUsers() {
   try {
     const response = await st();
 
+
     students.value = response.data;
-    
-    
-    
+
+
+
   }  catch (err) {
 
 
@@ -375,9 +502,56 @@ const classOptions = [
   { label: 'Class 6', value: 11 },
   { label: 'JHS 1', value: 12 },
   { label: 'JHS 2', value: 13 },
-  { label: 'JHS 3 ', value: 14 },
+  { label: 'JHS 3', value: 14 },
 
 ]
+
+
+const classValueToLabel = (value) => {
+  if (!value) return ''
+  const match = classOptions.find(c => c.value === Number(value))
+  return match ? match.label : value
+}
+
+
+
+// Accepts: label string ("Class 2"), number (7), numeric string ("7"), or null/undefined.
+// Returns the numeric value from classOptions or '' if not recognized.
+const mapClassStringToValue = (input) => {
+  if (input == null) return ''
+
+  // If it's already a number, make sure it's a valid option
+  if (typeof input === 'number') {
+    return classOptions.some(c => c.value === input) ? input : ''
+  }
+
+  // If it's a numeric string like "7"
+  if (typeof input === 'string' && /^\d+$/.test(input.trim())) {
+    const num = Number(input.trim())
+    return classOptions.some(c => c.value === num) ? num : ''
+  }
+
+  // If it's a label string like "Class 2"
+  if (typeof input === 'string') {
+    const normalized = input.trim().toLowerCase()
+    const match = classOptions.find(cls => cls.label.toLowerCase() === normalized)
+    return match ? match.value : ''
+  }
+
+  // Anything else (object, boolean, etc.)
+  return ''
+}
+
+// Accepts: number (7) or numeric string ("7")
+// Returns the label ("Class 2") or '' if not found
+const toClassLabel = (value) => {
+  if (value == null || value === '') return ''
+  const num = Number(value)
+  const match = classOptions.find(cls => cls.value === num)
+  return match ? match.label : ''
+}
+
+
 
 
 
@@ -391,23 +565,24 @@ const currentStudent = ref(null)
 
 const form = ref({
   // nested user object used throughout the modal
-  
+
     full_name: '',
     gender: '',            // 'male' | 'female'
     nationality: '',
-    date_of_birth: '',     // 'YYYY-MM-DD' string for <input type="date"> 
+    date_of_birth: '',     // 'YYYY-MM-DD' string for <input type="date">
 
   // class selections (strings to satisfy CFormSelect)
   current_class: '',            // e.g., 'jhs 1'
-  classSeekingAdmissionTo: '', // e.g., 'jhs 1'
+
+class_seeking_admission_to: '', // e.g., 'jhs 1'
 
   // other top-level fields
   familyId: '',
-  is_discounted_student: false,
-  immunized: false,
-  allergies: false,
+  is_discounted_student: '',
+  is_immunized: '',
+  has_allergies: '',
   allergic_foods: '',
-  hasPeculiarHealthIssues: false,
+  has_peculiar_health_issues: '',
   health_issues: '',
   name_of_father: '',
   occupation_of_father: '',
@@ -420,9 +595,9 @@ const form = ref({
   lastSchoolAttended: '',
   houseNumber: '',
   otherRelatedInfo: '',
-  active: true,
+  active: '',
 
-  // this looks like a boolean UI flag in your code; rename to avoid confusion with backend staff ID
+
   staff: false,
 
   role: 'STUDENT',
@@ -431,11 +606,21 @@ const form = ref({
 
 /*all refs above*/
 
+
 const filteredStudents = computed(() => {
-  const term = searchTerm.value.trim().toLowerCase()
-  return term ? students.value.filter(s => s.user.full_name.toLowerCase().includes(term)) : students.value
+  const term = (searchTerm.value || '').trim().toLowerCase()
+
+  // 1) Hide inactive
+  // 2) Be null-safe for s.user
+  const base = students.value.filter(s => s?.user?.is_active !== false)
+
+  if (!term) return base
+
+  return base.filter(s => (s?.user?.full_name || '').toLowerCase().includes(term))
 })
-const filteredIds = computed(() => filteredStudents.value.map(s => s.id))
+
+// Keep IDs normalized to numbers so selection/deletion logic is robust
+const filteredIds = computed(() => filteredStudents.value.map(s => Number(s.id)))
 
 const allSelected = computed(() =>
   filteredIds.value.length > 0 && filteredIds.value.every(id => selectedIds.value.includes(id))
@@ -460,13 +645,36 @@ function toggleSelectAll() {
 const openAddModal = () => {
   isEdit.value = false
   currentStudent.value = null
-  form.value = { ...form.value, full_name: '', is_discounted_student:false, contact_of_mother:'', contact_of_father:'', gender: '', nationality: '', date_of_birth: '', current_class: '', familyId: '' }
+  form.value = { ...form.value,  is_immunized: false,
+  has_allergies: false,
+  allergic_foods: '',
+  has_peculiar_health_issues: false,
+  health_issues: '',
+  name_of_father: '',
+  occupation_of_father: '',
+  nationality_of_father: '',
+  name_of_mother: '',
+  occupation_of_mother: '',
+  contact_of_mother: '',
+  nationality_of_mother: '',
+  lastSchoolAttended: '',
+  houseNumber: '',
+  otherRelatedInfo: '',
+  active: true,
+
+class_seeking_admission_to: '', full_name: '', is_discounted_student:false, contact_of_mother:'', contact_of_father:'', gender: '', nationality: '', date_of_birth: '', current_class: '', familyId: '' }
   showFormModal.value = true
 }
 
+const mapClassValueToString = (value) => {
+  const match = classOptions.find(
+    cls => cls.value === Number(value)
+  )
+  return match ? match.label.toLowerCase() : ''
+}
+
+
 const openEditModal = (student) => {
-
-
   isEdit.value = true;
   currentStudent.value = student;
 
@@ -475,16 +683,22 @@ const openEditModal = (student) => {
     gender: student.user.gender || '',
     nationality: student.user.nationality || '',
     date_of_birth: student.user.date_of_birth || '',
+    active: student.user.is_active,
 
-    current_class: student.current_class || '',
-    classSeekingAdmissionTo: student.class_seeking_admission_to || '',
+    current_class: mapClassStringToValue(student.current_class),
+    class_seeking_admission_to: mapClassStringToValue(
+      student.class_seeking_admission_to
+    ),
 
     familyId: '',
 
-    immunized: student.is_immunized === 'yes',
-    allergies: student.has_allergies === 'yes',
+    is_immunized: Boolean(student.is_immunized),
+    has_allergies: Boolean(student.has_allergies),
+    has_peculiar_health_issues: Boolean(student.has_peculiar_health_issues),
+    is_discounted_student: Boolean(student?.is_discounted_student),
+
     allergic_foods: student.allergic_foods || '',
-    hasPeculiarHealthIssues: student.has_peculiar_health_issues === 'yes',
+
     health_issues: student.health_issues || '',
 
     name_of_father: student.name_of_father || '',
@@ -501,7 +715,7 @@ const openEditModal = (student) => {
     houseNumber: student.house_number || '',
     otherRelatedInfo: student.other_related_info || '',
 
-    active: student.user.is_active,
+
 
     staff: false,
     role: student.user.role?.toUpperCase() || 'STUDENT',
@@ -534,22 +748,22 @@ const prepareStudentPayload = (payload) => {
       role: "student",
       gender: payload.gender,
       nationality: payload.nationality,
-      is_active: true,
+      is_active: payload.active,
       is_staff: false,
       date_of_birth: payload.date_of_birth
     },
     current_class: payload.current_class,
     house_number: payload.houseNumber,
     is_discounted_student: payload.is_discounted_student,
-    
+
     last_school_attended: payload.lastSchoolAttended,
-    class_seeking_admission_to: payload.class_seeking_admission_to,
-    is_immunized: payload.immunized ? "yes" : "no",
-    has_allergies: payload.allergies ? "yes" : "no",
+    class_seeking_admission_to: mapClassValueToString(payload.class_seeking_admission_to),
+    is_immunized: payload.is_immunized ? "true" : "false",
+    has_allergies: payload.has_allergies ? "true" : "false",
 
     allergic_foods: payload.allergic_foods,
 
-    hasPeculiarHealthIssues: payload.hasPeculiarHealthIssues ? "yes" : "no",
+    has_peculiar_health_issues: payload.has_peculiar_health_issues ? "true" : "false",
 
     contact_of_father: payload.contact_of_father,
     contact_of_mother: payload.contact_of_mother,
@@ -562,7 +776,7 @@ const prepareStudentPayload = (payload) => {
     nationality_of_father: payload.nationalityOfFather,
     nationality_of_mother: payload.nationalityOfMother,
 
-    
+
     peculiar_health_issues: payload.healthIssues,
     other_related_info: payload.otherRelatedInfo
   };
@@ -620,13 +834,13 @@ const submitForm = async () => {
 
 
     // ✅ Apply defaults BEFORE validation
-    form.value.gender = form.value.gender || 'male';
-    form.value.current_class = form.value.current_class || 'creche';
+
+
     form.value.nationality = form.value.nationality || 'Ghanaian';
     form.value.date_of_birth = form.value.date_of_birth || '2002-02-02';
 
     // ✅ Required field validation
-    
+
 
     // ✅ Clean up form: trim strings and convert empty strings to null
     function deepClean(obj) {
@@ -649,16 +863,29 @@ const submitForm = async () => {
       if (isEdit.value && currentStudent.value) {
       // ✅ Update existing student
       const payload = prepareStudentPayload(cleaned);
+
       const response = await update_student(currentStudent.value.id, payload);
+
+
 
 
 
       // Update table immediately
       const index = students.value.findIndex(s => s.id === currentStudent.value.id);
       if (index !== -1) {
-        students.value[index] = { ...response.data };
+      const existing = students.value[index];
+
+      // Update top-level fields
+      Object.assign(existing, response.data);
+
+      // If user is nested and needs update:
+      if (response.data.user) {
+        Object.assign(existing.user, response.data.user);
       }
 
+  // Force Vue to notice (sometimes needed for nested)
+  // existing._updated = Date.now(); // dummy property trick if still stuck
+}
       closeFormModal();
 
       toast.success('Student updated successfully!', { position: 'top-right' });
@@ -673,6 +900,8 @@ const submitForm = async () => {
       { field: 'full_name', label: 'Full Name' },
       { field: 'contact_of_father', label: 'Contact of Father' },
       { field: 'contact_of_mother', label: 'Contact of Mother' },
+      { field: 'current_class', label: 'Current Class' },
+      { field: 'gender', label: 'Gender' },
     ];
 
     for (const { field, label } of requiredFields) {
@@ -686,13 +915,13 @@ const submitForm = async () => {
     const response = await create_student(payload);
 
 
-  
+
 
     if (response && response.data) {
-    
+
 
       // ✅ Update the table immediately with the new student record
-  
+
       students.value.push(response.data);
 
       toast.success('Student created successfully!', { position: 'top-right' });
@@ -709,7 +938,8 @@ const submitForm = async () => {
     }}
 
   } catch (err) {
-   
+
+
 
 
   const serverData = err?.e?.response
@@ -734,24 +964,24 @@ const deleteStudent = (student) => {
   showDeleteModal.value = true
 }
 
+
+// Single delete
 const confirmDelete = async () => {
   if (!studentToDelete.value) return
   loading.value = true
   showDeleteModal.value = false
 
-  // Store id and name locally to use after delete
-  const studentId = studentToDelete.value.id
+  const studentId = Number(studentToDelete.value.id)   // 👈 normalize
   const studentName = studentToDelete.value.user.full_name
 
   try {
     await delete_student(studentId)
-    
-    // Remove student from local state
-    students.value = students.value.filter(s => s.id !== studentId)
-    
+
+    // Normalize ids on both sides to be safe
+    students.value = students.value.filter(s => Number(s.id) !== studentId)
+
     toast.success(`${studentName} deleted successfully!`, { position: 'top-right' })
   } catch (error) {
-
     toast.error('Failed to delete student. Please try again.', { position: 'top-right' })
   } finally {
     loading.value = false
@@ -767,6 +997,64 @@ const cancelDelete = () => {
 </script>
 
 <style scoped>
+
+
+
+.student-modal-premium .modal-header-premium {
+  background: linear-gradient(to right, #4e73df, #224abe);
+  color: white;
+  padding: 1.2rem 1.5rem;
+  border-bottom: none;
+}
+
+.modal-body-premium {
+  background: #f3f5f7;
+  padding: 2rem;
+}
+
+.premium-tabs .nav-link {
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 10px 18px;
+}
+
+.card-premium {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 1.8rem;
+  border: 1px solid #e6e9ef;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.8rem;
+}
+
+.card-title-premium {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #3c4046;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e6e9ef;
+  margin-bottom: 1.5rem;
+}
+
+.card-switch-premium {
+  background: #ffffff;
+  border: 1px solid #e9ecef;
+  padding: 1rem 1.2rem;
+  border-radius: 10px;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.04);
+}
+
+.footer-premium {
+  border-top: 1px solid #dcdfe3;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+
+
 /* Ensure header actions wrap well on smaller screens */
 @media (max-width: 576px) {
   .gap-2 { row-gap: 0.5rem; }
