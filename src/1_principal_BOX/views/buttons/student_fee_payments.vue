@@ -104,10 +104,10 @@
                   <CTableDataCell>{{ row.student_fee_record?.fee_structure?.term?.name }}</CTableDataCell>
                   <CTableDataCell>{{ row.student_fee_record?.fee_structure?.academic_year?.name }}</CTableDataCell>
                   <CTableDataCell>{{ row.date }}</CTableDataCell>
-                  
-              
-               
-               
+
+
+
+
 
                   <CTableDataCell class="text-end">
                     {{ formatAmount( row.amount) }}
@@ -115,7 +115,7 @@
 
                   <CTableDataCell class="text-end">{{ formatAmount(row.student_fee_record?.balance) }}</CTableDataCell>
 
-              
+
 
                   <CTableDataCell class="text-end">
                     <CButtonGroup size="sm">
@@ -165,7 +165,7 @@
         v-model="recordSearch"
         placeholder="Search fee record ..."
         @input="filterRecords"
-        autocomplete="off"        
+        autocomplete="off"
         />
            <!-- Dropdown for filtered students -->
       <div
@@ -187,8 +187,8 @@
       </div>
     </div>
 
-        
-     
+
+
 
       <div class="mb-3">
         <CFormLabel for="date">Date</CFormLabel>
@@ -229,7 +229,7 @@
       <strong>GHS {{ formatAmount(deleteTarget?.amount) }}</strong>
       for
       <strong>{{ deleteTarget?.studentFeeRecord?.student?.full_name }}</strong>
-      on {{ deleteTarget?.date }}?
+      on {{ deleteTarget?.date }}? This action cannot be reversed.
     </CModalBody>
     <CModalFooter>
       <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">
@@ -257,7 +257,7 @@
   </CModal>
 
 
-  
+
   <!-- Optional: Success toasts -->
   <CToaster placement="top-end">
     <CToast v-for="t in toasts" :key="t.id" :visible="t.visible" :color="t.color" class="text-white mb-2">
@@ -279,7 +279,7 @@ function selectRecord(record){
   formPayment.studentFeeRecordId = record.id
   recordSearch.value = `${record.student.user.full_name} / ${record.fee_structure.grade_class.name} / ${record.fee_structure.term.name} / ${record.fee_structure.academic_year.name}`
   filteredStudentFeeRecords.value = []
-} 
+}
 
 const recordSearch = ref('')
 /**
@@ -295,7 +295,7 @@ const paymentApi = (() => {
     async listPayments() {
       try {
         const response = await get_payments()
-   
+
         // Expecting backend to return: [{ id, studentFeeRecord, date, amount }, ...]
         return response.data || []
       } catch (error) {
@@ -305,11 +305,11 @@ const paymentApi = (() => {
     },
 
     async listStudentFeeRecords() {
-      
 
-      
+
+
       try {
-        const response = await get_student_fee_record() 
+        const response = await get_student_fee_record()
 
         return response.data || []
       } catch (error) {
@@ -318,13 +318,13 @@ const paymentApi = (() => {
       }
     },
 
-    
+
 async createPayment(payload) {
   try {
     // payload: { studentFeeRecordId, date?, amount, payment_method? }
     const response = await create_payment(payload)
 
-   
+
 
     // Axios response: receipt_url is in response.data
     const data = response?.data ?? response
@@ -352,11 +352,11 @@ async createPayment(payload) {
     async deletePayment(id) {
       try {
         const response = await delete_payment(id)
-        
+
         toast.success('Payment deleted successfully.')
         return response.data || response
       } catch (error) {
-      
+
         throw error
       }
     },
@@ -366,7 +366,7 @@ async createPayment(payload) {
         const results = await Promise.all(ids.map(id => delete_payment(id)))
         return { success: true, deleted: results.length }
       } catch (error) {
-       
+
         throw error
       }
     },
@@ -444,10 +444,10 @@ const filteredPayments = computed(() => {
   if (!q) return payments.value
 
   return payments.value.filter((row) => {
-   
+
 
     const fs = row?.student_fee_record?.fee_structure
-    
+
 
     const student = row?.student_fee_record?.student.user
     switch (searchField.value) {
@@ -557,7 +557,7 @@ function closeFormModal() {
 /* ---------- Delete modals ---------- */
 function openSingleDeleteConfirm(row) {
   deleteTarget.value = row
- 
+
 
   showDeleteSingleModal.value = true
 }
@@ -588,8 +588,8 @@ function submitForm() {
 
 const payload = {
   student_fee_record_id: formPayment.studentFeeRecordId,
-  date: formPayment.date 
-    ? formPayment.date.split("T")[0] 
+  date: formPayment.date
+    ? formPayment.date.split("T")[0]
     : today,       // use today's date if undefined
   amount: formPayment.amount,
 };
@@ -662,7 +662,7 @@ function confirmDeleteBulk() {
       showDeleteBulkModal.value = false
       toast.success('Payments deleted successfully.')
 
-      
+
     })
     .finally(() => (isDeleting.value = false))
 }
@@ -673,7 +673,7 @@ onMounted(async () => {
     isLoading.value = true
     const a = await get_student_fee_record()
 
-    
+
 
     studentFeeRecords.value = a.data
 

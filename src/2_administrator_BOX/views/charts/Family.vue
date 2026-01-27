@@ -93,7 +93,16 @@
 
                   <CTableDataCell class="text-end">
                     <CButtonGroup size="sm">
-                     
+
+                      <CButton
+                        color="info"
+                        variant="outline"
+                        class="me-2"
+                        @click="openEditModal(row)"
+                      >
+                        Edit
+                      </CButton>
+
                       <CButton color="danger" variant="outline" @click="openSingleDeleteConfirm(row)">
                         Delete
                       </CButton>
@@ -161,6 +170,15 @@
           {{ st.user.full_name }}
         </option>
       </CFormSelect>
+
+      <div class="col-md-6 mt-3 d-flex gap-4">
+              <CFormSwitch v-model="formFamily.is_active" label="Active Family" />
+      </div>
+
+      <div class="col-12" v-if="formFamily.is_active === false">
+              <CFormLabel>Reason for Deactivating</CFormLabel>
+              <CFormInput v-model="formFamily.deactivation_reason" />
+            </div>
 
       <div class="text-danger small mt-2" v-if="formValidationMessage">
         {{ formValidationMessage }}
@@ -284,6 +302,7 @@ const familyApi = (() => {
     async listFamilies() {
       try {
         const response = await get_families()
+
         return clone(response.data || [])
       } catch (error) {
 s
@@ -308,7 +327,7 @@ s
 
         return clone(response.data || response)
       } catch (error) {
- 
+
         throw error
       }
     },
@@ -318,7 +337,7 @@ s
         const response = await update_family(id, payload)
         return clone(response.data || response)
       } catch (error) {
-   
+
         throw error
       }
     },
@@ -340,7 +359,7 @@ s
         toast.success('Family deleted successfully.')
         return { success: true, ...(response.data || {}) }
       } catch (error) {
-   
+
         throw error
       }
     },
@@ -354,7 +373,7 @@ s
 
         return { success: failCount === 0, deleted: successCount, failed: failCount }
       } catch (error) {
-     
+
         throw error
       }
     },
@@ -382,9 +401,12 @@ const selectedIds = ref([])
 const showFormModal = ref(false)
 const isEdit = ref(false)
 const editingId = ref(null)
+
 const formFamily = reactive({
+  deactivation_reason: '',
   name: '',
   memberIds: [], // array of strings (from <option value>)
+  is_active: true,
 })
 const formValidationMessage = ref('')
 
@@ -415,9 +437,14 @@ function addToast({ message, color = 'success', delay = 2200 }) {
 /* ---------- Computed ---------- */
 const filteredFamilies = computed(() => {
   const q = searchTerm.value.trim().toLowerCase()
-  if (!q) return families.value
-  return families.value.filter(row => String(row?.name || '').toLowerCase().includes(q))
+
+  return families.value
+    .filter(family => family.is_active === true)
+    .filter(family =>
+      !q || String(family.name || '').toLowerCase().includes(q)
+    )
 })
+
 
 const filteredIds = computed(() => filteredFamilies.value.map(r => r.id))
 const allSelected = computed(() =>
@@ -481,7 +508,7 @@ async function loadFamilies() {
   try {
     try {
       const rows = await familyApi.listFamilies()
-    
+
       return (families.value = rows)
     } catch (err) {
       return (errorMessage.value = err?.message || 'Failed to load families.')
@@ -492,7 +519,7 @@ async function loadFamilies() {
 }
 async function loadStudents() {
   const rows = await familyApi.listStudents()
-  
+
   return (students.value = rows)
 }
 
@@ -510,6 +537,7 @@ function openEditModal(row) {
   memberSearch.value = ''
   formValidationMessage.value = ''
   showFormModal.value = true
+  formFamily.is_active = row?.is_active ?? true
 }
 function closeFormModal() {
   if (!isSubmitting.value) {
@@ -564,7 +592,10 @@ function submitForm() {
   const payload = {
     name: formFamily.name,
     member_ids: memberIdsNumeric,
+    is_active: formFamily.is_active,
+    deactivation_reason: formFamily.deactivation_reason,
   }
+
 
   const done = () => (isSubmitting.value = false)
 
@@ -624,7 +655,7 @@ async function confirmDeleteSingle() {
   const familyId = deleteTarget.value.id
   const familyName = deleteTarget.value.name
 
-  
+
 
   try {
     const response = await delete_family(familyId)
@@ -639,7 +670,7 @@ async function confirmDeleteSingle() {
 
 
     let message = `Failed to delete "${familyName}". Connected to another record`
-    
+
     // Detect foreign key / constraint errors from backend
     const backendMsg = err.response?.data?.message || err.response?.data?.error
     if (backendMsg?.toLowerCase().includes('foreign key') || backendMsg?.toLowerCase().includes('constraint')) {

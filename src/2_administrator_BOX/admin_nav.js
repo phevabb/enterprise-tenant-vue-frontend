@@ -15,7 +15,7 @@ export default [
 },
 
 
-  
+
 
   { component: 'CNavTitle', name: 'Student Fees' },
 
@@ -74,6 +74,35 @@ export default [
     icon: 'cil-user',
   },
 
+
+
+
+
+
+  // Deactivation Section
+
+  {
+    component: 'CNavTitle',
+    name: 'Activation',
+  },
+    {
+    component: 'CNavItem',
+    name: 'Deactivated Students',
+    to: { name: 'deactivatedStudents' },
+    icon: 'cil-chart-pie',
+  },
+    {
+      component: 'CNavItem',
+      name: 'Deactivated Families',
+      to: { name: 'academicYears' },
+      icon: 'cil-chart-pie',
+    },
+
+
+
+
+
+    // others section
   { component: 'CNavTitle', name: 'Others' },
 
   {
@@ -94,5 +123,5 @@ export default [
     to: { name: 'terms' },
     icon: cilLibrary,
   },
- 
+
 ]

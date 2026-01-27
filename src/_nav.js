@@ -8,7 +8,7 @@ export default [
       color: 'primary',
       text: 'NEW',
     },
-    role: ['administrator', 'principal'], 
+    role: ['administrator', 'principal'],
   },
   {
     component: 'CNavTitle',
@@ -18,7 +18,7 @@ export default [
     component: 'CNavItem',
     name: 'Fee Structure',
     role: ['administrator'],
-    to: '/fees/student-fee-structure',  /* CHANGE HERE */    
+    to: '/fees/student-fee-structure',  /* CHANGE HERE */
     icon: 'cil-pencil',
   },
   {
@@ -68,6 +68,7 @@ export default [
     component: 'CNavItem',
     name: 'Staff Profiles',
     to: '/staff',
+    role: ['administrator'],
     icon: 'cil-chart-pie',
   },
   {
@@ -76,6 +77,29 @@ export default [
     to: '/student',
     icon: 'cil-chart-pie',
   },
+
+
+  {
+    component: 'CNavTitle',
+    name: 'Activation',
+  },
+   {
+    component: 'CNavItem',
+    name: 'Deactivated Students',
+    to: '/staff',
+    role: ['administrator'],
+    icon: 'cil-chart-pie',
+  },
+  {
+    component: 'CNavItem',
+    name: 'Deactivated Families',
+    to: '/student',
+    role: ['administrator'],
+    icon: 'cil-chart-pie',
+  },
+
+
+
   {
     component: 'CNavTitle',
     name: 'Others',

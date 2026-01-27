@@ -124,17 +124,10 @@ export const delete_student = (id) => api.delete(`student/students/${id}/`);
 
 // student fee records APIs
 export const get_student_fee_record = () => api.get("fees/student-fee-records");
-
 export const get_expected_fees_insight = () => api.get("fees/student-fee-records/expected_fees/");
 export const get_collected_vs_pending_insight = () => api.get("fees/student-fee-records/collection_summary/");
 export const percentage_paid_by_class_insight = () => api.get("fees/student-fee-records/unpaid_percentage_by_class/");
 export const students_with_balance_insight = () => api.get("fees/student-fee-records/students_with_balance/");
-
-
-
-
-
-
 export const create_student_fee_record = (payload) => api.post("fees/student-fee-records/", payload);
 export const update_student_fee_record = (id, payload) => api.put(`fees/student-fee-records/${id}/`, payload);
 export const delete_student_fee_record = (id) => api.delete(`fees/student-fee-records/${id}/`);
@@ -183,10 +176,16 @@ export const update_term = (id, payload) => api.put(`student/terms/${id}/`, payl
 export const delete_term = (id) => api.delete(`student/terms/${id}/`);
 
 
+// DEACTIVATION COUNT
+export const get_student_deactivation_count = () => api.get("deactivated-students/count/");
 
 
-
-
+// DEACTIVATED APIS
+export const get_deactivated_students = () => api.get("student/deactivated-students/");
+export const activate_deactivated_student = (id) => api.post(`student/deactivated-students/${id}/activate/`);
+export const update_deactivated_student = (id, payload) => api.put(`student/deactivated-students/${id}/`, payload);
+export const delete_deactivated_student = (id) => api.delete(`student/deactivated-students/${id}/`);
+export const activate_student = (id) => api.post(`student/deactivated-students/${id}/activate/`);
 
 
 

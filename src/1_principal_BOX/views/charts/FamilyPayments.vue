@@ -95,12 +95,12 @@
     </CCol>
   </CRow>
 
-  
+
 
 
 
   <!-- Modal -->
- 
+
 <CModal :visible="showFormModal" @close="closeFormModal">
   <CModalHeader>
     <CModalTitle>{{ isEdit ? 'Edit Payment' : 'Add Payment' }}</CModalTitle>
@@ -142,7 +142,7 @@
   </CModalBody>
 </CModal>
 
-  
+
 
 <CModal :visible="showDeleteSingleModal" @close="closeDeleteSingleModal">
   <CModalHeader>
@@ -150,7 +150,7 @@
   </CModalHeader>
 
   <CModalBody>
-    Are you sure you want to delete this payment?
+    Are you sure you want to delete this payment? This action cannot be reversed.
   </CModalBody>
 
   <div class="d-flex justify-content-end gap-2 p-3">
@@ -189,7 +189,7 @@
 </CModal>
 
 
-  
+
 </template>
 
 <script setup>
@@ -252,7 +252,7 @@ const fetchFamilyFeeRecords = async () => {
 const listPayments = async () => {
   try {
     const res = await get_family_payments()
-    
+
     return res.data || []
   } catch (err) {
     toast.error('Failed to fetch payments.', { position: 'top-right' })
@@ -280,7 +280,7 @@ const createPayment = async (data) => {
     return res.data
 
   } catch (err) {
-    
+
     const backendMsg = err.response?.data?.message?.toLowerCase() || ''
     let msg = 'Failed to add payment.'
 
@@ -313,7 +313,7 @@ const updatePayment = async (id, data) => {
 }
 
 const deletePayment = async (id) => {
-  
+
   try {
     await delete_family_payment(id)
     // Remove from local payments array
@@ -491,7 +491,7 @@ const handleBulkDelete = async () => {
   } finally {
     isDeletingBulk.value = false
   }
-} 
+}
 
 </script>
 

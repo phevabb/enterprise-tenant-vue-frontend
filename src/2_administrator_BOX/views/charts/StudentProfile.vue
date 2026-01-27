@@ -135,7 +135,7 @@
     <CModalTitle>Confirm Deletion</CModalTitle>
   </CModalHeader>
   <CModalBody>
-    Are you sure you want to delete <strong>{{ studentToDelete?.user?.full_name }}</strong>?
+    Are you sure you want to delete <strong>{{ studentToDelete?.user?.full_name }}</strong>? This action cannot be reversed.
   </CModalBody>
   <CModalFooter>
     <CButton color="secondary" variant="outline" @click="cancelDelete">Cancel</CButton>
@@ -371,6 +371,13 @@
               <CFormSwitch v-model="form.active" label="Active Student" />
 
             </div>
+
+             <div class="col-12" v-if="form.active === false">
+              <CFormLabel>Reason for Deactivating</CFormLabel>
+              <CFormInput v-model="form.deactivation_reason" />
+            </div>
+
+
           </div>
         </div>
       </CTab>
@@ -457,6 +464,7 @@ async function fetchUsers() {
 
   try {
     const response = await st();
+
 
 
     students.value = response.data;
@@ -565,7 +573,7 @@ const currentStudent = ref(null)
 
 const form = ref({
   // nested user object used throughout the modal
-
+    id:'',
     full_name: '',
     gender: '',            // 'male' | 'female'
     nationality: '',
@@ -579,6 +587,7 @@ class_seeking_admission_to: '', // e.g., 'jhs 1'
   // other top-level fields
   familyId: '',
   is_discounted_student: '',
+  deactivation_reason: '',
   is_immunized: '',
   has_allergies: '',
   allergic_foods: '',
@@ -679,6 +688,7 @@ const openEditModal = (student) => {
   currentStudent.value = student;
 
   form.value = {
+    id: student.user.id,
     full_name: student.user.full_name || '',
     gender: student.user.gender || '',
     nationality: student.user.nationality || '',
@@ -744,6 +754,7 @@ const closeFormModal = () => {
 const prepareStudentPayload = (payload) => {
   return {
     user: {
+      id:payload.id,
       full_name: payload.full_name,
       role: "student",
       gender: payload.gender,
@@ -755,6 +766,7 @@ const prepareStudentPayload = (payload) => {
     current_class: payload.current_class,
     house_number: payload.houseNumber,
     is_discounted_student: payload.is_discounted_student,
+
 
     last_school_attended: payload.lastSchoolAttended,
     class_seeking_admission_to: mapClassValueToString(payload.class_seeking_admission_to),
@@ -776,7 +788,7 @@ const prepareStudentPayload = (payload) => {
     nationality_of_father: payload.nationalityOfFather,
     nationality_of_mother: payload.nationalityOfMother,
 
-
+    deactivation_reason: payload.deactivation_reason,
     peculiar_health_issues: payload.healthIssues,
     other_related_info: payload.otherRelatedInfo
   };
@@ -838,6 +850,7 @@ const submitForm = async () => {
 
     form.value.nationality = form.value.nationality || 'Ghanaian';
     form.value.date_of_birth = form.value.date_of_birth || '2002-02-02';
+    form.value.deactivation_reason = form.value.deactivation_reason || 'Not specified';
 
     // ✅ Required field validation
 
@@ -863,6 +876,7 @@ const submitForm = async () => {
       if (isEdit.value && currentStudent.value) {
       // ✅ Update existing student
       const payload = prepareStudentPayload(cleaned);
+
 
       const response = await update_student(currentStudent.value.id, payload);
 

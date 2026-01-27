@@ -86,7 +86,7 @@
                 <CTableRow v-for="(row, idx) in filteredFeeStructures" :key="row.id">
                   <CTableDataCell class="text-center">
                     <CFormCheck v-model="selectedIds" :value="row.id" aria-label="Select row" />
-                  </CTableDataCell> 
+                  </CTableDataCell>
 
 
                   <CTableHeaderCell scope="row">{{ idx + 1 }}</CTableHeaderCell>
@@ -181,7 +181,7 @@
     <CModalHeader><CModalTitle>Delete Fee Structure</CModalTitle></CModalHeader>
     <CModalBody>
       Are you sure you want to delete
-      <strong>{{ deleteTarget?.grade_class?.name }} / {{ deleteTarget?.term?.name }} / {{ deleteTarget?.academic_year?.name }}</strong>?
+      <strong>{{ deleteTarget?.grade_class?.name }} / {{ deleteTarget?.term?.name }} / {{ deleteTarget?.academic_year?.name }}</strong>? This action cannot be reversed.
     </CModalBody>
     <CModalFooter>
       <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">Cancel</CButton>
@@ -210,7 +210,7 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useToast } from 'vue-toastification'
 
-const toast = useToast()  
+const toast = useToast()
 
 
 /**
@@ -244,7 +244,7 @@ const feeStructureApi = {
   async listFeeStructures() {
     // Assuming you have an API for fetching all fee structures
     const res = await get_fee_structures()
- 
+
     return res?.data || []
   },
 
@@ -258,11 +258,11 @@ const feeStructureApi = {
 
     const res = await update_fee_structure(id, payload)
 
-   
-    
+
+
     return res?.data
-    
-    
+
+
   },
 
   async deleteFeeStructure(id) {
@@ -479,7 +479,7 @@ function submitForm() {
 
         feeStructures.value = [...feeStructures.value, created]
 
-        
+
         showFormModal.value = false
         toast.success('Fee structure added successfully.', { position: 'top-right' })
 
@@ -509,7 +509,7 @@ async function confirmDeleteSingle() {
       position: 'top-right',
     })
   } catch (error) {
-  
+
 
     // Extract associated record name if backend provides it
     const associatedRecordName =

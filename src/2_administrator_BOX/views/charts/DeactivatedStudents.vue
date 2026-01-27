@@ -4,7 +4,7 @@
       <CCard class="mb-4">
         <CCardHeader>
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-            <strong>Staff Members</strong>
+            <strong>Deactivated Students</strong>
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <CFormInput
@@ -16,9 +16,7 @@
               />
 
 
-              <CButton color="primary" size="sm" @click="openAddModal">
-                Add Staff
-              </CButton>
+
             </div>
           </div>
         </CCardHeader>
@@ -35,10 +33,10 @@
                 <CTableHeaderCell>#</CTableHeaderCell>
                 <CTableHeaderCell>Name</CTableHeaderCell>
 
-                <CTableHeaderCell>Gender</CTableHeaderCell>
+                <CTableHeaderCell>Reason</CTableHeaderCell>
 
 
-                <CTableHeaderCell>Status</CTableHeaderCell>
+                <CTableHeaderCell>Date</CTableHeaderCell>
                 <CTableHeaderCell class="text-end">Actions</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
@@ -49,16 +47,16 @@
                 <CTableHeaderCell>{{ idx + 1 }}</CTableHeaderCell>
                 <CTableDataCell>{{ row.user.full_name }}</CTableDataCell>
 
-                <CTableDataCell>{{ row.user.gender }}</CTableDataCell>
+                <CTableDataCell>{{ row.deactivation_reason }}</CTableDataCell>
 
 
-                <CTableDataCell>
-                  <CBadge :color="row.user.is_active ? 'success' : 'secondary'">
-                    {{ row.user.is_active ? 'Active' : 'Inactive' }}
-                  </CBadge>
-                </CTableDataCell>
+                <CTableDataCell>{{ row.date_deactivated }}</CTableDataCell>
+
+
                 <CTableDataCell class="text-end">
                   <CButtonGroup size="sm">
+                    <CButton color="primary" variant="outline" @click="activateStudent(row)">Activate</CButton>
+
                     <CButton color="secondary" variant="outline" @click="openEditModal(row)">Edit</CButton>
                     <CButton color="danger" variant="outline" @click="deleteStaff(row)">Delete</CButton>
                   </CButtonGroup>
@@ -67,7 +65,7 @@
 
               <CTableRow v-if="!isLoading && filteredStaff.length === 0">
                 <CTableDataCell colspan="9" class="text-center text-body-secondary">
-                  No staff found<span v-if="searchTerm"> for “{{ searchTerm }}”.</span>
+                  No student found<span v-if="searchTerm"> for “{{ searchTerm }}”.</span>
                 </CTableDataCell>
               </CTableRow>
             </CTableBody>
@@ -82,7 +80,7 @@
     <CModalTitle>Confirm Deletion</CModalTitle>
   </CModalHeader>
   <CModalBody>
-    Are you sure you want to delete <strong>{{ staffToDelete?.full_name }}</strong>? This action cannot be reversed.
+    Are you sure you want to delete <strong>{{ staffToDelete?.user.full_name }}</strong>? This action cannot be reversed.
   </CModalBody>
   <CModalFooter>
     <CButton color="secondary" variant="outline" @click="cancelDelete">Cancel</CButton>
@@ -91,31 +89,38 @@
 </CModal>
 
 
+   <CModal :visible="showActivateModal" @close="cancelActivate" size="md">
+  <CModalHeader class="bg-success text-white">
+    <CModalTitle>Confirm Activation</CModalTitle>
+  </CModalHeader>
+  <CModalBody>
+    Are you sure you want to activate <strong>{{ studentToDelete?.user.full_name }}</strong>? This action will restore student's history.
+  </CModalBody>
+  <CModalFooter>
+    <CButton color="secondary" variant="outline" @click="cancelActivate">Cancel</CButton>
+    <CButton color="danger" @click="confirmActivate">Activate</CButton>
+  </CModalFooter>
+</CModal>
+
+
 
   <!-- Modal -->
   <CModal :visible="showFormModal" @close="closeFormModal">
     <CModalHeader>
-      <CModalTitle>{{ isEdit ? 'Edit Staff' : 'Add Staff' }}</CModalTitle>
+      <CModalTitle> Edit Reason </CModalTitle>
     </CModalHeader>
     <CModalBody>
       <div class="mb-3">
-        <CFormLabel>Full Name</CFormLabel>
-        <CFormInput v-model="form.user.full_name" />
+        <CFormLabel>Edit Reason</CFormLabel>
+        <CFormInput v-model="form.deactivation_reason" />
       </div>
 
       <div class="mb-3">
-      <CFormLabel>Gender</CFormLabel>
-      <CFormSelect v-model="form.user.gender">
-        <option disabled value="">Select Gender</option>
-        <option value="male">Male</option>
-        <option value="female">Female</option>
-      </CFormSelect>
+
+
     </div>
 
-    <div class="mb-3">
-      <CFormLabel>Date of Birth</CFormLabel>
-      <CFormInput v-model="form.user.date_of_birth" type="date" />
-    </div>
+
 
 
 
@@ -129,10 +134,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import {
+  get_deactivated_students,
+  activate_deactivated_student,
   get_staff,
   create_staff,
-  update_staff,
-  delete_staff,
+  update_deactivated_student,
+  delete_deactivated_student,
 } from '@/services/api'
 
 const loading = ref(false)
@@ -142,16 +149,15 @@ const staff = ref([])
 import { useToast } from 'vue-toastification'
 import { useRouter } from 'vue-router'
 
-import {
-  CFormCheck, CFormInput, CButton, CButtonGroup, CModal, CModalHeader, CModalTitle, CModalBody,
-  CAlert, CSpinner, CFormLabel, CFormSelect, CBadge, CRow, CCol, CCard, CCardHeader, CCardBody,
-  CTable, CTableHead, CTableBody, CTableRow, CTableHeaderCell, CTableDataCell
-} from '@coreui/vue'
 
 
 const router = useRouter()
 const showDeleteModal = ref(false)
+const showActivateModal = ref(false)
+
 const staffToDelete = ref(null)
+const studentToDelete = ref(null)
+
 const toast = useToast()
 
 
@@ -165,7 +171,7 @@ const confirmDelete = async () => {
     const idtodelete = staffToDelete.value.id
     const thename = staffToDelete.value.user.full_name
 
-    await delete_staff(staffToDelete.value.id)
+    await delete_deactivated_student(staffToDelete.value.id)
     staff.value = staff.value.filter(s => s.id !== idtodelete)
 
 
@@ -181,12 +187,44 @@ const confirmDelete = async () => {
 }
 
 
+const confirmActivate = async () => {
+  if (!studentToDelete.value) return
+  loading.value = true
+  showActivateModal.value = false
+
+  try {
+    const idtoactivate = studentToDelete.value.id
+
+
+
+    const UserIdToActivate = idToAactivate.value
+
+    const thename = studentToDelete.value.user.full_name
+
+    await activate_deactivated_student(idtoactivate)
+
+    staff.value = staff.value.filter(s => s.id !== idtoactivate)
+
+    toast.success(`${thename} activated successfully!`, {
+      position: 'top-right'
+    })
+  } catch (error) {
+    toast.error('Failed to activate student. Please try again.', {
+      position: 'top-right'
+    })
+  } finally {
+    loading.value = false
+    studentToDelete.value = null
+  }
+}
+
 
 async function fetchStaff() {
   loading.value = true
   errorMessage.value = ''
   try {
-    const response = await get_staff()
+    const response = await get_deactivated_students()
+
     staff.value = response.data
   } catch (err) {
 
@@ -227,17 +265,19 @@ const isLoading = ref(false)
 const searchTerm = ref('')
 const selectedIds = ref([])
 const showFormModal = ref(false)
+const idToAactivate = ref(null)
 const isEdit = ref(false)
 const currentStaff = ref(null)
 
 const form = ref({
   user: {
-    full_name: '',
+
     gender: '',            // 'male' | 'female'
 
     date_of_birth: '',     // 'YYYY-MM-DD' string for <input type="date">
     role: "staff"
-  }
+  },
+  deactivation_reason: ''
 })
 
 
@@ -246,9 +286,23 @@ const deleteStaff = (staff) => {
   showDeleteModal.value = true
 }
 
+
+const activateStudent = (staff) => {
+  studentToDelete.value = staff
+  idToAactivate.value = staff.user.id
+  showActivateModal.value = true
+}
+
+
+
 const cancelDelete = () => {
   showDeleteModal.value = false
   staffToDelete.value = null
+}
+
+const cancelActivate = () => {
+  showActivateModal.value = false
+  studentToDelete.value = null
 }
 
 
@@ -271,22 +325,7 @@ const toggleSelectAll = () => {
 }
 
 
-const openAddModal = () => {
-  isEdit.value = false;
-  currentStaff.value = null;
 
-  form.value = {
-    user: {
-      full_name: '',
-      gender: '',
-
-      date_of_birth: '', // match backend field name
-      role: 'staff'
-    }
-  };
-
-  showFormModal.value = true;
-};
 
 const openEditModal = (staffMember) => {
   isEdit.value = true;
@@ -297,11 +336,11 @@ const openEditModal = (staffMember) => {
   form.value = {
     user: {
       full_name: user.full_name || '',
-      gender: user.gender ? user.gender.toLowerCase() : '',
+      id: user.id || '',
 
-      date_of_birth: user.date_of_birth || '',
       role: user.role || 'staff'
-    }
+    },
+    deactivation_reason: staffMember.deactivation_reason || ''
   };
 
   showFormModal.value = true;
@@ -343,7 +382,8 @@ const submitForm = async () => {
 
 
     if (isEdit.value && currentStaff.value) {
-      const response = await update_staff(currentStaff.value.id, cleaned);
+      const response = await update_deactivated_student(currentStaff.value.id, cleaned);
+
       toast.success("Staff updated!");
     } else {
       let finalPayload = JSON.parse(JSON.stringify(cleaned));

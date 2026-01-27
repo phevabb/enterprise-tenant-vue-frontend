@@ -1,5 +1,5 @@
 <template>
-   
+
 
   <CRow>
     <CCol :xs="12">
@@ -89,7 +89,7 @@
                 <CTableRow v-for="(row, idx) in filteredFeeStructures" :key="row.id">
                   <CTableDataCell class="text-center">
                     <CFormCheck v-model="selectedIds" :value="row.id" aria-label="Select row" />
-                  </CTableDataCell> 
+                  </CTableDataCell>
 
 
                   <CTableHeaderCell scope="row">{{ idx + 1 }}</CTableHeaderCell>
@@ -138,7 +138,7 @@
   <!-- Add/Edit Modal -->
  <CModal :visible="showFormModal" @close="closeFormModal" size="xl">
 
-  
+
 
 
   <CModalHeader>
@@ -157,7 +157,7 @@
 
     <!-- Grade/Class -->
        <div v-if="!formFee.is_discount" class="mb-3">
-        
+
     <div class="mb-3">
       <CFormLabel for="grade_class">Class (Grade)</CFormLabel>
       <CFormSelect id="grade_class" v-model="formFee.gradeClassId">
@@ -165,10 +165,10 @@
         <option v-for="gc in gradeClasses" :key="gc.id" :value="gc.id">{{ gc.name }}</option>
       </CFormSelect>
     </div>
-    </div>   
+    </div>
 
     <!-- Term -->
-   
+
     <div class="mb-3">
       <CFormLabel for="term">Term</CFormLabel>
       <CFormSelect id="term" v-model="formFee.termId">
@@ -176,7 +176,7 @@
         <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.name }}</option>
       </CFormSelect>
     </div>
-     
+
 
     <!-- Amount -->
     <div class="mb-3">
@@ -209,7 +209,7 @@
     :multiple="true"
     :close-on-select="false"
     placeholder="Search and select students"
-    :reduce="opt => opt.value" 
+    :reduce="opt => opt.value"
   />
 </div>
 
@@ -225,7 +225,7 @@
     </CButton>
 
     <CButton color="primary" @click="submitForm" :disabled="isSubmitting">
-      <CSpinner size="sm" v-if="isSubmitting" class="me-2" /> 
+      <CSpinner size="sm" v-if="isSubmitting" class="me-2" />
       {{ isEdit ? 'Update' : 'Save' }}
     </CButton>
   </CModalFooter>
@@ -239,7 +239,7 @@
     <CModalHeader><CModalTitle>Delete Fee Structure</CModalTitle></CModalHeader>
     <CModalBody>
       Are you sure you want to delete
-      <strong>{{ deleteTarget?.grade_class?.name }} / {{ deleteTarget?.term?.name }} / {{ deleteTarget?.academic_year?.name }}</strong>?
+      <strong>{{ deleteTarget?.grade_class?.name }} / {{ deleteTarget?.term?.name }} / {{ deleteTarget?.academic_year?.name }}</strong>? This action cannot be reversed.
     </CModalBody>
     <CModalFooter>
       <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">Cancel</CButton>
@@ -271,7 +271,7 @@ import "vue3-select/dist/vue3-select.css";
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useToast } from 'vue-toastification'
 
-const toast = useToast()  
+const toast = useToast()
 
 
 
@@ -294,12 +294,12 @@ const feeStructureApi = {
     return res?.data || []
   },
 
-  
+
 
   async listFeeStructures() {
     // Assuming you have an API for fetching all fee structures
     const res = await get_fee_structures()
- 
+
     return res?.data || []
   },
 
@@ -313,11 +313,11 @@ const feeStructureApi = {
 
     const res = await update_fee_structure(id, payload)
 
-   
-    
+
+
     return res?.data
-    
-    
+
+
   },
 
   async deleteFeeStructure(id) {
@@ -560,8 +560,8 @@ async function fetchUsers() {
   try {
     const response = await st();
     studentOptions.value = response.data;
-    
-    
+
+
   }  catch (err) {
     if (err.code === 'ERR_NETWORK') {
       toast.error('Network error. Please check your internet connection.', { position: 'top-right' });
@@ -572,7 +572,7 @@ async function fetchUsers() {
       // Unknown error
       toast.error('An unexpected error occurred while fetching students.', { position: 'top-right' });
     }
-  } 
+  }
 }
 
 
@@ -668,7 +668,7 @@ function submitForm() {
 
         feeStructures.value = [...feeStructures.value, created]
 
-        
+
         showFormModal.value = false
         toast.success('Fee structure added successfully.', { position: 'top-right' })
 
@@ -698,7 +698,7 @@ async function confirmDeleteSingle() {
       position: 'top-right',
     })
   } catch (error) {
-  
+
 
     // Extract associated record name if backend provides it
     const associatedRecordName =

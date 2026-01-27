@@ -415,7 +415,7 @@ const widgetStatsE = {
           </CWidgetStatsC>
           <CWidgetStatsC
             :progress="{ color: 'success', value: 75 }"
-            title="New Clients"
+            title="Active Famelies"
             value="385"
           >
             <template #icon><CIcon icon="cil-user-follow" height="36" /></template>

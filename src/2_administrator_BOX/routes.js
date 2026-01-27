@@ -62,6 +62,28 @@ export const adminRoutes = {
         import('@/2_administrator_BOX/views/charts/StaffProfile.vue'),
       meta: { roles: ['administrator'] },
     },
+
+
+
+    // Deactivated Students Route
+    {
+      path: 'deactivatedStudents',
+      name: 'deactivatedStudents',
+      component: () =>
+        import('@/2_administrator_BOX/views/charts/DeactivatedStudents.vue'),
+      meta: { roles: ['administrator'] },
+    },
+
+    // Deactivated Families Route
+    {
+      path: 'deactivatedFamilies',
+      name: 'deactivatedFamilies',
+      component: () =>
+        import('@/2_administrator_BOX/views/charts/StaffProfile.vue'),
+      meta: { roles: ['administrator'] },
+    },
+
+
     {
       path: 'student',
       name: 'studentProfile',
@@ -105,6 +127,6 @@ export const adminRoutes = {
       meta: { roles: ['administrator'] },
     },
 
-    
+
   ],
 }

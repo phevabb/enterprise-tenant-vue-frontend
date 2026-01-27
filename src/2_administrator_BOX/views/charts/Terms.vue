@@ -63,7 +63,7 @@
       <CModalTitle>Confirm Deletion</CModalTitle>
     </CModalHeader>
     <CModalBody>
-      Are you sure you want to delete <strong>{{ termToDelete?.name }}</strong> for <strong>{{ termToDelete?.academicYear?.name }}</strong>?
+      Are you sure you want to delete <strong>{{ termToDelete?.name }}</strong> for <strong>{{ termToDelete?.academicYear?.name }}</strong>? This action cannot be reversed.
     </CModalBody>
     <CModalFooter>
       <CButton color="secondary" variant="outline" @click="cancelDelete">Cancel</CButton>
@@ -181,7 +181,7 @@ const fetchAcademicYears = async () => {
     const response = await get_academic_years()
     academicYears.value = response.data
   } catch (err) {
-    
+
   } finally {
     academicYearsLoading.value = false
   }
@@ -196,7 +196,7 @@ const openAddModal = () => {
   isEdit.value = false
   currentTerm.value = null
   form.value = { name: '', academicYearId: '' }
-  
+
   showFormModal.value = true
 }
 
@@ -217,7 +217,7 @@ const closeFormModal = () => {
 }
 
 const submitForm = async () => {
- 
+
   if (!form.value.name || !form.value.academicYearId) {
     toast.error('Please fill in all fields.', { position: 'top-right' })
     return
@@ -233,7 +233,7 @@ const submitForm = async () => {
     if (isEdit.value && currentTerm.value) {
       const payload = {
   name: form.value.name,
-  academic_year_id:  form.value.academicYearId 
+  academic_year_id:  form.value.academicYearId
 }
 
       const t = await update_term(currentTerm.value.id, payload)

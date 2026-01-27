@@ -19,7 +19,7 @@ import WidgetsStatsD from './../widgets/WidgetsStatsTypeD.vue'
     <CRow>
       <CCol :md="12">
         <CCard class="mb-4">
-         
+
 
 
 
@@ -34,20 +34,20 @@ import WidgetsStatsD from './../widgets/WidgetsStatsTypeD.vue'
 
           <CCardHeader> Traffic &amp; Sales </CCardHeader>
 
-          
+
           <CCardBody>
             <CRow>
               <CCol :sm="12" :lg="6">
                 <CRow>
                   <CCol :xs="6">
                     <div class="border-start border-start-4 border-start-info py-1 px-3 mb-3">
-                      <div class="text-body-secondary small">New Clients</div>
+                      <div class="text-body-secondary small">Active Families</div>
                       <div class="fs-5 fw-semibold">9,123</div>
                     </div>
                   </CCol>
                   <CCol :xs="6">
                     <div class="border-start border-start-4 border-start-danger py-1 px-3 mb-3">
-                      <div class="text-body-secondary small">Recurring Clients</div>
+                      <div class="text-body-secondary small">Deactivated Families</div>
                       <div class="fs-5 fw-semibold">22,643</div>
                     </div>
                   </CCol>

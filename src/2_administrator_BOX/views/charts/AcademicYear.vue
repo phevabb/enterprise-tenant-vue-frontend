@@ -60,7 +60,7 @@
     <CModalTitle>Confirm Deletion</CModalTitle>
   </CModalHeader>
   <CModalBody>
-    Are you sure you want to delete <strong>{{ yearToDelete?.name }}</strong>?
+    Are you sure you want to delete <strong>{{ yearToDelete?.name }}</strong>?This action cannot be reversed.
   </CModalBody>
   <CModalFooter>
     <CButton color="secondary" variant="outline" @click="cancelDelete">Cancel</CButton>

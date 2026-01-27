@@ -72,7 +72,7 @@
     <CModalTitle>Confirm Deletion</CModalTitle>
   </CModalHeader>
   <CModalBody>
-    Are you sure you want to delete <strong>{{ classToDelete?.name }}</strong>?
+    Are you sure you want to delete <strong>{{ classToDelete?.name }}</strong>? This action cannot be reversed.
   </CModalBody>
   <CModalFooter>
     <CButton color="secondary" variant="outline" @click="cancelDelete">Cancel</CButton>
@@ -103,10 +103,10 @@
 
       <div class="text-end mt-4">
 
-        <CButton 
-        color="primary" 
-        class="px-4" 
-        :disabled="loading" 
+        <CButton
+        color="primary"
+        class="px-4"
+        :disabled="loading"
         @click="submitForm"
       >
         <CIcon icon="cil-save" class="me-2" />
@@ -140,7 +140,7 @@ async function fetchClasses() {
     const response = await get_classes();
 
     const response_for_staff = await get_staff();
-  
+
 
 
     staff.value = response_for_staff.data.map(item => item.user);
@@ -280,7 +280,7 @@ const submitForm = async () => {
       return;
     }
 
-   
+
 
     const cleanedForm2 = {
   name: form.value.name.trim(),
