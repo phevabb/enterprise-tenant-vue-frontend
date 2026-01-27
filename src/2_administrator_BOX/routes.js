@@ -100,6 +100,14 @@ export const adminRoutes = {
     },
 
     {
+      path: 'deactivated-families',
+      name: 'deactivatedFamilies',
+      component: () =>
+        import('@/2_administrator_BOX/views/charts/DeactivatedFamilies.vue'),
+      meta: { roles: ['administrator'] },
+    },
+
+    {
       path: 'admin_change_password',
       name: 'admin_change_password',
       component: () =>

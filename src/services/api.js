@@ -8,10 +8,10 @@ import axios from 'axios'
 
 
 const api = axios.create({
-  // baseURL: 'http://127.0.0.1:8000/api/',
+ //baseURL: 'http://127.0.0.1:8000/api/',
 
 
-  baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
+ baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
 
 
   headers: {
@@ -180,15 +180,18 @@ export const delete_term = (id) => api.delete(`student/terms/${id}/`);
 export const get_student_deactivation_count = () => api.get("deactivated-students/count/");
 
 
-// DEACTIVATED APIS
+//  STUDENT DEACTIVATED APIS
 export const get_deactivated_students = () => api.get("student/deactivated-students/");
 export const activate_deactivated_student = (id) => api.post(`student/deactivated-students/${id}/activate/`);
 export const update_deactivated_student = (id, payload) => api.put(`student/deactivated-students/${id}/`, payload);
 export const delete_deactivated_student = (id) => api.delete(`student/deactivated-students/${id}/`);
-export const activate_student = (id) => api.post(`student/deactivated-students/${id}/activate/`);
 
 
-
+// FAMILY DEACTIVATED APIS
+export const get_deactivated_families = () => api.get("family-fees/deactivated-families/");
+export const activate_deactivated_family = (id) => api.post(`family-fees/deactivated-families/${id}/activate/`);
+export const update_deactivated_family = (id, payload) => api.put(`family-fees/deactivated-families/${id}/`, payload);
+export const delete_deactivated_family = (id) => api.delete(`family-fees/deactivated-families/${id}/`);
 
 
 

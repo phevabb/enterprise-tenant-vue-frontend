@@ -248,9 +248,13 @@
     <CModalHeader><CModalTitle>Delete Family</CModalTitle></CModalHeader>
     <CModalBody>
       Delete family <strong>{{ deleteTarget?.name }}</strong>?
-      <div class="text-body-secondary small mt-1" v-if="deleteTarget?.members?.length">
-        This family has {{ deleteTarget.members.length }} member(s).
-      </div>
+      <div
+  class="text-danger small mt-1 fw-semibold"
+  v-if="deleteTarget?.members?.length"
+>
+  ⚠️ This will delete the family and remove all its member associations.
+</div>
+
     </CModalBody>
     <CModalFooter>
       <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">
@@ -334,6 +338,8 @@ s
 
     async updateFamily(id, payload /* { name, memberIds } */) {
       try {
+
+
         const response = await update_family(id, payload)
         return clone(response.data || response)
       } catch (error) {
@@ -593,7 +599,8 @@ function submitForm() {
     name: formFamily.name,
     member_ids: memberIdsNumeric,
     is_active: formFamily.is_active,
-    deactivation_reason: formFamily.deactivation_reason,
+    deactivation_reason: formFamily.deactivation_reason || "Not Specified",
+
   }
 
 

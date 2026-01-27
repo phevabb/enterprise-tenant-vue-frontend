@@ -94,7 +94,7 @@ export default [
     {
       component: 'CNavItem',
       name: 'Deactivated Families',
-      to: { name: 'academicYears' },
+      to: { name: 'deactivatedFamilies' },
       icon: 'cil-chart-pie',
     },
 
