@@ -2,32 +2,47 @@
   <CRow>
     <CCol :xs="12">
       <CCard class="mb-4">
-        <CCardHeader class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2">
-          <div>
-            <h5 class="mb-0">Student Fee Records</h5>
-            <small class="text-body-secondary">Manage student fee payment records</small>
+        <CCardHeader class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-between gap-3">
+          <div class="d-flex flex-column gap-2">
+
+
+            <!-- Fee structure search + filter (ALWAYS applied if selected) -->
+            <div class="d-flex gap-2 flex-column flex-sm-row align-items-sm-center">
+
+              <CFormSelect v-model="selectedFeeStructureId" size="sm" style="max-width: 360px;">
+                <option :value="null">All Fee Structures</option>
+                <option
+                  v-for="fs in filteredFeeStructures"
+                  :key="fs.id"
+                  :value="fs.id"
+                >
+                  {{ fs.academic_year?.name }} – {{ fs.term?.name }} – {{ fs.grade_class?.name }} - (GH₵ {{ fs.amount }})
+                </option>
+              </CFormSelect>
+            </div>
           </div>
 
-          <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
+          <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
             <!-- Search Field Selector -->
-            <CFormSelect v-model="searchField" size="sm" style="width: 180px;">
+            <CFormSelect v-model="searchField" size="sm" style="width: 200px;">
               <option value="student">Search by Student</option>
               <option value="class">Search by Current Class</option>
-              <option value="feeStructure">Search by Fee Structure</option>
               <option value="is_fully_paid">Filter by Is Fully Paid</option>
             </CFormSelect>
 
-            <!-- Search Input / Fully Paid Filter -->
-            <div v-if="searchField !== 'is_fully_paid'">
+            <!-- Text search (student/class) -->
+            <div v-if="['student','class'].includes(searchField)">
               <CFormInput
                 v-model="searchTerm"
                 :placeholder="searchPlaceholder"
                 size="sm"
-                style="width: 250px;"
+                style="width: 260px;"
               />
             </div>
+
+            <!-- Fully paid filter -->
             <div v-else>
-              <CFormSelect v-model="fullyPaidFilter" size="sm" style="width: 150px;">
+              <CFormSelect v-model="fullyPaidFilter" size="sm" style="width: 170px;">
                 <option value="all">All</option>
                 <option value="true">Fully Paid: Yes</option>
                 <option value="false">Fully Paid: No</option>
@@ -50,7 +65,9 @@
         </CCardHeader>
 
         <CCardBody>
-          <p class="text-body-secondary small">Track fees paid, balances, and payment status per student and fee structure.</p>
+          <p class="text-body-secondary small">
+            Track fees paid, balances, and payment status per student and fee structure.
+          </p>
 
           <!-- Error -->
           <CAlert color="danger" v-if="errorMessage" class="py-2">
@@ -64,8 +81,7 @@
           </div>
 
           <!-- TABLE -->
-          <!-- Remove <DocsExample> if you don't have this wrapper -->
-          <DocsExample>
+          <div>
             <CTable hover responsive>
               <CTableHead>
                 <CTableRow>
@@ -107,19 +123,16 @@
                   <CTableDataCell class="text-end">{{ formatAmount(row.balance) }}</CTableDataCell>
                   <CTableDataCell>
                     <CBadge :color="row.is_fully_paid ? 'success' : 'warning'">
-                      
-
-
-
-
-                      {{ row.is_fully_paid? 'Yes' : 'No' }}
+                      {{ row.is_fully_paid ? 'Yes' : 'No' }}
                     </CBadge>
                   </CTableDataCell>
                   <CTableDataCell>{{ formatDateTime(row.date_created) }}</CTableDataCell>
 
                   <CTableDataCell class="text-end">
                     <CButtonGroup size="sm">
-                      
+                      <CButton color="secondary" variant="outline" @click="openEditModal(row)">
+                        Edit
+                      </CButton>
                       <CButton color="danger" variant="outline" @click="openSingleDeleteConfirm(row)">
                         Delete
                       </CButton>
@@ -131,105 +144,125 @@
                 <CTableRow v-if="!isLoading && filteredRecords.length === 0">
                   <CTableDataCell colspan="10" class="text-center text-body-secondary">
                     No fee records found
-                    <span v-if="searchField === 'is_fully_paid' && fullyPaidFilter !== 'all'">
-                      for “{{ fullyPaidFilter === 'true' ? 'Yes' : 'No' }}” in Is Fully Paid.
+                    <span v-if="selectedFeeStructureId">
+                      for the selected fee structure.
                     </span>
-                    <span v-else-if="searchTerm">
-                      for “{{ searchTerm }}” in
-                      {{ searchField === 'class' ? 'Current Class' : 'Fee Structure' }}.
+                    <span v-if="searchField === 'is_fully_paid' && fullyPaidFilter !== 'all'">
+                      with Fully Paid = “{{ fullyPaidFilter === 'true' ? 'Yes' : 'No' }}”.
+                    </span>
+                    <span v-if="['student','class'].includes(searchField) && searchTerm">
+                      for “{{ searchTerm }}” in {{ searchField === 'class' ? 'Current Class' : 'Student' }}.
                     </span>
                   </CTableDataCell>
                 </CTableRow>
               </CTableBody>
             </CTable>
-          </DocsExample>
+          </div>
         </CCardBody>
-
       </CCard>
     </CCol>
   </CRow>
 
   <!-- Add/Edit Record Modal -->
-  <!-- Add/Edit Record Modal -->
-<CModal :visible="showFormModal" @close="closeFormModal">
-  <CModalHeader>
-    <CModalTitle>{{ isEdit ? 'Edit Fee Record' : 'Add Fee Record' }}</CModalTitle>
-  </CModalHeader>
-  <CModalBody>
-    <!-- Searchable Student Field -->
-    <div class="mb-3 position-relative">
-      <CFormLabel for="student">Student</CFormLabel>
-      
-      <CFormInput
-        id="student"
-        v-model="studentSearch"
-        placeholder="Search student by name..."
-        @input="filterStudents"
-        autocomplete="off"
-      />
+  <CModal :visible="showFormModal" @close="closeFormModal">
+    <CModalHeader>
+      <CModalTitle>{{ isEdit ? 'Edit Fee Record' : 'Add Fee Record' }}</CModalTitle>
+    </CModalHeader>
+    <CModalBody>
+      <!-- Searchable Student Field -->
+      <div class="mb-3 position-relative">
+        <CFormLabel for="student">Student</CFormLabel>
 
-      <!-- Dropdown for filtered students -->
-      <div
-        v-if="filteredStudents && filteredStudents.length > 0 && studentSearch"
-        class="dropdown-menu show w-100"
-        style="max-height: 200px; overflow-y: auto;"
-      >
-        <button
-          class="dropdown-item"
-          v-for="s in filteredStudents"
-          :key="s.id"
-          @click="selectStudent(s)"
+        <CFormInput
+          id="student"
+          v-model="studentSearch"
+          placeholder="Search student by name..."
+          @input="filterStudents"
+          autocomplete="off"
+        />
+
+        <!-- Dropdown for filtered students -->
+        <div
+          v-if="filteredStudents && filteredStudents.length > 0 && studentSearch"
+          class="dropdown-menu show w-100"
+          style="max-height: 200px; overflow-y: auto;"
         >
-          {{ s.user.full_name }}
-        </button>
+          <button
+            class="dropdown-item"
+            v-for="s in filteredStudents"
+            :key="s.id"
+            @click="selectStudent(s)"
+          >
+            {{ s.user.full_name }}
+          </button>
+        </div>
       </div>
-    </div>
 
-    <!-- Fee Structure -->
-    <div class="mb-3">
-      <CFormLabel for="feeStructure">Fee Structure (Class / Term / AY)</CFormLabel>
-      <CFormSelect id="feeStructure" v-model="formRecord.feeStructureId">
-        <option value="" disabled selected>Select Fee Structure</option>
-        <option v-for="fs in feeStructures" :key="fs.id" :value="fs.id">
-          {{ fs.grade_class?.name }} / {{ fs.term?.name }} / {{ fs.academic_year?.name }} - (GH₵ {{ fs?.amount }})
-        </option>
-      </CFormSelect>
-    </div>
+      <!-- Fee Structure -->
+      <div class="mb-3">
+        <CFormLabel for="feeStructure">Fee Structure (Class / Term / AY)</CFormLabel>
+        <CFormSelect id="feeStructure" v-model="formRecord.feeStructureId">
+          <option value="" disabled>Select Fee Structure</option>
+          <option v-for="fs in feeStructures" :key="fs.id" :value="fs.id">
+            {{ fs.grade_class?.name }} / {{ fs.term?.name }} / {{ fs.academic_year?.name }} - (GH₵ {{ fs?.amount }})
+          </option>
+        </CFormSelect>
+      </div>
 
-    <!-- Amount Paid -->
+      <!-- Amount Paid -->
+      <div class="mb-3">
+        <CFormLabel for="amountPaid">Amount Paid (GHS)</CFormLabel>
+        <CFormInput
+          id="amountPaid"
+          type="number"
+          step="0.01"
+          min="0"
+          v-model="formRecord.amount_paid"
+          placeholder="0.00"
+        />
+      </div>
 
-    <!-- Amount Paid -->
+      <!-- Balance -->
+      <div class="mb-3">
+        <CFormLabel for="balance">Balance (GHS)</CFormLabel>
+        <CFormInput
+          id="balance"
+          type="number"
+          step="0.01"
+          min="0"
+          v-model="formRecord.balance"
+          placeholder="0.00"
+        />
+      </div>
 
+      <!-- Fully Paid -->
+      <div class="mb-2">
+        <CFormCheck
+          id="fullyPaid"
+          v-model="formRecord.is_fully_paid"
+          :checked="formRecord.is_fully_paid"
+          label="Fully Paid"
+        />
+      </div>
 
+      <!-- Readonly dateCreated on edit -->
+      <div class="mt-2 text-body-secondary small" v-if="isEdit && viewDateCreated">
+        Created: {{ formatDateTime(viewDateCreated) }}
+      </div>
 
-
-<!-- Fully Paid -->
-
-   
-
-
-
-    <!-- Fully Paid -->
-    
-
-    <!-- Readonly dateCreated on edit -->
-    <div class="mt-2 text-body-secondary small" v-if="isEdit && viewDateCreated">
-      Created: {{ formatDateTime(viewDateCreated) }}
-    </div>
-
-    <!-- Validation Message -->
-    <div class="text-danger small mt-2" v-if="formValidationMessage">
-      {{ formValidationMessage }}
-    </div>
-  </CModalBody>
-  <CModalFooter>
-    <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">Cancel</CButton>
-    <CButton color="primary" @click="submitForm" :disabled="isSubmitting">
-      <CSpinner size="sm" v-if="isSubmitting" class="me-2" />
-      {{ isEdit ? 'Update' : 'Save' }}
-    </CButton>
-  </CModalFooter>
-</CModal>
+      <!-- Validation Message -->
+      <div class="text-danger small mt-2" v-if="formValidationMessage">
+        {{ formValidationMessage }}
+      </div>
+    </CModalBody>
+    <CModalFooter>
+      <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">Cancel</CButton>
+      <CButton color="primary" @click="submitForm" :disabled="isSubmitting">
+        <CSpinner size="sm" v-if="isSubmitting" class="me-2" />
+        {{ isEdit ? 'Update' : 'Save' }}
+      </CButton>
+    </CModalFooter>
+  </CModal>
 
   <!-- Confirm Delete (Single) -->
   <CModal :visible="showDeleteSingleModal" @close="closeDeleteSingleModal">
@@ -239,7 +272,7 @@
       <strong>{{ deleteTarget?.student?.user.full_name }}</strong>,
       <strong>{{ deleteTarget?.fee_structure?.grade_class?.name }}</strong> /
       <strong>{{ deleteTarget?.fee_structure?.term?.name }}</strong> /
-      <strong>{{ deleteTarget?.fee_structure?.academicYear?.name }}</strong>?
+      <strong>{{ deleteTarget?.fee_structure?.academic_year?.name }}</strong>?
     </CModalBody>
     <CModalFooter>
       <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">
@@ -267,19 +300,13 @@
       </CButton>
     </CModalFooter>
   </CModal>
-
-  <!-- Optional: Success toasts -->
-  <CToaster placement="top-end">
-    <CToast v-for="t in toasts" :key="t.id" :visible="t.visible" :color="t.color" class="text-white mb-2">
-      <CToastBody>{{ t.message }}</CToastBody>
-    </CToast>
-  </CToaster>
 </template>
 
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
-import { useToast } from 'vue-toastification' 
-const toast = useToast()  
+import { useToast } from 'vue-toastification'
+const toast = useToast()
+
 import {
   get_student_fee_record,
   create_student_fee_record,
@@ -287,18 +314,56 @@ import {
   delete_student_fee_record,
   get_fee_structures,
   st,
+} from '../../../services/api'
 
-} from '../../../services/api' 
+/* ---------- Local state ---------- */
+const isLoading = ref(false)
+const isSubmitting = ref(false)
+const isDeleting = ref(false)
+const errorMessage = ref('')
+
+const records = ref([])        // API list
+const students = ref([])       // API list
+const feeStructures = ref([])  // API list
+
+/* Search & filters */
+const searchField = ref('class')       // 'student' | 'class' | 'is_fully_paid'
+const searchTerm = ref('')
+const fullyPaidFilter = ref('all')     // 'all' | 'true' | 'false'
+const feeStructureSearch = ref('')     // text to filter the fee structure dropdown options
+const selectedFeeStructureId = ref(null) // selected fee structure ID (filters results if set)
+
+/* Selection */
+const selectedIds = ref([])
+
+/* Add/Edit Modal */
+const showFormModal = ref(false)
+const isEdit = ref(false)
+const editingId = ref(null)
+const viewDateCreated = ref('')
+const formRecord = reactive({
+  studentId: '',
+  feeStructureId: '',
+  amount_paid: '',
+  balance: '',
+  is_fully_paid: false,
+})
+const formValidationMessage = ref('')
+
+/* Delete Modals */
+const showDeleteSingleModal = ref(false)
+const deleteTarget = ref(null)
+const showDeleteBulkModal = ref(false)
+
+/* Student search in modal */
 const filteredStudents = ref([])
-
 const studentSearch = ref('')
 
-
+/* ---------- API wrapper ---------- */
 const sfrApi = (() => {
   return {
     async listSfr() {
       const res = await get_student_fee_record()
-
       return res.data
     },
     async listStudents() {
@@ -310,7 +375,6 @@ const sfrApi = (() => {
       return res.data
     },
     async createSfr(payload) {
-  
       const res = await create_student_fee_record(payload)
       return res.data
     },
@@ -329,101 +393,67 @@ const sfrApi = (() => {
   }
 })()
 
-
-
-/* ---------- State ---------- */
-const isLoading = ref(false)
-const isSubmitting = ref(false)
-const isDeleting = ref(false)
-const errorMessage = ref('')
-
-const records = ref([])
-const students = ref([])
-const feeStructures = ref([])
-
-/* Search controls */
-const searchField = ref('class') // 'class' | 'fullyPaid' | 'feeStructure'
-const searchTerm = ref('')
-const fullyPaidFilter = ref('all') // 'all' | 'true' | 'false'
-
-/* Selection */
-const selectedIds = ref([])
-
-/* Form (Add/Edit) */
-const showFormModal = ref(false)
-const isEdit = ref(false)
-const editingId = ref(null)
-const viewDateCreated = ref('')
-const formRecord = reactive({
-  studentId: '',
-  feeStructureId: '',
-  amount_paid: '',
-  balance: '',
-  is_fully_paid: false,
-})
-const formValidationMessage = ref('')
-
-/* Delete confirmations */
-const showDeleteSingleModal = ref(false)
-const deleteTarget = ref(null)
-const showDeleteBulkModal = ref(false)
-
-/* Toasts (optional) */
-const toasts = ref([])
-function addToast({ message, color = 'success', delay = 2200 }) {
-  const id = Date.now() + Math.random()
-  toasts.value.push({ id, message, color, visible: true })
-  setTimeout(() => {
-    toasts.value = toasts.value.filter(t => t.id !== id)
-  }, delay)
-}
-
 /* ---------- Computed ---------- */
 const searchPlaceholder = computed(() => {
   switch (searchField.value) {
     case 'student': return 'Search by student name...'
-    case 'feeStructure': return 'Search fee structure (e.g., class 1 / 1st term / 2025/2026 )...'
     case 'class': return 'Search by class...'
     default: return 'Enter search term...'
   }
 })
 
-
-function feeStructureLabel(fs) {
-
-  if (!fs) return ''
-  return `${fs.grade_class?.name || ''} / ${fs.term?.name || ''} / ${fs.academic_year?.name || ''}`
-}
-
-const filteredRecords = computed(() => {
-  if (searchField.value === 'is_fully_paid') {
-    if (fullyPaidFilter.value === 'all') return records.value
-    const flag = fullyPaidFilter.value === 'true'
-    return records.value.filter(r => !!r.is_fully_paid === flag)
-  }
-
-  const q = searchTerm.value.trim().toLowerCase()
-  if (!q) return records.value
-
-    return records.value.filter((row) => {
-
-     
-
-
-    if (searchField.value === 'student') {
-      return String(row?.student.user.full_name || '').toLowerCase().includes(q)
-    }
-    if (searchField.value === 'class') {
-      return String(row?.fee_structure?.grade_class?.name || '').toLowerCase().includes(q)
-    }
-    if (searchField.value === 'feeStructure') {
-      return feeStructureLabel(row?.fee_structure).toLowerCase().includes(q)
-    }
-    return false
+const filteredFeeStructures = computed(() => {
+  const q = (feeStructureSearch.value || '').toLowerCase().trim()
+  if (!q) return feeStructures.value
+  return feeStructures.value.filter(fs => {
+    const label = `
+      ${fs.academic_year?.name ?? ''}
+      ${fs.term?.name ?? ''}
+      ${fs.grade_class?.name ?? ''}
+    `.toLowerCase()
+    return label.includes(q)
   })
-
 })
 
+/**
+ * Composable filtering (applies all active filters)
+ * - Fee Structure: applied when selected
+ * - Fully Paid: applied when fullyPaidFilter != 'all'
+ * - Text Search: applied based on searchField ('student' or 'class') when searchTerm not empty
+ */
+const filteredRecords = computed(() => {
+  let list = Array.isArray(records.value) ? records.value : []
+
+  // 1) Fee Structure filter (always if selected)
+  if (selectedFeeStructureId.value) {
+    const targetId = Number(selectedFeeStructureId.value)
+    list = list.filter(row => Number(row?.fee_structure?.id) === targetId)
+  }
+
+  // 2) Fully paid filter (only when explicitly filtered)
+  if (fullyPaidFilter.value !== 'all') {
+    const flag = (fullyPaidFilter.value === 'true')
+    list = list.filter(r => Boolean(r?.is_fully_paid) === flag)
+  }
+
+  // 3) Text filters
+  const q = (searchTerm.value || '').trim().toLowerCase()
+  if (q && ['student', 'class'].includes(searchField.value)) {
+    list = list.filter(row => {
+      if (searchField.value === 'student') {
+        return String(row?.student?.user?.full_name || '').toLowerCase().includes(q)
+      }
+      if (searchField.value === 'class') {
+        return String(row?.fee_structure?.grade_class?.name || '').toLowerCase().includes(q)
+      }
+      return true
+    })
+  }
+
+  return list
+})
+
+/* Selection helpers */
 const filteredIds = computed(() => filteredRecords.value.map(r => r.id))
 const allSelected = computed(() =>
   filteredIds.value.length > 0 && filteredIds.value.every(id => selectedIds.value.includes(id)),
@@ -460,12 +490,14 @@ function resetForm() {
   viewDateCreated.value = ''
   formValidationMessage.value = ''
   editingId.value = null
+  studentSearch.value = ''
+  filteredStudents.value = []
 }
 
 function filterStudents() {
-  const query = studentSearch.value.toLowerCase()
+  const query = (studentSearch.value || '').toLowerCase()
   filteredStudents.value = students.value.filter(s =>
-    s.user.full_name.toLowerCase().includes(query)
+    (s?.user?.full_name || '').toLowerCase().includes(query),
   )
 }
 function selectStudent(student) {
@@ -483,9 +515,11 @@ function validateForm() {
     formValidationMessage.value = 'Fee Structure is required.'
     return false
   }
-
-  
-  if (Number(formRecord.balance) < 0) {
+  if (formRecord.amount_paid !== '' && Number(formRecord.amount_paid) < 0) {
+    formValidationMessage.value = 'Amount Paid must be a non-negative number.'
+    return false
+  }
+  if (formRecord.balance !== '' && Number(formRecord.balance) < 0) {
     formValidationMessage.value = 'Balance must be a non-negative number.'
     return false
   }
@@ -496,6 +530,7 @@ function validateForm() {
 /* ---------- Select All (current filtered view) ---------- */
 function toggleSelectAll() {
   if (allSelected.value) {
+    // unselect those in the current filtered view
     selectedIds.value = selectedIds.value.filter(id => !filteredIds.value.includes(id))
   } else {
     const set = new Set(selectedIds.value)
@@ -507,22 +542,20 @@ function toggleSelectAll() {
 /* ---------- Loaders ---------- */
 function loadLookups() {
   return Promise.all([
-    sfrApi.listStudents().then(x => (students.value = x)),
-    sfrApi.listFeeStructures().then(x => (feeStructures.value = x)),
+    sfrApi.listStudents().then(x => (students.value = x ?? [])),
+    sfrApi.listFeeStructures().then(x => (feeStructures.value = x ?? [])),
   ])
 }
 async function loadRecords() {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    try {
-      const rows = await sfrApi.listSfr()
-      return (records.value = rows)
-    } catch (err) {
-      return (errorMessage.value = err?.message || 'Failed to load fee records.')
-    }
+    const rows = await sfrApi.listSfr()
+    records.value = Array.isArray(rows) ? rows : (rows?.data ?? [])
+  } catch (err) {
+    errorMessage.value = err?.message || 'Failed to load fee records.'
   } finally {
-    return (isLoading.value = false)
+    isLoading.value = false
   }
 }
 
@@ -536,12 +569,13 @@ function openEditModal(row) {
   isEdit.value = true
   editingId.value = row.id
   formRecord.studentId = row?.student?.id ?? ''
-  formRecord.feeStructureId = row?.feeStructure?.id ?? ''
+  formRecord.feeStructureId = row?.fee_structure?.id ?? ''
   formRecord.amount_paid = row?.amount_paid ?? ''
   formRecord.balance = row?.balance ?? ''
   formRecord.is_fully_paid = !!row?.is_fully_paid
-  viewDateCreated.value = row?.dateCreated || ''
+  viewDateCreated.value = row?.date_created || ''
   formValidationMessage.value = ''
+  studentSearch.value = row?.student?.user?.full_name ?? ''
   showFormModal.value = true
 }
 function closeFormModal() {
@@ -571,59 +605,42 @@ function closeBulkDeleteConfirm() {
   }
 }
 
-function submitForm() {
+/* ---------- Submit (Create/Update) ---------- */
+async function submitForm() {
   if (!validateForm()) return
   isSubmitting.value = true
 
-const payload = {
-  student_id: Number(formRecord.studentId),
-  fee_structure_id: Number(formRecord.feeStructureId),
-  amount_paid: formRecord.amount_paid ? Number(formRecord.amount_paid) : 0,
-  balance: formRecord.balance ? Number(formRecord.balance) : 0,
-  is_fully_paid: !!formRecord.is_fully_paid,
-};
+  const payload = {
+    student_id: Number(formRecord.studentId),
+    fee_structure_id: Number(formRecord.feeStructureId),
+    amount_paid: formRecord.amount_paid !== '' ? Number(formRecord.amount_paid) : 0,
+    balance: formRecord.balance !== '' ? Number(formRecord.balance) : 0,
+    is_fully_paid: !!formRecord.is_fully_paid,
+  }
 
-
-
-
-
-  const done = () => (isSubmitting.value = false)
-
-  if (isEdit.value && editingId.value != null) {
-    sfrApi
-      .updateSfr(editingId.value, payload)
-      .then((updated) => {
-
-        records.value = records.value.map(r => (r.id === updated.id ? updated : r))
- 
-        showFormModal.value = false
-        resetForm()
-        addToast({ message: 'Record updated.' })
-      })
-      .catch((err) => {
-
-        formValidationMessage.value = err?.message || 'Failed to update record.'
-      })
-      .finally(done)
-  } else {
-    sfrApi
-      .createSfr(payload)
-      .then((created) => {
-
-        records.value = [...records.value, created.data ?? created]
-
-        showFormModal.value = false
-        resetForm()
-        toast.success('Record added successfully.')
-      })
-      .catch((err) => {
-      
-        formValidationMessage.value = err?.message || 'Failed to add record.'
-      })
-      .finally(done)
+  try {
+    if (isEdit.value && editingId.value != null) {
+      const updated = await sfrApi.updateSfr(editingId.value, payload)
+      // Normalize response shape (some APIs return {data: {...}})
+      const updatedRow = updated?.data ?? updated
+      records.value = records.value.map(r => (r.id === updatedRow.id ? updatedRow : r))
+      showFormModal.value = false
+      resetForm()
+      toast.success('Record updated.')
+    } else {
+      const created = await sfrApi.createSfr(payload)
+      const createdRow = created?.data ?? created
+      records.value = [...records.value, createdRow]
+      showFormModal.value = false
+      resetForm()
+      toast.success('Record added successfully.')
+    }
+  } catch (err) {
+    formValidationMessage.value = err?.message || (isEdit.value ? 'Failed to update record.' : 'Failed to add record.')
+  } finally {
+    isSubmitting.value = false
   }
 }
-
 
 /* ---------- Delete (Single/Bulk) ---------- */
 function confirmDeleteSingle() {
@@ -632,16 +649,14 @@ function confirmDeleteSingle() {
   sfrApi
     .deleteSfr(deleteTarget.value.id)
     .then(() => {
-      // update table
       records.value = records.value.filter(r => r.id !== deleteTarget.value.id)
-      // remove from selection
       selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
-
-      // ✅ close modal immediately
       showDeleteSingleModal.value = false
       deleteTarget.value = null
-
       toast.success('Record deleted successfully.')
+    })
+    .catch((err) => {
+      toast.error(err?.message || 'Failed to delete record.')
     })
     .finally(() => (isDeleting.value = false))
 }
@@ -655,14 +670,12 @@ function confirmDeleteBulk() {
     .then(() => {
       const toDelete = new Set(ids)
       records.value = records.value.filter(r => !toDelete.has(r.id))
-
-      // clear selection
       selectedIds.value = []
-
-      // ✅ close modal immediately
       showDeleteBulkModal.value = false
-
-      addToast({ message: `Deleted ${ids.length} record(s).` })
+      toast.success(`Deleted ${ids.length} record(s).`)
+    })
+    .catch((err) => {
+      toast.error(err?.message || 'Failed to delete selected records.')
     })
     .finally(() => (isDeleting.value = false))
 }

@@ -85,7 +85,7 @@
   Manage payments with ease.
 </p>
 
-                  
+
                 </div>
               </CCardBody>
             </CCard>

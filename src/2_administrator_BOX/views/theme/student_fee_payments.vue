@@ -30,6 +30,18 @@
                 style="min-width: 220px;"
               />
 
+              <CFormSelect
+                v-model="dateFilter"
+                size="sm"
+                style="min-width: 160px;"
+              >
+                <option value="">All Dates</option>
+                <option value="today">Today</option>
+                <option value="7days">Past 7 Days</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+              </CFormSelect>
+
               <!-- Bulk delete -->
               <CButton
                 color="danger"
@@ -262,7 +274,7 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
-
+const dateFilter = ref('')
 import { get_payments, get_student_fee_record, create_payment, delete_payment } from '../../../services/api'
 import { useToast } from 'vue-toastification'
 import { CFormInput } from '@coreui/vue'
@@ -440,25 +452,84 @@ const searchPlaceholder = computed(() => {
 
 const filteredPayments = computed(() => {
   const q = searchTerm.value.trim().toLowerCase()
-  if (!q) return payments.value
+  const now = new Date()
+
+
 
   return payments.value.filter((row) => {
-
-
     const fs = row?.student_fee_record?.fee_structure
+    const student = row?.student_fee_record?.student?.user
 
+    // SEARCH FILTER
+    let matchesSearch = true
 
-    const student = row?.student_fee_record?.student.user
-    switch (searchField.value) {
-      case 'academic_year':
-        return String(fs?.academic_year?.name || '').toLowerCase().includes(q)
-      case 'term':
-        return String(fs?.term?.name || '').toLowerCase().includes(q)
-      case 'grade_class':
-        return String(fs?.grade_class?.name || '').toLowerCase().includes(q)
-      default: // student
-        return String(student?.full_name || '').toLowerCase().includes(q)
+    if (q) {
+      switch (searchField.value) {
+        case 'academic_year':
+          matchesSearch = String(
+            fs?.academic_year?.name || ''
+          ).toLowerCase().includes(q)
+          break
+
+        case 'term':
+          matchesSearch = String(
+            fs?.term?.name || ''
+          ).toLowerCase().includes(q)
+          break
+
+        case 'grade_class':
+          matchesSearch = String(
+            fs?.grade_class?.name || ''
+          ).toLowerCase().includes(q)
+          break
+
+        default: // student
+          matchesSearch = String(
+            student?.full_name || ''
+          ).toLowerCase().includes(q)
+      }
     }
+
+    console.group(`Payment ${row.id}`)
+
+
+    // DATE FILTER
+    if (!dateFilter.value) {
+
+      console.groupEnd()
+      return matchesSearch
+    }
+
+    const paymentDate = new Date(row.date)
+    let matchesDate = true
+
+
+
+    if (dateFilter.value === 'today') {
+      matchesDate =
+        paymentDate.toDateString() === now.toDateString()
+    }
+
+    if (dateFilter.value === '7days') {
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(now.getDate() - 7)
+      matchesDate = paymentDate >= sevenDaysAgo
+    }
+
+    if (dateFilter.value === 'month') {
+      matchesDate =
+        paymentDate.getMonth() === now.getMonth() &&
+        paymentDate.getFullYear() === now.getFullYear()
+    }
+
+    if (dateFilter.value === 'year') {
+      matchesDate =
+        paymentDate.getFullYear() === now.getFullYear()
+    }
+
+
+
+    return matchesSearch && matchesDate
   })
 })
 

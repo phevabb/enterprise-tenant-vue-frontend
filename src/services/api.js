@@ -8,10 +8,10 @@ import axios from 'axios'
 
 
 const api = axios.create({
- //baseURL: 'http://127.0.0.1:8000/api/',
+ // baseURL: 'http://127.0.0.1:8000/api/',
 
 
- baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
+  baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
 
 
   headers: {
@@ -147,46 +147,34 @@ export const delete_family_fee_rec = (id) => api.delete(`family-fees/family-fee-
 export const get_family_payments = () => api.get("family-fees/family-payments");
 export const create_family_payment = (payload) => api.post("family-fees/family-payments/", payload);
 export const delete_family_payment = (id) => api.delete(`family-fees/family-payments/${id}/`);
-
 // Classes APIs
 export const get_classes = () => api.get("student/classes");
 export const create_class = (payload) => api.post("student/classes/", payload);
 export const update_class = (id, payload) => api.put(`student/classes/${id}/`, payload);
 export const delete_class = (id) => api.delete(`student/classes/${id}/`);
-
 // staff APIs
 export const get_staff = () => api.get("staff/staff-profiles");
 export const num_of_staff_insight = () => api.get("staff/staff-profiles/total_teachers");
-
-
 export const create_staff = (payload) => api.post("staff/staff-profiles/", payload);
 export const update_staff = (id, payload) => api.patch(`staff/staff-profiles/${id}/`, payload);
 export const delete_staff = (id) => api.delete(`staff/staff-profiles/${id}/`);
-
 // academic year APIs
 export const get_academic_years = () => api.get("student/academic-years");
 export const create_academic_year = (payload) => api.post("student/academic-years/", payload);
 export const update_academic_year = (id, payload) => api.put(`student/academic-years/${id}/`, payload);
 export const delete_academic_year = (id) => api.delete(`student/academic-years/${id}/`);
-
 // term APIs
 export const get_terms = () => api.get("student/terms");
 export const create_term = (payload) => api.post("student/terms/", payload);
 export const update_term = (id, payload) => api.put(`student/terms/${id}/`, payload);
 export const delete_term = (id) => api.delete(`student/terms/${id}/`);
-
-
 // DEACTIVATION COUNT
 export const get_student_deactivation_count = () => api.get("deactivated-students/count/");
-
-
 //  STUDENT DEACTIVATED APIS
 export const get_deactivated_students = () => api.get("student/deactivated-students/");
 export const activate_deactivated_student = (id) => api.post(`student/deactivated-students/${id}/activate/`);
 export const update_deactivated_student = (id, payload) => api.put(`student/deactivated-students/${id}/`, payload);
 export const delete_deactivated_student = (id) => api.delete(`student/deactivated-students/${id}/`);
-
-
 // FAMILY DEACTIVATED APIS
 export const get_deactivated_families = () => api.get("family-fees/deactivated-families/");
 export const activate_deactivated_family = (id) => api.post(`family-fees/deactivated-families/${id}/activate/`);

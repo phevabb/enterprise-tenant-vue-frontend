@@ -3,9 +3,9 @@ import { h, resolveComponent } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { adminRoutes } from '@/2_administrator_BOX/routes'
 import { principalRoutes } from '@/1_principal_BOX/routes'
-const ResetPassword = () => import('@/registration/ResetPassword.vue') 
-const ResetPasswordDone = () => import('@/registration/ResetPasswordDone.vue')  
-const ResetPasswordConfirm = () => import('@/registration/ResetPasswordConfirm.vue') 
+const ResetPassword = () => import('@/registration/ResetPassword.vue')
+const ResetPasswordDone = () => import('@/registration/ResetPasswordDone.vue')
+const ResetPasswordConfirm = () => import('@/registration/ResetPasswordConfirm.vue')
 const ResetPasswordSuccess = () => import('@/registration/ResetPasswordSuccess.vue')
 const ChangePasswordComplete = () => import('@/registration/ChangePasswordComplete.vue')
 
@@ -33,7 +33,7 @@ function getUserFromStorage() {
 // Role-based landing page
 function roleHome(user) {
   if (!user) return { name: 'Login' }
-  if (user.role === 'administrator') return { name: 'student_fee_records_admin' }
+  if (user.role === 'administrator') return { name: 'student_fee_records_admin'}
   if (user.role === 'principal') return { name: 'PrincipalDashboard' }
   return { name: 'Login' } // fallback
 }
@@ -52,7 +52,7 @@ const routes = [
     name: 'AppLanding',
     redirect: () => roleHome(getUserFromStorage()),
   },
-  
+
 // Request password reset (public)
   { path: '/reset-password', name: 'ResetPassword', component: ResetPassword },
   { path: '/password-reset-done', name: 'ResetPasswordDone', component: ResetPasswordDone },

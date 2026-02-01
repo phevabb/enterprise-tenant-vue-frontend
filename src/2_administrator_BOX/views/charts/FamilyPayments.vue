@@ -15,6 +15,18 @@
                 style="min-width: 260px;"
               />
 
+              <CFormSelect
+                v-model="dateFilter"
+                size="sm"
+                style="min-width: 160px;"
+              >
+                <option value="">All Dates</option>
+                <option value="today">Today</option>
+                <option value="7days">Past 7 Days</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+              </CFormSelect>
+
               <CButton
                 color="danger"
                 size="sm"
@@ -385,6 +397,7 @@ const payments = ref([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 const searchTerm = ref('')
+const dateFilter = ref('')
 const selectedIds = ref([])
 const showFormModal = ref(false)
 const isEdit = ref(false)
@@ -400,7 +413,11 @@ const fetchPayments = async () => {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    payments.value = await listPayments()
+    const t = await listPayments()
+
+    payments.value = t
+
+
   } catch (err) {
     errorMessage.value = 'Failed to load payments.'
   } finally {
@@ -413,17 +430,66 @@ onMounted(async () => {
   await fetchPayments()
 })
 
-
 const filteredPayments = computed(() => {
   const term = searchTerm.value.trim().toLowerCase()
-  if (!term) return payments.value
+  const now = new Date()
+
+
+
   return payments.value.filter(p => {
-    const family = p.family_fee_record?.family?.name?.toLowerCase() || ''
-    const termName = p.family_fee_record?.term?.name?.toLowerCase() || ''
-    const ay = p.family_fee_record?.academic_year?.name?.toLowerCase() || ''
-    return family.includes(term) || termName.includes(term) || ay.includes(term)
+    const family =
+      p.family_fee_record?.family?.name?.toLowerCase() || ''
+    const termName =
+      p.family_fee_record?.term?.name?.toLowerCase() || ''
+    const ay =
+      p.family_fee_record?.academic_year?.name?.toLowerCase() || ''
+
+    const matchesSearch =
+      !term ||
+      family.includes(term) ||
+      termName.includes(term) ||
+      ay.includes(term)
+
+
+
+    if (!dateFilter.value) {
+
+      return matchesSearch
+    }
+
+
+    const paymentDate = new Date(p.date)
+    let matchesDate = true
+
+
+
+    if (dateFilter.value === 'today') {
+      matchesDate =
+        paymentDate.toDateString() === now.toDateString()
+    }
+
+    if (dateFilter.value === '7days') {
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(now.getDate() - 7)
+      matchesDate = paymentDate >= sevenDaysAgo
+    }
+
+    if (dateFilter.value === 'month') {
+      matchesDate =
+        paymentDate.getMonth() === now.getMonth() &&
+        paymentDate.getFullYear() === now.getFullYear()
+    }
+
+    if (dateFilter.value === 'year') {
+      matchesDate =
+        paymentDate.getFullYear() === now.getFullYear()
+    }
+
+
+    return matchesSearch && matchesDate
   })
 })
+
 
 const allSelected = computed(() => selectedIds.value.length === filteredPayments.value.length && filteredPayments.value.length > 0)
 const someSelected = computed(() => selectedIds.value.length > 0 && selectedIds.value.length < filteredPayments.value.length)

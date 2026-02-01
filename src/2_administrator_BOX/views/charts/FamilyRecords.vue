@@ -16,6 +16,8 @@
                 style="min-width: 260px;"
               />
 
+
+
               <CButton
                 color="danger"
                 size="sm"
@@ -96,7 +98,7 @@
 
                   <CTableDataCell class="text-end">
                     <CButtonGroup size="sm">
-                      
+
                       <CButton color="danger" variant="outline" @click="openSingleDeleteConfirm(row)">
                         Delete
                       </CButton>
@@ -161,10 +163,10 @@
         />
       </div>
 
-      
 
-      
-   
+
+
+
 
       <!-- created date (read-only on edit) -->
       <div class="mt-2 text-body-secondary small" v-if="isEdit && viewCreated">
@@ -227,13 +229,13 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import {useToast} from 'vue-toastification'
 const toast = useToast()
-import { 
-  get_family_fee_rec, 
-  create_family_fee_rec, 
-  delete_family_fee_rec, 
-  get_families, 
-  get_terms, 
-  get_academic_years 
+import {
+  get_family_fee_rec,
+  create_family_fee_rec,
+  delete_family_fee_rec,
+  get_families,
+  get_terms,
+  get_academic_years
 } from '../../../services/api'
 
 const ffrApi = (() => {
@@ -256,7 +258,7 @@ const ffrApi = (() => {
         get_family_fee_rec()
       ])
 
-   
+
 
       AY = years.data || []
       TM = terms.data || []
@@ -323,7 +325,7 @@ const ffrApi = (() => {
     // CREATE
     async createRecord(payload) {
       try {
-      
+
         const res = await create_family_fee_rec(payload)
         return clone(res.data)
       } catch (err) {
@@ -405,6 +407,8 @@ const academicYears = ref([])
 
 /* Search */
 const searchTerm = ref('')
+const dateFilter = ref('')
+
 
 /* Selection */
 const selectedIds = ref([])
@@ -445,11 +449,50 @@ function addToast({ message, color = 'success', delay = 2200 }) {
 /* ---------- Computed ---------- */
 const filteredRecords = computed(() => {
   const q = searchTerm.value.trim().toLowerCase()
-  if (!q) return records.value
-  return records.value.filter(row =>
-    String(row?.family?.name || '').toLowerCase().includes(q),
-  )
+  const now = new Date()
+
+  return records.value.filter(row => {
+    // FAMILY NAME SEARCH
+    const familyName = String(row?.family?.name || '').toLowerCase()
+    const matchesSearch = !q || familyName.includes(q)
+
+    // DATE FILTER
+    if (!dateFilter.value) return matchesSearch
+
+    const recordDate = new Date(row.created_at)
+    let matchesDate = true
+
+    if (dateFilter.value === 'today') {
+      matchesDate =
+        recordDate.toDateString() === now.toDateString()
+    }
+
+    if (dateFilter.value === '7days') {
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(now.getDate() - 7)
+      matchesDate = recordDate >= sevenDaysAgo
+    }
+
+    if (dateFilter.value === 'month') {
+      matchesDate =
+        recordDate.getMonth() === now.getMonth() &&
+        recordDate.getFullYear() === now.getFullYear()
+    }
+
+    if (dateFilter.value === 'year') {
+      matchesDate =
+        recordDate.getFullYear() === now.getFullYear()
+    }
+
+    return matchesSearch && matchesDate
+  })
 })
+
+
+
+
+
+
 
 const filteredIds = computed(() => filteredRecords.value.map(r => r.id))
 const allSelected = computed(() =>
@@ -540,7 +583,7 @@ function loadLookups() {
 async function loadRecords() {
   isLoading.value = true
   errorMessage.value = ''
-  
+
   try {
     try {
       const rows = await ffrApi.listRecords()
@@ -548,7 +591,7 @@ async function loadRecords() {
 
     } catch (err) {
       errorMessage.value = err?.message || 'Failed to load family fee records.'
- 
+
     }
   } finally {
     isLoading.value = false
@@ -624,8 +667,8 @@ function submitForm() {
         records.value = records.value.map(r => (r.id === updated.id ? updated : r))
         showFormModal.value = false
         resetForm()
-        toast.success('Family fee record updated successfully.', { position: 'top-right' }) 
-    
+        toast.success('Family fee record updated successfully.', { position: 'top-right' })
+
       })
       .catch((err) => (formValidationMessage.value = err?.message || 'Failed to update record.'))
       .finally(done)
@@ -636,7 +679,7 @@ function submitForm() {
         records.value = [...records.value, created]
         showFormModal.value = false
         resetForm()
-        toast.success('Family fee record created successfully.', { position: 'top-right' }) 
+        toast.success('Family fee record created successfully.', { position: 'top-right' })
 
       })
       .catch((err) => (formValidationMessage.value = err?.message || 'Failed to add record.'))
@@ -677,7 +720,7 @@ function confirmDeleteBulk() {
 
       // close immediately
       showDeleteBulkModal.value = false
-      toast.success('Selected family fee records deleted successfully.', { position: 'top-right' }) 
+      toast.success('Selected family fee records deleted successfully.', { position: 'top-right' })
 
 
     })
