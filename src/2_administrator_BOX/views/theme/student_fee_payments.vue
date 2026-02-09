@@ -280,7 +280,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 const dateFilter = ref('')
-import { get_payments, get_student_fee_record, create_payment, delete_payment } from '../../../services/api'
+import { get_payments, get_raw_student_fee_records, create_payment, delete_payment } from '../../../services/api'
 import { useToast } from 'vue-toastification'
 import { CFormInput } from '@coreui/vue'
 const toast = useToast()
@@ -328,7 +328,7 @@ async listPayments(params = {}) {
 
 
       try {
-        const response = await get_student_fee_record()
+        const response = await get_raw_student_fee_records()
 
         return response.data || []
       } catch (error) {
@@ -520,6 +520,7 @@ function toggleSelectAll() {
 async function loadStudentFeeRecords() {
   const x = await paymentApi.listStudentFeeRecords()
 
+
   return (studentFeeRecords.value = x)
 }
 
@@ -547,7 +548,8 @@ async function loadPayments(page = 1) {
 
 
   } catch (err) {
-    console.error(err)
+    toast.error('Failed to load payments.')
+
     errorMessage.value = 'Failed to load payments.'
   } finally {
     isLoading.value = false
@@ -700,7 +702,9 @@ function confirmDeleteBulk() {
 onMounted(async () => {
   try {
     isLoading.value = true
-    const a = await get_student_fee_record()
+    const a = await get_raw_student_fee_records()
+
+    // loadStudentFeeRecords()
 
     studentFeeRecords.value = a.data
 

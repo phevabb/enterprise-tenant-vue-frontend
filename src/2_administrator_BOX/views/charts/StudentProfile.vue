@@ -985,7 +985,7 @@ const submitForm = async () => {
   const firstLine = message.split(" | ")[0];
 
   toast.error(firstLine, { position: "top-right" });
-  // optionally show full errors in console or another UI element
+
 
 } finally {
     loading.value = false;

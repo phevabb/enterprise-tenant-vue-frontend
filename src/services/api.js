@@ -127,7 +127,9 @@ export const delete_student = (id) => api.delete(`student/students/${id}/`);
 
 
 
-// student fee records APIs
+// student fee records APIs//////////////////////// HERE /
+
+export const get_raw_student_fee_records = () => api.get("fees/raw-student-fee-records");
 export const get_student_fee_record = (params) => api.get("fees/student-fee-records", { params });
 export const get_expected_fees_insight = () => api.get("fees/student-fee-records/expected_fees/");
 export const get_collected_vs_pending_insight = () => api.get("fees/student-fee-records/collection_summary/");
@@ -145,7 +147,7 @@ export const create_family = (payload) => api.post("family-fees/families/", payl
 export const update_family = (id, payload) => api.put(`family-fees/families/${id}/`, payload);
 export const delete_family = (id) => api.delete(`family-fees/families/${id}/`);
 
-// FAMILY FEES RECS APIs
+// FAMILY FEES RECS APIs /////////////////////////////
 export const get_raw_family_fee_rec = () => api.get("family-fees/raw-family-fee-records");
 export const get_family_fee_rec = (params) => api.get("family-fees/family-fee-records", { params });
 export const create_family_fee_rec = (payload) => api.post("family-fees/family-fee-records/", payload);
