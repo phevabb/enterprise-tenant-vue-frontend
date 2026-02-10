@@ -5,37 +5,28 @@
         <CCardHeader>
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <strong>Family Payments</strong>
-
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <CFormInput
                 v-model="searchTerm"
-                placeholder="Search Family Fee Record..."
-                aria-label="Search Family Fee Record"
+                placeholder="Search by family / term / year..."
                 size="sm"
                 style="min-width: 260px;"
               />
-
-              <CFormSelect
-                v-model="dateFilter"
-                size="sm"
-                style="min-width: 160px;"
-              >
+              <CFormSelect v-model="dateFilter" size="sm" style="min-width: 160px;">
                 <option value="">All Dates</option>
                 <option value="today">Today</option>
                 <option value="7days">Past 7 Days</option>
                 <option value="month">This Month</option>
                 <option value="year">This Year</option>
               </CFormSelect>
-
               <CButton
                 color="danger"
                 size="sm"
-                :disabled="selectedIds.length === 0"
-                @click="openBulkDeleteConfirm"
+                :disabled="!selectedIds.length"
+                @click="showBulkDeleteModal = true"
               >
                 Delete Selected ({{ selectedIds.length }})
               </CButton>
-
               <CButton color="primary" size="sm" @click="openAddModal">
                 Add Payment
               </CButton>
@@ -44,11 +35,8 @@
         </CCardHeader>
 
         <CCardBody>
-          <CAlert color="danger" v-if="errorMessage" class="py-2">
-            {{ errorMessage }}
-          </CAlert>
 
-          <div class="d-flex align-items-center gap-2 mb-2" v-if="isLoading">
+          <div v-if="isLoading" class="d-flex align-items-center gap-2 mb-3">
             <CSpinner size="sm" />
             <span class="text-body-secondary small">Loading payments…</span>
           </div>
@@ -56,7 +44,7 @@
           <CTable hover responsive>
             <CTableHead>
               <CTableRow>
-                <CTableHeaderCell class="text-center" style="width: 48px;">
+                <CTableHeaderCell class="text-center" style="width:48px">
                   <CFormCheck
                     :checked="allSelected"
                     :indeterminate="someSelected"
@@ -67,175 +55,156 @@
                 <CTableHeaderCell>Family Fee Record</CTableHeaderCell>
                 <CTableHeaderCell>Date</CTableHeaderCell>
                 <CTableHeaderCell class="text-end">Amount (GHS)</CTableHeaderCell>
-                <CTableHeaderCell class="text-end">NET BALANCE (GHS)</CTableHeaderCell>
+                <CTableHeaderCell class="text-end">Net Balance (GHS)</CTableHeaderCell>
                 <CTableHeaderCell class="text-end">Actions</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
 
             <CTableBody>
-              <CTableRow v-for="(row, idx) in filteredPayments" :key="row.id">
+              <CTableRow v-for="(payment, idx) in payments" :key="payment.id">
                 <CTableDataCell class="text-center">
-                  <CFormCheck v-model="selectedIds" :value="row.id" />
+                  <CFormCheck v-model="selectedIds" :value="payment.id" />
                 </CTableDataCell>
-                <CTableHeaderCell>{{ (currentPage - 1) * pageSize + idx + 1 }}</CTableHeaderCell>
+                <CTableHeaderCell scope="row">
+                  {{ (currentPage - 1) * pageSize + idx + 1 }}
+                </CTableHeaderCell>
                 <CTableDataCell>
-                  {{ row.family_fee_record?.family?.name }} - {{ row.family_fee_record?.term?.name }} - {{ row.family_fee_record?.academic_year?.name }}
+                  {{ payment.family_fee_record?.family?.name || '—' }} —
+                  {{ payment.family_fee_record?.term?.name || '—' }} —
+                  {{ payment.family_fee_record?.academic_year?.name || '—' }}
                 </CTableDataCell>
-                <CTableDataCell>{{ row.date }}</CTableDataCell>
-                <CTableDataCell class="text-end">{{ formatAmount(row.amount) }}</CTableDataCell>
-                <CTableDataCell class="text-end">{{ formatAmount(row.family_fee_record?.balance) }}</CTableDataCell>
-
+                <CTableDataCell>{{ formatDate(payment.date) }}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatCurrency(payment.amount) }}</CTableDataCell>
                 <CTableDataCell class="text-end">
-
-
+                  {{ formatCurrency(payment.family_fee_record?.balance) }}
+                </CTableDataCell>
+                <CTableDataCell class="text-end">
                   <CButtonGroup size="sm">
-                    <CButton color="secondary" variant="outline" @click="openEditModal(row)">Edit</CButton>
-                    <CButton color="danger" variant="outline" @click="openSingleDeleteConfirm(row)">Delete</CButton>
+                    <CButton color="secondary" variant="outline" @click="openEditModal(payment)">
+                      Edit
+                    </CButton>
+                    <CButton color="danger" variant="outline" @click="openDeleteConfirm(payment)">
+                      Delete
+                    </CButton>
                   </CButtonGroup>
                 </CTableDataCell>
               </CTableRow>
 
-              <CTableRow v-if="!isLoading && filteredPayments.length === 0">
-                <CTableDataCell colspan="6" class="text-center text-body-secondary">
-                  No payments found<span v-if="searchTerm"> for “{{ searchTerm }}”.</span>
+              <CTableRow v-if="!isLoading && !payments.length">
+                <CTableDataCell colspan="7" class="text-center text-body-secondary py-4">
+                  No payments found<span v-if="searchTerm"> for “{{ searchTerm }}”</span>.
                 </CTableDataCell>
               </CTableRow>
             </CTableBody>
           </CTable>
 
-          <!-- Pagination + Range -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+          <div class="d-flex justify-content-between align-items-center mt-3">
             <Pagination
               :current-page="currentPage"
               :total-pages="totalPages"
-              @page-changed="onPageChanged"
+              @page-changed="changePage"
             />
-            <div style="font-size: 14px; color: #7f8c8d;">
+            <div style="font-size:14px; color:#7f8c8d;">
               {{ showingRange }}
             </div>
           </div>
-
-
         </CCardBody>
       </CCard>
     </CCol>
   </CRow>
 
+  <!-- Add / Edit Modal -->
+  <CModal :visible="showFormModal" @close="closeFormModal" :backdrop="!isSubmitting">
+    <CModalHeader>
+      <CModalTitle>{{ isEdit ? 'Edit Payment' : 'Add Payment' }}</CModalTitle>
+    </CModalHeader>
+    <CModalBody>
+      <CFormSelect
+        v-model="form.familyFeeRecordId"
+        label="Family Fee Record"
+        :options="feeRecordOptions"
+        :disabled="isSubmitting || isLoadingRecords"
+      />
 
+      <CFormInput
+        v-model.number="form.amount"
+        label="Amount (GHS)"
+        type="number"
+        step="0.01"
+        min="0"
+        :disabled="isSubmitting"
+        class="mt-3"
+      />
 
+      <CFormInput
+        v-model="form.date"
+        label="Payment Date"
+        type="date"
+        :disabled="isSubmitting"
+        class="mt-3"
+      />
 
+      <CAlert color="danger" :show="!!formError" class="mt-3">
+        {{ formError }}
+      </CAlert>
+    </CModalBody>
+    <CModalFooter>
+      <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">
+        Cancel
+      </CButton>
+      <CButton color="primary" @click="savePayment" :disabled="isSubmitting">
+        <CSpinner size="sm" v-if="isSubmitting" class="me-1" />
+        {{ isEdit ? 'Update' : 'Save' }}
+      </CButton>
+    </CModalFooter>
+  </CModal>
 
-  <!-- Modal -->
+  <!-- Single Delete Confirm -->
+  <CModal :visible="showDeleteSingleModal" @close="closeDeleteSingleModal">
+    <CModalHeader>
+      <CModalTitle>Confirm Delete</CModalTitle>
+    </CModalHeader>
+    <CModalBody>
+      Delete this payment of <strong>{{ formatCurrency(deleteTarget?.amount) }}</strong>?
+      <div class="text-danger small mt-2">
+        This action cannot be undone.
+      </div>
+    </CModalBody>
+    <CModalFooter>
+      <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">
+        Cancel
+      </CButton>
+      <CButton color="danger" @click="deleteSingle" :disabled="isDeleting">
+        <CSpinner size="sm" v-if="isDeleting" class="me-1" />
+        Delete
+      </CButton>
+    </CModalFooter>
+  </CModal>
 
-<CModal :visible="showFormModal" @close="closeFormModal">
-  <CModalHeader>
-    <CModalTitle>{{ isEdit ? 'Edit Payment' : 'Add Payment' }}</CModalTitle>
-  </CModalHeader>
-
-
-  <CModalBody>
-    <!-- Family Fee Record -->
-    <div class="mb-3">
-      <CFormLabel for="familyFeeRecord">Family Fee Record</CFormLabel>
-      <CFormSelect v-model="form.familyFeeRecordId">
-        <option disabled value="" selected>Select Family</option>
-        <option
-          v-for="record in familyFeeRecords"
-          :key="record.id"
-          :value="record.id"
-        >
-          {{ record.family.name }} - {{ record.term.name }} - {{ record.academic_year.name }}
-        </option>
-      </CFormSelect>
-    </div>
-
-    <!-- Amount -->
-    <div class="mb-3">
-      <CFormLabel for="amount">Amount</CFormLabel>
-      <CFormInput v-model="form.amount" type="number" step="0.01" />
-    </div>
-
-    <!-- Date -->
-    <div class="mb-3">
-      <CFormLabel for="date">Date</CFormLabel>
-      <CFormInput v-model="form.date" type="date" />
-    </div>
-
-    <!-- Submit -->
-    <CButton color="primary" @click="submitForm">
-      {{ isEdit ? 'Update' : 'Create' }}
-    </CButton>
-  </CModalBody>
-</CModal>
-
-
-
-<CModal :visible="showDeleteSingleModal" @close="closeDeleteSingleModal">
-  <CModalHeader>
-    <CModalTitle>Confirm Delete</CModalTitle>
-  </CModalHeader>
-
-  <CModalBody>
-    Are you sure you want to delete this payment? This action cannot be reversed.
-  </CModalBody>
-
-  <div class="d-flex justify-content-end gap-2 p-3">
-    <CButton color="secondary" @click="closeDeleteSingleModal">
-      Cancel
-    </CButton>
-
-    <CButton color="danger" :disabled="isDeleting" @click="handleDeletePayment">
-      <span v-if="!isDeleting">Delete</span>
-      <span v-else>Deleting…</span>
-    </CButton>
-  </div>
-</CModal>
-
-
-<CModal :visible="showBulkDeleteModal" @close="closeBulkDeleteModal">
-  <CModalHeader>
-    <CModalTitle>Confirm Bulk Delete</CModalTitle>
-  </CModalHeader>
-
-  <CModalBody>
-    You are about to delete {{ selectedIds.length }} payment(s).
-    This action cannot be undone.
-  </CModalBody>
-
-  <div class="d-flex justify-content-end gap-2 p-3">
-    <CButton color="secondary" @click="closeBulkDeleteModal">
-      Cancel
-    </CButton>
-
-    <CButton color="danger" :disabled="isDeletingBulk" @click="handleBulkDelete">
-      <span v-if="!isDeletingBulk">Delete All</span>
-      <span v-else>Deleting…</span>
-    </CButton>
-  </div>
-</CModal>
-
-
-
+  <!-- Bulk Delete Confirm -->
+  <CModal :visible="showBulkDeleteModal" @close="showBulkDeleteModal = false">
+    <CModalHeader>
+      <CModalTitle>Delete {{ selectedIds.length }} Payments?</CModalTitle>
+    </CModalHeader>
+    <CModalBody>
+      This action cannot be undone.
+    </CModalBody>
+    <CModalFooter>
+      <CButton color="secondary" variant="outline" @click="showBulkDeleteModal = false" :disabled="isDeleting">
+        Cancel
+      </CButton>
+      <CButton color="danger" @click="deleteBulk" :disabled="isDeleting">
+        <CSpinner size="sm" v-if="isDeleting" class="me-1" />
+        Delete Selected
+      </CButton>
+    </CModalFooter>
+  </CModal>
 </template>
 
 <script setup>
-const searchTerm = ref('')
+import { ref, computed, watch, onMounted, reactive } from 'vue'
+import { useToast } from 'vue-toastification'
 import Pagination from '@/Pagination.vue'
-
-import { ref, computed, onMounted } from 'vue'
-
-
-import {  watch } from 'vue'
-
-const pageSize = 10
-const currentPage = ref(1)
-const totalPages = ref(1)
-
-
-function onPageChanged(page) {
-  fetchPayments(page)
-}
-
 
 import {
   get_family_payments,
@@ -244,379 +213,291 @@ import {
   get_raw_family_fee_rec,
 } from '@/services/api'
 
-import { useToast } from 'vue-toastification'
 const toast = useToast()
-const showBulkDeleteModal = ref(false)
-const isDeletingBulk = ref(false)
+const pageSize = 10
 
+// ── State ────────────────────────────────────────
+const isLoading       = ref(false)
+const isSubmitting    = ref(false)
+const isDeleting      = ref(false)
+const errorMessage    = ref('')
+
+const payments        = ref([])
+const familyFeeRecords = ref([])
+
+const searchTerm      = ref('')
+const dateFilter      = ref('')   // consider moving to backend later
+const currentPage     = ref(1)
+const totalPages      = ref(1)
+const totalCount      = ref(0)
+
+const selectedIds     = ref([])
+
+const showFormModal         = ref(false)
+const isEdit                = ref(false)
+const form = reactive({
+  familyFeeRecordId: '',
+  amount: 0,
+  date: new Date().toISOString().split('T')[0],
+})
+
+const formError       = ref('')
+
+const showDeleteSingleModal = ref(false)
+const deleteTarget          = ref(null)
+const showBulkDeleteModal   = ref(false)
+
+// ── Cache ────────────────────────────────────────
+const pageCache = ref(new Map()) // key: "page|search" → { results, count }
+
+// ── Computed ─────────────────────────────────────
+const showingRange = computed(() => {
+  if (!payments.value.length) return 'Showing 0 payments'
+  const start = (currentPage.value - 1) * pageSize + 1
+  const end = start + payments.value.length - 1
+  return `Showing ${start}–${end} of ${totalCount.value}`
+})
+
+const feeRecordOptions = computed(() =>
+  familyFeeRecords.value.map(r => ({
+    value: r.id,
+    label: `${r.family?.name || '—'} - ${r.term?.name || '—'} - ${r.academic_year?.name || '—'}`
+  }))
+)
+
+const allSelected = computed(() =>
+  payments.value.length > 0 && payments.value.every(p => selectedIds.value.includes(p.id))
+)
+
+const someSelected = computed(() =>
+  !allSelected.value && payments.value.some(p => selectedIds.value.includes(p.id))
+)
+
+// ── Helpers ──────────────────────────────────────
+const formatCurrency = (val) => {
+  const num = Number(val)
+  return Number.isNaN(num) ? '—' : num.toLocaleString('en-GH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '—'
+  return new Date(dateStr).toLocaleDateString('en-GH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+// ── Watchers ─────────────────────────────────────
 watch(searchTerm, () => {
   currentPage.value = 1
-  fetchPayments(1)
+  loadPayments()
 })
-const isDeleting = ref(false)
 
-const handleDeletePayment = async () => {
-  if (!deleteTarget.value) return
+watch(dateFilter, () => {
+  // For now: client-side (slow for large pages)
+  // Ideal: add backend params like created_after / created_before
+  // currentPage.value = 1
+  // loadPayments()
+})
 
-  isDeleting.value = true
+// ── Methods ──────────────────────────────────────
+function changePage(page) {
+  currentPage.value = page
+  loadPayments()
+}
+
+async function loadPayments() {
+  const page = currentPage.value
+  const search = searchTerm.value.trim() || undefined
+  const date_preset = dateFilter.value || undefined   // send '' as undefined → backend ignores
+
+  const cacheKey = `${page}|${search || ''}|${date_preset || ''}`
+
+  if (pageCache.value.has(cacheKey)) {
+    const cached = pageCache.value.get(cacheKey)
+    payments.value = cached.results
+    totalCount.value = cached.count
+    totalPages.value = Math.ceil(cached.count / pageSize)
+    return
+  }
+
+  isLoading.value = true
+  errorMessage.value = ''
+
   try {
-    await deletePayment(deleteTarget.value.id)  // API call & local update
-    closeDeleteSingleModal()                     // close the modal
+    const params = { page, page_size: pageSize }
+    if (search) params.search = search
+    if (date_preset) params.date_preset = date_preset   // ← this is the key change
+
+    const res = await get_family_payments(params)
+    const data = res.data || {}
+
+    const results = data.results || []
+    const count = Number(data.count) || 0
+
+    pageCache.value.set(cacheKey, { results, count })
+
+    payments.value = results
+    totalCount.value = count
+    totalPages.value = Math.ceil(count / pageSize)
   } catch (err) {
-    // error is already handled in deletePayment
+    errorMessage.value = err.response?.data?.detail || 'Failed to load payments'
+    toast.error(errorMessage.value)
+  } finally {
+    isLoading.value = false
+  }
+}
+async function loadFamilyFeeRecords() {
+  try {
+    const res = await get_raw_family_fee_rec()
+    familyFeeRecords.value = res.data || []
+  } catch {
+    toast.error('Failed to load family fee records for selection')
+  }
+}
+
+function openAddModal() {
+  isEdit.value = false
+  Object.assign(form, {
+    familyFeeRecordId: '',
+    amount: 0,
+    date: new Date().toISOString().split('T')[0],
+  })
+  formError.value = ''
+  showFormModal.value = true
+}
+
+function openEditModal(payment) {
+  isEdit.value = true
+  Object.assign(form, {
+    familyFeeRecordId: payment.family_fee_record?.id || '',
+    amount: Number(payment.amount) || 0,
+    date: payment.date?.split('T')[0] || '',
+  })
+  formError.value = ''
+  showFormModal.value = true
+}
+
+function closeFormModal() {
+  if (isSubmitting.value) return
+  showFormModal.value = false
+}
+
+async function savePayment() {
+  if (!form.familyFeeRecordId) {
+    formError.value = 'Please select a family fee record'
+    return
+  }
+  if (!form.amount || form.amount <= 0) {
+    formError.value = 'Amount must be greater than 0'
+    return
+  }
+  if (!form.date) {
+    formError.value = 'Payment date is required'
+    return
+  }
+
+  isSubmitting.value = true
+  formError.value = ''
+
+  const payload = {
+    family_fee_record_id: Number(form.familyFeeRecordId),
+    amount: Number(form.amount),
+    date: form.date,
+  }
+
+  try {
+    if (isEdit.value) {
+      // Note: using create with ID as update – replace with real update if available
+      await create_family_payment(deleteTarget.value.id, payload) // adjust API
+      toast.success('Payment updated')
+    } else {
+      await create_family_payment(payload)
+      toast.success('Payment recorded')
+    }
+
+    // Refresh current page
+    await loadPayments()
+    closeFormModal()
+  } catch (err) {
+    const data = err.response?.data || {}
+    formError.value = data.amount?.[0] || data.non_field_errors?.[0] || data.message || 'Failed to save payment'
+    toast.error(formError.value)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+function openDeleteConfirm(payment) {
+  deleteTarget.value = payment
+  showDeleteSingleModal.value = true
+}
+
+function closeDeleteSingleModal() {
+  if (isDeleting.value) return
+  showDeleteSingleModal.value = false
+  deleteTarget.value = null
+}
+
+async function deleteSingle() {
+  if (!deleteTarget.value?.id) return
+  isDeleting.value = true
+
+  try {
+    await delete_family_payment(deleteTarget.value.id)
+    payments.value = payments.value.filter(p => p.id !== deleteTarget.value.id)
+    selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
+    totalCount.value = Math.max(0, totalCount.value - 1)
+    toast.success('Payment deleted')
+    closeDeleteSingleModal()
+  } catch (err) {
+    const msg = err.response?.data?.detail || 'Delete failed'
+    toast.error(msg.includes('constraint') ? 'Cannot delete – linked to other data' : msg)
   } finally {
     isDeleting.value = false
   }
 }
 
+async function deleteBulk() {
+  if (!selectedIds.value.length) return
+  isDeleting.value = true
 
-
-
-// REAL Family Fee Records
-const familyFeeRecords = ref([])
-
-// Load Family Fee Records from API
-const fetchFamilyFeeRecords = async () => {
-  try {
-    const res = await get_raw_family_fee_rec()
-    familyFeeRecords.value = res.data || []
-  } catch (err) {
-    toast.error('Failed to load family fee records.', { position: 'top-right' })
-  }
-}
-
-// REAL Payments Store
-const listPayments = async (params = {}) => {
-  try {
-    const res = await get_family_payments(params)
-
-    return res.data || []
-  } catch (err) {
-    toast.error('Failed to fetch payments.', { position: 'top-right' })
-    return []
-  }
-}
-
-const createPayment = async (data) => {
-  try {
-    const today = new Date().toISOString().split("T")[0]
-
-    // Normalize the date into yyyy-mm-dd
-    const formattedDate = data.date
-      ? data.date.split("T")[0]
-      : today
-
-    const payload = {
-      family_fee_record_id: data.familyFeeRecordId,
-      date: formattedDate,
-      amount: data.amount,
-    }
-
-    const res = await create_family_payment(payload)
-    toast.success('Payment added.', { position: 'top-right' })
-    return res.data
-
-  } catch (err) {
-  const data = err.response?.data || {}
-
-  let msg = 'Failed to add payment.'
-
-  // 1️⃣ DRF field validation (highest priority)
-  if (Array.isArray(data.amount) && data.amount.length) {
-    msg = data.amount[0]
-  }
-  // 2️⃣ Generic DRF non-field errors
-  else if (Array.isArray(data.non_field_errors) && data.non_field_errors.length) {
-    msg = data.non_field_errors[0]
-  }
-  // 3️⃣ Custom backend message
-  else if (typeof data.message === 'string') {
-    const backendMsg = data.message.toLowerCase()
-
-    if (backendMsg.includes('constraint') || backendMsg.includes('foreign')) {
-      msg = 'Cannot add payment because it is linked to missing or invalid records.'
-    } else {
-      msg = data.message
-    }
-  }
-
-  toast.error(msg, { position: 'top-right' })
-  throw err
-}
-
-}
-
-
-const updatePayment = async (id, data) => {
-  try {
-    const res = await create_family_payment(id, data) // If you have PUT/PATCH, update here
-    toast.success('Payment updated.', { position: 'top-right' })
-    return res.data
-  } catch (err) {
-    const backendMsg = err.response?.data?.message?.toLowerCase() || ''
-    let msg = 'Failed to update payment.'
-
-    if (backendMsg.includes('constraint') || backendMsg.includes('foreign')) {
-      msg = 'This payment is linked to another record and cannot be updated.'
-    }
-
-    toast.error(msg, { position: 'top-right' })
-    throw err
-  }
-}
-
-const deletePayment = async (id) => {
+  const ids = [...selectedIds.value]
 
   try {
-    await delete_family_payment(id)
-    // Remove from local payments array
-    payments.value = payments.value.filter(p => p.id !== id)
-
-    // Also remove from selectedIds if it was selected
-    selectedIds.value = selectedIds.value.filter(sid => sid !== id)
-
-    toast.success('Payment deleted.', { position: 'top-right' })
-    return true
-  } catch (err) {
-    const backendMsg = err.response?.data?.message?.toLowerCase() || ''
-    let msg = 'Failed to delete payment.'
-
-    if (backendMsg.includes('constraint') || backendMsg.includes('foreign')) {
-      msg = 'This payment cannot be deleted because it is linked to other records.'
-    }
-
-    toast.error(msg, { position: 'top-right' })
-    throw err
-  }
-}
-
-
-const bulkDeletePayments = async (ids) => {
-  try {
-    await Promise.all(ids.map(id => delete_family_payment(id)))
-    toast.success('Selected payments deleted.', { position: 'top-right' })
-    return true
-  } catch (err) {
-    const backendMsg = err.response?.data?.message?.toLowerCase() || ''
-    let msg = 'Failed to delete some selected payments.'
-
-    if (backendMsg.includes('constraint') || backendMsg.includes('foreign')) {
-      msg = 'Some payments are linked to other records and cannot be deleted.'
-    }
-
-    toast.error(msg, { position: 'top-right' })
-    throw err
-  }
-}
-
-const deleteTarget = ref(null)
-
-
-function closeDeleteSingleModal() {
-  showDeleteSingleModal.value = false
-  deleteTarget.value = null
-}
-
-// Component State
-const payments = ref([])
-const isLoading = ref(false)
-const errorMessage = ref('')
-
-const dateFilter = ref('')
-const selectedIds = ref([])
-const showFormModal = ref(false)
-const isEdit = ref(false)
-const currentPayment = ref(null)
-
-const form = ref({
-  amount: '',
-  date: '',
-  familyFeeRecordId: '',
-})
-
-const fetchPayments = async (page = 1) => {
-  isLoading.value = true
-  errorMessage.value = ''
-  try {
-    const response = await listPayments({
-      page,
-      search: searchTerm.value?.trim() || undefined,
-    })
-
-
-    const rows = response
-
-
-    payments.value = Array.isArray(rows?.results) ? rows.results : []
-    currentPage.value = page
-    totalPages.value = Math.ceil((rows?.count ?? 0) / pageSize)
-
-
-
-
-  } catch (err) {
-    errorMessage.value = 'Failed to load payments.'
+    await Promise.allSettled(ids.map(id => delete_family_payment(id)))
+    payments.value = payments.value.filter(p => !ids.includes(p.id))
+    selectedIds.value = []
+    totalCount.value = Math.max(0, totalCount.value - ids.length)
+    toast.success(`Deleted ${ids.length} payments`)
+  } catch {
+    toast.error('Some deletions failed')
   } finally {
-    isLoading.value = false
+    isDeleting.value = false
+    showBulkDeleteModal.value = false
   }
 }
 
-onMounted(async () => {
-  await fetchFamilyFeeRecords()
-  await fetchPayments()
-})
-
-const filteredPayments = computed(() => {
-  const term = searchTerm.value.trim().toLowerCase()
-  const now = new Date()
-
-
-
-  return payments.value.filter(p => {
-    const family =
-      p.family_fee_record?.family?.name?.toLowerCase() || ''
-    const termName =
-      p.family_fee_record?.term?.name?.toLowerCase() || ''
-    const ay =
-      p.family_fee_record?.academic_year?.name?.toLowerCase() || ''
-
-    const matchesSearch =
-      !term ||
-      family.includes(term) ||
-      termName.includes(term) ||
-      ay.includes(term)
-
-
-
-    if (!dateFilter.value) {
-
-      return matchesSearch
-    }
-
-
-    const paymentDate = new Date(p.date)
-    let matchesDate = true
-
-
-
-    if (dateFilter.value === 'today') {
-      matchesDate =
-        paymentDate.toDateString() === now.toDateString()
-    }
-
-    if (dateFilter.value === '7days') {
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(now.getDate() - 7)
-      matchesDate = paymentDate >= sevenDaysAgo
-    }
-
-    if (dateFilter.value === 'month') {
-      matchesDate =
-        paymentDate.getMonth() === now.getMonth() &&
-        paymentDate.getFullYear() === now.getFullYear()
-    }
-
-    if (dateFilter.value === 'year') {
-      matchesDate =
-        paymentDate.getFullYear() === now.getFullYear()
-    }
-
-
-    return matchesSearch && matchesDate
-  })
-})
-
-
-const allSelected = computed(() => selectedIds.value.length === filteredPayments.value.length && filteredPayments.value.length > 0)
-const someSelected = computed(() => selectedIds.value.length > 0 && selectedIds.value.length < filteredPayments.value.length)
-
-const toggleSelectAll = () => {
+function toggleSelectAll() {
   if (allSelected.value) {
     selectedIds.value = []
   } else {
-    selectedIds.value = filteredPayments.value.map(p => p.id)
+    selectedIds.value = payments.value.map(p => p.id)
   }
 }
 
-const formatAmount = (amount) => parseFloat(amount).toFixed(2)
-
-const openAddModal = () => {
-  isEdit.value = false
-  currentPayment.value = null
-  form.value = { amount: '', date: '', familyFeeRecordId: '' }
-  showFormModal.value = true
-}
-
-const openEditModal = (payment) => {
-  isEdit.value = true
-  currentPayment.value = payment
-  form.value = {
-    amount: payment.amount,
-    date: payment.date,
-    familyFeeRecordId: payment.family_fee_record?.id || '',
-
-  }
-  showFormModal.value = true
-}
-
-const closeFormModal = () => {
-  showFormModal.value = false
-  currentPayment.value = null
-}
-
-const submitForm = async () => {
-  try {
-    if (isEdit.value && currentPayment.value) {
-      await updatePayment(currentPayment.value.id, form.value)
-    } else {
-      await createPayment(form.value)
-    }
-    await fetchPayments()
-    closeFormModal()
-  } catch (err) {
-
-
-    errorMessage.value = 'Failed to save payment.'
-  }
-}
-
-const showDeleteSingleModal = ref(false)
-
-const openSingleDeleteConfirm = async (payment) => {
-  deleteTarget.value = payment
-  showDeleteSingleModal.value = true
-
-}
-
-
-const openBulkDeleteConfirm = () => {
-  if (selectedIds.value.length === 0) return
-  showBulkDeleteModal.value = true
-}
-const closeBulkDeleteModal = () => {
-  showBulkDeleteModal.value = false
-}
-
-const handleBulkDelete = async () => {
-  if (selectedIds.value.length === 0) return
-
-  isDeletingBulk.value = true
-  try {
-    await bulkDeletePayments(selectedIds.value)
-    selectedIds.value = []
-    await fetchPayments()
-    closeBulkDeleteModal()
-  } catch (err) {
-    // error is already handled in bulkDeletePayments
-  } finally {
-    isDeletingBulk.value = false
-  }
-}
-
+// ── Init ─────────────────────────────────────────
+onMounted(async () => {
+  await loadFamilyFeeRecords()
+  await loadPayments()
+})
 </script>
 
 <style scoped>
-/* Ensure header actions wrap well on smaller screens */
 @media (max-width: 576px) {
   .gap-2 { row-gap: 0.5rem; }
 }

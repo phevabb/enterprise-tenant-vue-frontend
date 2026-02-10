@@ -5,28 +5,21 @@
         <CCardHeader>
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <strong>Family Fee Records</strong>
-
-            <!-- Actions: Search (Family) + Delete Selected + Add -->
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <CFormInput
                 v-model="searchTerm"
                 placeholder="Search by family name..."
-                aria-label="Search by family name"
                 size="sm"
                 style="min-width: 260px;"
               />
-
-
-
               <CButton
                 color="danger"
                 size="sm"
-                :disabled="selectedIds.length === 0"
-                @click="openBulkDeleteConfirm"
+                :disabled="!selectedIds.length"
+                @click="showDeleteBulkModal = true"
               >
                 Delete Selected ({{ selectedIds.length }})
               </CButton>
-
               <CButton color="primary" size="sm" @click="openAddModal">
                 Add Family Fee Record
               </CButton>
@@ -35,215 +28,195 @@
         </CCardHeader>
 
         <CCardBody>
-          <p class="text-body-secondary small">
+          <p class="text-body-secondary small mb-3">
             Manage family-level fee obligations and payments by term and academic year.
           </p>
 
-          <CAlert color="danger" v-if="errorMessage" class="py-2">
-            {{ errorMessage }}
-          </CAlert>
 
-          <div class="d-flex align-items-center gap-2 mb-2" v-if="isLoading">
+
+          <div v-if="isLoading" class="d-flex align-items-center gap-2 mb-3">
             <CSpinner size="sm" />
             <span class="text-body-secondary small">Loading family fee records…</span>
           </div>
 
-          <!-- Remove <DocsExample> if not used in your project -->
-          <DocsExample>
-            <CTable hover responsive>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell scope="col" class="text-center" style="width: 48px;">
-                    <CFormCheck
-                      :checked="allSelected"
-                      :indeterminate="someSelected"
-                      @change="toggleSelectAll"
-                      aria-label="Select all in current view"
-                    />
-                  </CTableHeaderCell>
+          <CTable hover responsive>
+            <CTableHead>
+              <CTableRow>
+                <CTableHeaderCell class="text-center" style="width:48px">
+                  <CFormCheck
+                    :checked="allSelected"
+                    :indeterminate="someSelected"
+                    @change="toggleSelectAll"
+                  />
+                </CTableHeaderCell>
+                <CTableHeaderCell style="width:60px">#</CTableHeaderCell>
+                <CTableHeaderCell>Family</CTableHeaderCell>
+                <CTableHeaderCell>Term</CTableHeaderCell>
+                <CTableHeaderCell>Academic Year</CTableHeaderCell>
+                <CTableHeaderCell class="text-end">Amount To Pay (GHS)</CTableHeaderCell>
+                <CTableHeaderCell class="text-end">Amount Paid (GHS)</CTableHeaderCell>
+                <CTableHeaderCell class="text-end">Balance (GHS)</CTableHeaderCell>
+                <CTableHeaderCell>Fully Paid</CTableHeaderCell>
+                <CTableHeaderCell>Created</CTableHeaderCell>
+                <CTableHeaderCell class="text-end" style="width:140px">Actions</CTableHeaderCell>
+              </CTableRow>
+            </CTableHead>
 
-                  <CTableHeaderCell scope="col" style="width: 60px;">#</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Family</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Term</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Academic Year</CTableHeaderCell>
-                  <CTableHeaderCell scope="col" class="text-end">Amount To Pay (GHS)</CTableHeaderCell>
-                  <CTableHeaderCell scope="col" class="text-end">Amount Paid (GHS)</CTableHeaderCell>
-                  <CTableHeaderCell scope="col" class="text-end">Balance (GHS)</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Fully Paid</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Created</CTableHeaderCell>
-                  <CTableHeaderCell scope="col" class="text-end" style="width: 170px;">Actions</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
+            <CTableBody>
+              <CTableRow v-for="(record, idx) in records" :key="record.id">
+                <CTableDataCell class="text-center">
+                  <CFormCheck v-model="selectedIds" :value="record.id" />
+                </CTableDataCell>
+                <CTableHeaderCell scope="row">
+                  {{ (currentPage - 1) * pageSize + idx + 1 }}
+                </CTableHeaderCell>
+                <CTableDataCell>{{ record.family?.name || '—' }}</CTableDataCell>
+                <CTableDataCell>{{ record.term?.name || '—' }}</CTableDataCell>
+                <CTableDataCell>{{ record.academic_year?.name || '—' }}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatCurrency(record.amount_to_pay) }}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatCurrency(record.amount_paid) }}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatCurrency(record.balance) }}</CTableDataCell>
+                <CTableDataCell>
+                  <CBadge :color="record.is_fully_paid ? 'success' : 'warning'">
+                    {{ record.is_fully_paid ? 'Yes' : 'No' }}
+                  </CBadge>
+                </CTableDataCell>
+                <CTableDataCell>{{ formatDate(record.date_created) }}</CTableDataCell>
+                <CTableDataCell class="text-end">
+                  <CButtonGroup size="sm">
+                    <CButton color="danger" variant="outline" @click="openDeleteConfirm(record)">
+                      Delete
+                    </CButton>
+                  </CButtonGroup>
+                </CTableDataCell>
+              </CTableRow>
 
-              <CTableBody>
-                <CTableRow v-for="(row, idx) in filteredRecords" :key="row.id">
-                  <CTableDataCell class="text-center">
-                    <CFormCheck v-model="selectedIds" :value="row.id" aria-label="Select row" />
-                  </CTableDataCell>
+              <CTableRow v-if="!isLoading && !records.length">
+                <CTableDataCell colspan="11" class="text-center text-body-secondary py-4">
+                  No family fee records found<span v-if="searchTerm"> for “{{ searchTerm }}”</span>.
+                </CTableDataCell>
+              </CTableRow>
+            </CTableBody>
+          </CTable>
 
-
-                  <CTableHeaderCell scope="row">{{ (currentPage - 1) * pageSize + idx + 1 }}</CTableHeaderCell>
-                  <CTableDataCell>{{ row.family?.name }}</CTableDataCell>
-                  <CTableDataCell>{{ row.term?.name }}</CTableDataCell>
-                  <CTableDataCell>{{ row.academic_year?.name}}</CTableDataCell>
-                  <CTableDataCell class="text-end">{{ formatAmount(row.amount_to_pay) }}</CTableDataCell>
-                  <CTableDataCell class="text-end">{{ formatAmount(row.amount_paid) }}</CTableDataCell>
-                  <CTableDataCell class="text-end">{{ formatAmount(row.balance) }}</CTableDataCell>
-                  <CTableDataCell>
-                    <CBadge :color="row.is_fully_paid? 'success' : 'warning'">
-                      {{ row.is_fully_paid? 'Yes' : 'No' }}
-                    </CBadge>
-                  </CTableDataCell>
-                  <CTableDataCell>{{ formatDateTime(row.date_created) }}</CTableDataCell>
-
-                  <CTableDataCell class="text-end">
-                    <CButtonGroup size="sm">
-
-                      <CButton color="danger" variant="outline" @click="openSingleDeleteConfirm(row)">
-                        Delete
-                      </CButton>
-                    </CButtonGroup>
-                  </CTableDataCell>
-                </CTableRow>
-
-                <CTableRow v-if="!isLoading && filteredRecords.length === 0">
-                  <CTableDataCell colspan="10" class="text-center text-body-secondary">
-                    No family fee records found
-                    <span v-if="searchTerm"> for “{{ searchTerm }}”.</span>
-                  </CTableDataCell>
-                </CTableRow>
-              </CTableBody>
-            </CTable>
-
-               <!-- Pagination + Range -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+          <div class="d-flex justify-content-between align-items-center mt-3">
             <Pagination
               :current-page="currentPage"
               :total-pages="totalPages"
-              @page-changed="onPageChanged"
+              @page-changed="changePage"
             />
-            <div style="font-size: 14px; color: #7f8c8d;">
+            <div style="font-size:14px; color:#7f8c8d;">
               {{ showingRange }}
             </div>
           </div>
-
-          </DocsExample>
         </CCardBody>
       </CCard>
     </CCol>
   </CRow>
 
-  <!-- Add/Edit Modal -->
-  <CModal :visible="showFormModal" @close="closeFormModal">
+  <!-- Add / Edit Modal -->
+  <CModal :visible="showFormModal" @close="closeFormModal" :backdrop="!isSubmitting">
     <CModalHeader>
       <CModalTitle>{{ isEdit ? 'Edit Family Fee Record' : 'Add Family Fee Record' }}</CModalTitle>
     </CModalHeader>
     <CModalBody>
-      <div class="mb-3">
-        <CFormLabel for="family">Family</CFormLabel>
-        <CFormSelect id="family" v-model="form.familyId">
-          <option value="" disabled selected>Select Family</option>
-          <option v-for="f in families" :key="f.id" :value="f.id">{{ f.name }}</option>
-        </CFormSelect>
+      <CFormSelect
+        v-model="form.familyId"
+        label="Family"
+        :options="familyOptions"
+        :disabled="isSubmitting"
+      />
+
+      <CFormSelect
+        v-model="form.termId"
+        label="Term"
+        :options="termOptions"
+        :disabled="isSubmitting"
+        class="mt-3"
+      />
+
+      <CFormSelect
+        v-model="form.academicYearId"
+        label="Academic Year"
+        :options="academicYearOptions"
+        :disabled="isSubmitting"
+        class="mt-3"
+      />
+
+      <CFormInput
+        v-model.number="form.amountToPay"
+        label="Amount To Pay (GHS)"
+        type="number"
+        step="0.01"
+        min="0"
+        :disabled="isSubmitting"
+        class="mt-3"
+      />
+
+      <div v-if="isEdit && form.createdAt" class="mt-3 text-body-secondary small">
+        Created: {{ formatDate(form.createdAt) }}
       </div>
 
-      <div class="mb-3">
-        <CFormLabel for="term">Term</CFormLabel>
-        <CFormSelect id="term" v-model="form.termId">
-          <option value="" disabled selected>Select Term</option>
-          <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.name }}</option>
-        </CFormSelect>
-      </div>
-
-      <div class="mb-3">
-        <CFormLabel for="ay">Academic Year</CFormLabel>
-        <CFormSelect id="ay" v-model="form.academicYearId">
-          <option value="" disabled selected>Select Academic Year</option>
-          <option v-for="ay in academicYears" :key="ay.id" :value="ay.id">{{ ay.name }}</option>
-        </CFormSelect>
-      </div>
-
-      <div class="mb-3">
-        <CFormLabel for="amountToPay">Amount To Pay (GHS)</CFormLabel>
-        <CFormInput
-          id="amountToPay"
-          v-model="form.amountToPay"
-          type="number"
-          step="0.01"
-          min="0"
-          placeholder="0.00"
-          @input="recalcDerived"
-        />
-      </div>
-
-
-
-
-
-
-      <!-- created date (read-only on edit) -->
-      <div class="mt-2 text-body-secondary small" v-if="isEdit && viewCreated">
-        Created: {{ formatDateTime(viewCreated) }}
-      </div>
-
-      <div class="text-danger small mt-2" v-if="formValidationMessage">
+      <CAlert color="danger" :show="!!formValidationMessage" class="mt-3">
         {{ formValidationMessage }}
-      </div>
+      </CAlert>
     </CModalBody>
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">Cancel</CButton>
-      <CButton color="primary" @click="submitForm" :disabled="isSubmitting">
-        <CSpinner size="sm" v-if="isSubmitting" class="me-2" />
-        {{ isEdit ? 'Update' : 'Save' }}
+      <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">
+        Cancel
+      </CButton>
+      <CButton color="primary" @click="saveRecord" :disabled="isSubmitting">
+        <CSpinner size="sm" v-if="isSubmitting" class="me-1" />
+        {{ isEdit ? 'Update' : 'Create' }}
       </CButton>
     </CModalFooter>
   </CModal>
 
-  <!-- Confirm Delete (Single) -->
+  <!-- Delete Confirm (Single) -->
   <CModal :visible="showDeleteSingleModal" @close="closeDeleteSingleModal">
-    <CModalHeader><CModalTitle>Delete Family Fee Record</CModalTitle></CModalHeader>
+    <CModalHeader>
+      <CModalTitle>Confirm Delete</CModalTitle>
+    </CModalHeader>
     <CModalBody>
-      Delete the record for family
-      <strong>{{ deleteTarget?.family?.name }}</strong>
-      — {{ deleteTarget?.term?.name }} / {{ deleteTarget?.academicYear?.name }}?
+      Delete fee record for <strong>{{ deleteTarget?.family?.name || '—' }}</strong>
+      ({{ deleteTarget?.term?.name || '—' }} / {{ deleteTarget?.academic_year?.name || '—' }})?
     </CModalBody>
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">Cancel</CButton>
-      <CButton color="danger" @click="confirmDeleteSingle" :disabled="isDeleting">
-        <CSpinner size="sm" v-if="isDeleting" class="me-2" />Delete
+      <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">
+        Cancel
+      </CButton>
+      <CButton color="danger" @click="deleteSingle" :disabled="isDeleting">
+        <CSpinner size="sm" v-if="isDeleting" class="me-1" />
+        Delete
       </CButton>
     </CModalFooter>
   </CModal>
 
-  <!-- Confirm Delete (Bulk) -->
-  <CModal :visible="showDeleteBulkModal" @close="closeBulkDeleteConfirm">
-    <CModalHeader><CModalTitle>Delete Selected</CModalTitle></CModalHeader>
+  <!-- Delete Confirm (Bulk) -->
+  <CModal :visible="showDeleteBulkModal" @close="showDeleteBulkModal = false">
+    <CModalHeader>
+      <CModalTitle>Delete {{ selectedIds.length }} Records?</CModalTitle>
+    </CModalHeader>
     <CModalBody>
-      You are about to delete <strong>{{ selectedIds.length }}</strong> record(s).
-      This action cannot be undone. Continue?
+      This action cannot be undone.
     </CModalBody>
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="closeBulkDeleteConfirm" :disabled="isDeleting">Cancel</CButton>
-      <CButton color="danger" @click="confirmDeleteBulk" :disabled="isDeleting">
-        <CSpinner size="sm" v-if="isDeleting" class="me-2" />Delete Selected
+      <CButton color="secondary" variant="outline" @click="showDeleteBulkModal = false" :disabled="isDeleting">
+        Cancel
+      </CButton>
+      <CButton color="danger" @click="deleteBulk" :disabled="isDeleting">
+        <CSpinner size="sm" v-if="isDeleting" class="me-1" />
+        Delete Selected
       </CButton>
     </CModalFooter>
   </CModal>
-
-  <!-- Optional: Success toasts -->
-  <CToaster placement="top-end">
-    <CToast v-for="t in toasts" :key="t.id" :visible="t.visible" :color="t.color" class="text-white mb-2">
-      <CToastBody>{{ t.message }}</CToastBody>
-    </CToast>
-  </CToaster>
 </template>
 
 <script setup>
-
+import { ref, computed, watch, onMounted, reactive } from 'vue'
+import { useToast } from 'vue-toastification'
 import Pagination from '@/Pagination.vue'
-import { ref, computed, reactive, onMounted } from 'vue'
-import {useToast} from 'vue-toastification'
-const toast = useToast()
+
 import {
   get_family_fee_rec,
   create_family_fee_rec,
@@ -251,530 +224,303 @@ import {
   get_raw_families,
   get_terms,
   get_academic_years
-} from '../../../services/api'
+} from '@/services/api'   // adjust path if needed
 
-
-import {  watch } from 'vue'
-
+const toast = useToast()
 const pageSize = 10
-const currentPage = ref(1)
-const totalPages = ref(1)
 
+// ── State ────────────────────────────────────────
+const isLoading       = ref(false)
+const isSubmitting    = ref(false)
+const isDeleting      = ref(false)
+const errorMessage    = ref('')
 
-const ffrApi = (() => {
-  let AY = []
-  let TM = []
-  let FAMILIES = []
-  let _data = []
+const records         = ref([])
+const families        = ref([])
+const terms           = ref([])
+const academicYears   = ref([])
 
-  const clone = (x) => JSON.parse(JSON.stringify(x))
+const searchTerm      = ref('')
+const currentPage     = ref(1)
+const totalPages      = ref(1)
+const totalCount      = ref(0)
 
+const selectedIds     = ref([])
 
+const showFormModal         = ref(false)
+const isEdit                = ref(false)
+const editingId             = ref(null)
 
-  // LOAD INITIAL DATA
-  const loadStaticData = async () => {
-    try {
-      const [years, terms, families, records] = await Promise.all([
-        get_academic_years(),
-        get_terms(),
-        get_raw_families (),
-        get_family_fee_rec()
-      ])
-
-
-
-      AY = years.data || []
-      TM = terms.data || []
-      FAMILIES = families.data || []
-      _data = records.data || []
-
-    } catch (err) {
-      toast.error('Failed to load initial fee records data.', { position: 'top-right' })
-    }
-  }
-
-  loadStaticData()
-
-
-
-  return {
-
-    async listRecords(params= {}) {
-      try {
-        const res = await get_family_fee_rec(params)
-        _data = res.data || []
-        return clone(_data)
-      } catch (err) {
-        toast.error('Failed to fetch family fee records.', { position: 'top-right' })
-        return clone(_data)
-      }
-    },
-
-    async listFamilies() {
-      try {
-        const res = await get_raw_families()
-        FAMILIES = res.data || []
-        return clone(FAMILIES)
-      } catch (err) {
-        toast.error('Failed to fetch families.', { position: 'top-right' })
-        return clone(FAMILIES)
-      }
-    },
-
-    async listTerms() {
-      try {
-        const res = await get_terms()
-        TM = res.data || []
-        return clone(TM)
-      } catch (err) {
-        toast.error('Failed to fetch terms.', { position: 'top-right' })
-        return clone(TM)
-      }
-    },
-
-    async listAcademicYears() {
-      try {
-        const res = await get_academic_years()
-        AY = res.data || []
-        return clone(AY)
-      } catch (err) {
-        toast.error('Failed to fetch academic years.', { position: 'top-right' })
-        return clone(AY)
-      }
-    },
-
-
-
-    // CREATE
-    async createRecord(payload) {
-      try {
-
-        const res = await create_family_fee_rec(payload)
-        return clone(res.data)
-      } catch (err) {
-
-        const msg = err.response?.data?.message || 'Failed to create record.'
-        toast.error(msg, { position: 'top-right' })
-        throw err
-      }
-    },
-
-
-
-    // UPDATE (TEMPORARY – uses create API because no update API imported)
-    async updateRecord(id, payload) {
-      try {
-        // If backend expects create_family_fee_rec(payload) only,
-        // OR create_family_fee_rec(id, payload)
-        const res = await create_family_fee_rec(id, payload)
-        return clone(res.data)
-      } catch (err) {
-        const msg = err.response?.data?.message || 'Failed to update record.'
-        toast.error(msg, { position: 'top-right' })
-        throw err
-      }
-    },
-
-
-
-    // DELETE one
-    async deleteRecord(id) {
-  try {
-    await delete_family_fee_rec(id)
-    return { success: true }
-  } catch (err) {
-    const backendMsg = err.response?.data?.message?.toLowerCase() || ''
-
-    let msg = 'Failed to delete record.'
-
-    if (backendMsg.includes('constraint') || backendMsg.includes('foreign')) {
-      msg = 'This record is linked to other data and cannot be deleted.'
-    }
-
-    toast.error(msg, { position: 'top-right' })
-    throw err
-  }
-},
-
-
-
-
-    // DELETE multiple
-    async deleteRecords(ids) {
-      try {
-        for (const id of ids) await delete_family_fee_rec(id)
-        return { success: true, deleted: ids.length }
-      } catch (err) {
-        const msg = err.response?.data?.message || 'Failed to delete selected records.'
-        toast.error(msg, { position: 'top-right' })
-        throw err
-      }
-    }
-
-  }
-})()
-
-
-
-
-/* ---------- State ---------- */
-const isLoading = ref(false)
-const isSubmitting = ref(false)
-const isDeleting = ref(false)
-const errorMessage = ref('')
-
-const records = ref([])
-const families = ref([])
-const terms = ref([])
-const academicYears = ref([])
-
-/* Search */
-const searchTerm = ref('')
-const dateFilter = ref('')
-
-
-/* Selection */
-const selectedIds = ref([])
-
-/* Form (Add/Edit) */
-const showFormModal = ref(false)
-const isEdit = ref(false)
-const editingId = ref(null)
-const viewCreated = ref('')
 const form = reactive({
   familyId: '',
   termId: '',
   academicYearId: '',
-  amountToPay: '',
-  amountPaid: '',
+  amountToPay: 0,
+  createdAt: null,
 })
-const formDerived = reactive({
-  balance: '0.00',
-  isFullyPaid: false,
-})
+
 const formValidationMessage = ref('')
 
-/* Delete confirmations */
 const showDeleteSingleModal = ref(false)
-const deleteTarget = ref(null)
-const showDeleteBulkModal = ref(false)
+const deleteTarget          = ref(null)
+const showDeleteBulkModal   = ref(false)
 
-/* Toasts (optional) */
-const toasts = ref([])
-function addToast({ message, color = 'success', delay = 2200 }) {
-  const id = Date.now() + Math.random()
-  toasts.value.push({ id, message, color, visible: true })
-  setTimeout(() => {
-    toasts.value = toasts.value.filter(t => t.id !== id)
-  }, delay)
-}
+// ── Cache ────────────────────────────────────────
+const pageCache = ref(new Map()) // "page|search" → { results, count }
 
-/* ---------- Computed ---------- */
-const filteredRecords = computed(() => {
-  const q = searchTerm.value.trim().toLowerCase()
-  const now = new Date()
-
-  return records.value.filter(row => {
-    // FAMILY NAME SEARCH
-    const familyName = String(row?.family?.name || '').toLowerCase()
-    const matchesSearch = !q || familyName.includes(q)
-
-    // DATE FILTER
-    if (!dateFilter.value) return matchesSearch
-
-    const recordDate = new Date(row.created_at)
-    let matchesDate = true
-
-    if (dateFilter.value === 'today') {
-      matchesDate =
-        recordDate.toDateString() === now.toDateString()
-    }
-
-    if (dateFilter.value === '7days') {
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(now.getDate() - 7)
-      matchesDate = recordDate >= sevenDaysAgo
-    }
-
-    if (dateFilter.value === 'month') {
-      matchesDate =
-        recordDate.getMonth() === now.getMonth() &&
-        recordDate.getFullYear() === now.getFullYear()
-    }
-
-    if (dateFilter.value === 'year') {
-      matchesDate =
-        recordDate.getFullYear() === now.getFullYear()
-    }
-
-    return matchesSearch && matchesDate
-  })
+// ── Computed ─────────────────────────────────────
+const showingRange = computed(() => {
+  if (!records.value.length) return 'Showing 0 records'
+  const start = (currentPage.value - 1) * pageSize + 1
+  const end   = start + records.value.length - 1
+  return `Showing ${start}–${end} of ${totalCount.value}`
 })
 
+const familyOptions = computed(() =>
+  families.value.map(f => ({ value: f.id, label: f.name }))
+)
 
+const termOptions = computed(() =>
+  terms.value.map(t => ({ value: t.id, label: t.name }))
+)
 
+const academicYearOptions = computed(() =>
+  academicYears.value.map(ay => ({ value: ay.id, label: ay.name }))
+)
 
-
-
-
-const filteredIds = computed(() => filteredRecords.value.map(r => r.id))
 const allSelected = computed(() =>
-  filteredIds.value.length > 0 && filteredIds.value.every(id => selectedIds.value.includes(id)),
+  records.value.length > 0 && records.value.every(r => selectedIds.value.includes(r.id))
 )
+
 const someSelected = computed(() =>
-  filteredIds.value.length > 0 &&
-  !allSelected.value &&
-  filteredIds.value.some(id => selectedIds.value.includes(id)),
+  !allSelected.value && records.value.some(r => selectedIds.value.includes(r.id))
 )
 
-/* ---------- Helpers ---------- */
-function formatAmount(v) {
-  const n = Number(v)
-  if (Number.isNaN(n)) return v
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// ── Helpers ──────────────────────────────────────
+const formatCurrency = (val) => {
+  const num = Number(val)
+  return Number.isNaN(num) ? '—' : num.toLocaleString('en-GH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
 }
-function formatDateTime(iso) {
-  if (!iso) return ''
+
+const formatDate = (iso) => {
+  if (!iso) return '—'
   const d = new Date(iso)
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mi = String(d.getMinutes()).padStart(2, '0')
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`
-}
-function resetForm() {
-  form.familyId = ''
-  form.termId = ''
-  form.academicYearId = ''
-  form.amountToPay = ''
-  form.amountPaid = ''
-  formDerived.balance = '0.00'
-  formDerived.isFullyPaid = false
-  viewCreated.value = ''
-  formValidationMessage.value = ''
-  editingId.value = null
-}
-function recalcDerived() {
-  const toPay = Math.max(0, Number(form.amountToPay) || 0)
-  const paid = Math.max(0, Number(form.amountPaid) || 0)
-  const bal = Math.max(0, toPay - paid)
-  formDerived.balance = bal.toFixed(2)
-  formDerived.isFullyPaid = bal === 0
-}
-function validateForm() {
-  if (!form.familyId) {
-    formValidationMessage.value = 'Family is required.'
-    return false
-  }
-  if (!form.termId) {
-    formValidationMessage.value = 'Term is required.'
-    return false
-  }
-  if (!form.academicYearId) {
-    formValidationMessage.value = 'Academic Year is required.'
-    return false
-  }
-  if (form.amountToPay === '' || Number(form.amountToPay) < 0) {
-    formValidationMessage.value = 'Amount To Pay must be a non-negative number.'
-    return false
-  }
-
-  formValidationMessage.value = ''
-  return true
+  return d.toLocaleString('en-GH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
-/* ---------- Select All ---------- */
-function toggleSelectAll() {
-  if (allSelected.value) {
-    selectedIds.value = selectedIds.value.filter(id => !filteredIds.value.includes(id))
-  } else {
-    const set = new Set(selectedIds.value)
-    filteredIds.value.forEach(id => set.add(id))
-    selectedIds.value = Array.from(set)
-  }
+// ── Watchers ─────────────────────────────────────
+watch(searchTerm, () => {
+  currentPage.value = 1
+  loadRecords()
+})
+
+// ── Methods ──────────────────────────────────────
+function changePage(page) {
+  currentPage.value = page
+  loadRecords()
 }
 
-/* ---------- Loaders ---------- */
-function loadLookups() {
-  return Promise.all([
-    ffrApi.listFamilies().then(x => (families.value = x)),
-    ffrApi.listTerms().then(x => (terms.value = x)),
-    ffrApi.listAcademicYears().then(x => (academicYears.value = x)),
-  ])
-}
-async function loadRecords(page = 1) {
+async function loadRecords() {
+  const page = currentPage.value
+  const search = searchTerm.value.trim() || undefined
+  const cacheKey = `${page}|${search || ''}`
+
+  if (pageCache.value.has(cacheKey)) {
+    const cached = pageCache.value.get(cacheKey)
+    records.value = cached.results
+    totalCount.value = cached.count
+    totalPages.value = Math.ceil(cached.count / pageSize)
+    return
+  }
+
   isLoading.value = true
   errorMessage.value = ''
 
   try {
-    try {
-      const rows = await ffrApi.listRecords({
-      page,
-      search: searchTerm.value?.trim() || undefined,
-    })
+    const params = { page, page_size: pageSize }
+    if (search) params.search = search
 
+    const res = await get_family_fee_rec(params)
+    const data = res.data || {}
 
-      records.value = Array.isArray(rows?.results) ? rows.results : []
-    currentPage.value = page
-    totalPages.value = Math.ceil((rows?.count ?? 0) / pageSize)
+    const results = data.results || []
+    const count  = Number(data.count) || 0
 
-    } catch (err) {
-      errorMessage.value = err?.message || 'Failed to load family fee records.'
+    pageCache.value.set(cacheKey, { results, count })
 
-    }
+    records.value = results
+    totalCount.value = count
+    totalPages.value = Math.ceil(count / pageSize)
+  } catch (err) {
+    errorMessage.value = err.response?.data?.detail || 'Failed to load records'
+    toast.error(errorMessage.value)
   } finally {
     isLoading.value = false
   }
 }
 
+async function loadLookups() {
+  try {
+    const [famRes, termRes, ayRes] = await Promise.all([
+      get_raw_families(),
+      get_terms(),
+      get_academic_years()
+    ])
 
+    families.value      = famRes.data  || []
+    terms.value         = termRes.data || []
+    academicYears.value = ayRes.data   || []
+  } catch {
+    toast.error('Failed to load dropdown data')
+  }
+}
 
-/* ---------- Modal handlers ---------- */
 function openAddModal() {
   isEdit.value = false
-  resetForm()
+  editingId.value = null
+  Object.assign(form, {
+    familyId: '',
+    termId: '',
+    academicYearId: '',
+    amountToPay: 0,
+    createdAt: null
+  })
+  formValidationMessage.value = ''
   showFormModal.value = true
 }
-function openEditModal(row) {
-  isEdit.value = true
-  editingId.value = row.id
-  form.familyId = row?.family?.id ?? ''
-  form.termId = row?.term?.id ?? ''
-  form.academicYearId = row?.academicYear?.id ?? ''
-  form.amountToPay = row?.amountToPay ?? ''
-  form.amountPaid = row?.amountPaid ?? ''
-  recalcDerived()
-  viewCreated.value = row?.dateCreated || ''
-  showFormModal.value = true
+
+function openDeleteConfirm(record) {
+  deleteTarget.value = record
+  showDeleteSingleModal.value = true
 }
-function closeFormModal() {
-  if (!isSubmitting.value) {
-    showFormModal.value = false
-    resetForm()
+
+function closeDeleteSingleModal() {
+  if (isDeleting.value) return
+  showDeleteSingleModal.value = false
+  deleteTarget.value = null
+}
+
+async function deleteSingle() {
+  if (!deleteTarget.value?.id) return
+  isDeleting.value = true
+
+  try {
+    await delete_family_fee_rec(deleteTarget.value.id)
+    records.value = records.value.filter(r => r.id !== deleteTarget.value.id)
+    selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
+    totalCount.value = Math.max(0, totalCount.value - 1)
+    toast.success('Record deleted')
+    closeDeleteSingleModal()
+  } catch (err) {
+    const msg = err.response?.data?.detail || 'Delete failed'
+    if (msg.toLowerCase().includes('constraint') || msg.toLowerCase().includes('foreign')) {
+      toast.error('Cannot delete – record is linked to other data')
+    } else {
+      toast.error(msg)
+    }
+  } finally {
+    isDeleting.value = false
   }
 }
 
-/* ---------- Delete modals ---------- */
-function openSingleDeleteConfirm(row) {
-  deleteTarget.value = row
-  showDeleteSingleModal.value = true
-}
-function closeDeleteSingleModal() {
-  if (!isDeleting.value) {
-    showDeleteSingleModal.value = false
-    deleteTarget.value = null
-  }
-}
-function openBulkDeleteConfirm() {
-  showDeleteBulkModal.value = true
-}
-function closeBulkDeleteConfirm() {
-  if (!isDeleting.value) {
+async function deleteBulk() {
+  if (!selectedIds.value.length) return
+  isDeleting.value = true
+
+  const ids = [...selectedIds.value]
+
+  try {
+    await Promise.allSettled(ids.map(id => delete_family_fee_rec(id)))
+    records.value = records.value.filter(r => !ids.includes(r.id))
+    selectedIds.value = []
+    totalCount.value = Math.max(0, totalCount.value - ids.length)
+    toast.success(`Deleted ${ids.length} records`)
+  } catch {
+    toast.error('Some deletions failed')
+  } finally {
+    isDeleting.value = false
     showDeleteBulkModal.value = false
   }
 }
 
-/* ---------- Submit ---------- */
-function submitForm() {
-  if (!validateForm()) return
+function toggleSelectAll() {
+  if (allSelected.value) {
+    selectedIds.value = selectedIds.value.filter(id =>
+      !records.value.some(r => r.id === id)
+    )
+  } else {
+    const set = new Set(selectedIds.value)
+    records.value.forEach(r => set.add(r.id))
+    selectedIds.value = [...set]
+  }
+}
+
+async function saveRecord() {
+  if (!form.familyId) {
+    formValidationMessage.value = 'Family is required'
+    return
+  }
+  if (!form.termId) {
+    formValidationMessage.value = 'Term is required'
+    return
+  }
+  if (!form.academicYearId) {
+    formValidationMessage.value = 'Academic Year is required'
+    return
+  }
+  if (!form.amountToPay || form.amountToPay < 0) {
+    formValidationMessage.value = 'Amount must be ≥ 0'
+    return
+  }
+
   isSubmitting.value = true
+  formValidationMessage.value = ''
 
   const payload = {
-    family_id: form.familyId,
-    term_id: form.termId,
-    academic_year_id: form.academicYearId,
-    amount_to_pay: form.amountToPay
-
+    family_id: Number(form.familyId),
+    term_id: Number(form.termId),
+    academic_year_id: Number(form.academicYearId),
+    amount_to_pay: Number(form.amountToPay),
   }
 
-  const done = () => (isSubmitting.value = false)
-
-  if (isEdit.value && editingId.value != null) {
-    ffrApi
-      .updateRecord(editingId.value, payload)
-      .then((updated) => {
-        records.value = records.value.map(r => (r.id === updated.id ? updated : r))
-        showFormModal.value = false
-        resetForm()
-        toast.success('Family fee record updated successfully.', { position: 'top-right' })
-
-      })
-      .catch((err) => (formValidationMessage.value = err?.message || 'Failed to update record.'))
-      .finally(done)
-  } else {
-    ffrApi
-      .createRecord(payload)
-      .then((created) => {
-        records.value = [...records.value, created]
-        showFormModal.value = false
-        resetForm()
-        toast.success('Family fee record created successfully.', { position: 'top-right' })
-
-      })
-      .catch((err) => (formValidationMessage.value = err?.message || 'Failed to add record.'))
-      .finally(done)
-  }
-}
-
-/* ---------- Delete ---------- */
-function confirmDeleteSingle() {
-  if (!deleteTarget.value) return
-  isDeleting.value = true
-  ffrApi
-    .deleteRecord(deleteTarget.value.id)
-    .then(() => {
-      records.value = records.value.filter(r => r.id !== deleteTarget.value.id)
-      selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
-
-      // close immediately
-      showDeleteSingleModal.value = false
-      deleteTarget.value = null
-      toast.success('Family fee record deleted successfully.', { position: 'top-right' })
-
-
-    })
-    .finally(() => (isDeleting.value = false))
-}
-
-function confirmDeleteBulk() {
-  const ids = [...selectedIds.value]
-  if (ids.length === 0) return
-  isDeleting.value = true
-  ffrApi
-    .deleteRecords(ids)
-    .then(() => {
-      const set = new Set(ids)
-      records.value = records.value.filter(r => !set.has(r.id))
-      selectedIds.value = []
-
-      // close immediately
-      showDeleteBulkModal.value = false
-      toast.success('Selected family fee records deleted successfully.', { position: 'top-right' })
-
-
-    })
-    .finally(() => (isDeleting.value = false))
-}
-
-function onPageChanged(page) {
-  loadRecords(page)
-}
-
-watch(searchTerm, () => {
-  currentPage.value = 1
-  loadRecords(1)
-})
-/* ---------- Init ---------- */
-onMounted(async () => {
   try {
-    isLoading.value = true
-    await loadLookups()
-    await loadRecords()
-
+    let result
+    if (isEdit.value && editingId.value) {
+      // Note: your backend has no separate update endpoint → using create with ID?
+      // If backend supports PUT/PATCH, change to proper update call
+      result = await create_family_fee_rec(editingId.value, payload) // adjust if needed
+      records.value = records.value.map(r =>
+        r.id === result.id ? { ...r, ...result } : r
+      )
+      toast.success('Record updated')
+    } else {
+      result = await create_family_fee_rec(payload)
+      records.value.unshift(result)
+      totalCount.value += 1
+      toast.success('Record created')
+    }
+    showFormModal.value = false
+  } catch (err) {
+    formValidationMessage.value = err.response?.data?.detail || 'Save failed'
+    toast.error(formValidationMessage.value)
   } finally {
-    isLoading.value = false
+    isSubmitting.value = false
   }
+}
+
+// ── Init ─────────────────────────────────────────
+onMounted(async () => {
+  await loadLookups()
+  await loadRecords()
 })
 </script>
 

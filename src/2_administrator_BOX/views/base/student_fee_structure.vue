@@ -1,36 +1,29 @@
 <template>
-
-
   <CRow>
     <CCol :xs="12">
       <CCard class="mb-4">
-
         <CCardHeader>
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <strong>Fee Structures</strong>
 
-            <!-- Actions: Search (field + input) + Delete Selected + Add -->
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              <!-- NEW: Search field dropdown -->
-
-
-              <!-- Search input -->
               <CFormInput
                 v-model="searchTerm"
                 :placeholder="searchPlaceholder"
                 :aria-label="searchPlaceholder"
                 size="sm"
-                style="min-width: 220px;"
+                style="min-width: 220px"
               />
 
-              <!-- Bulk delete -->
-              <CButton color="danger" size="sm"
-                       :disabled="selectedIds.length === 0"
-                       @click="openBulkDeleteConfirm">
+              <CButton
+                color="danger"
+                size="sm"
+                :disabled="selectedIds.length === 0"
+                @click="openBulkDeleteConfirm"
+              >
                 Delete Selected ({{ selectedIds.length }})
               </CButton>
 
-              <!-- Add Fee Structure -->
               <CButton color="primary" size="sm" @click="openAddModal">
                 Add Fee Structure
               </CButton>
@@ -41,12 +34,10 @@
         <CCardBody>
           <p class="text-body-secondary small">Fee Structures.</p>
 
-          <!-- Error -->
           <CAlert color="danger" v-if="errorMessage" class="py-2">
             {{ errorMessage }}
           </CAlert>
 
-          <!-- Loading -->
           <div class="d-flex align-items-center gap-2 mb-2" v-if="isLoading">
             <CSpinner size="sm" />
             <span class="text-body-secondary small">Loading fee structures…</span>
@@ -56,8 +47,7 @@
             <CTable hover responsive>
               <CTableHead>
                 <CTableRow>
-                  <!-- Select-all (affects filtered rows only) -->
-                  <CTableHeaderCell scope="col" class="text-center" style="width: 48px;">
+                  <CTableHeaderCell scope="col" class="text-center" style="width: 48px">
                     <CFormCheck
                       :checked="allSelected"
                       :indeterminate="someSelected"
@@ -66,24 +56,28 @@
                     />
                   </CTableHeaderCell>
 
-                  <CTableHeaderCell scope="col" style="width: 60px;">#</CTableHeaderCell>
+                  <CTableHeaderCell scope="col" style="width: 60px">#</CTableHeaderCell>
                   <CTableHeaderCell scope="col">Academic Year</CTableHeaderCell>
                   <CTableHeaderCell scope="col">Class</CTableHeaderCell>
                   <CTableHeaderCell scope="col">Term</CTableHeaderCell>
                   <CTableHeaderCell scope="col">Has Discount</CTableHeaderCell>
                   <CTableHeaderCell scope="col" class="text-end">Amount (GHS)</CTableHeaderCell>
-                  <CTableHeaderCell scope="col" class="text-end" style="width: 160px;">Actions</CTableHeaderCell>
+                  <CTableHeaderCell scope="col" class="text-end" style="width: 160px">
+                    Actions
+                  </CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
 
               <CTableBody>
-                <CTableRow v-for="(row, idx) in filteredFeeStructures" :key="row.id">
+                <CTableRow v-for="(row, idx) in rows" :key="row.id">
                   <CTableDataCell class="text-center">
                     <CFormCheck v-model="selectedIds" :value="row.id" aria-label="Select row" />
                   </CTableDataCell>
 
+                  <CTableHeaderCell scope="row">
+                    {{ rowNumber(idx) }}
+                  </CTableHeaderCell>
 
-                  <CTableHeaderCell scope="row">{{ (currentPage - 1) * pageSize + idx + 1 }}</CTableHeaderCell>
                   <CTableDataCell>{{ row.academic_year?.name }}</CTableDataCell>
                   <CTableDataCell>{{ row.grade_class?.name }}</CTableDataCell>
                   <CTableDataCell>{{ row.term?.name }}</CTableDataCell>
@@ -94,160 +88,174 @@
                     </CBadge>
                   </CTableDataCell>
 
-
                   <CTableDataCell class="text-end">
                     {{ formatAmount(row.amount) }}
                   </CTableDataCell>
 
                   <CTableDataCell class="text-end">
                     <CButtonGroup size="sm">
-                      <CButton color="secondary" variant="outline" @click="openEditModal(row)">Edit</CButton>
-                      <CButton color="danger" variant="outline" @click="openSingleDeleteConfirm(row)">Delete</CButton>
+                      <CButton
+                        color="secondary"
+                        variant="outline"
+                        @click="openEditModal(row)"
+                      >
+                        Edit
+                      </CButton>
+                      <CButton
+                        color="danger"
+                        variant="outline"
+                        @click="openSingleDeleteConfirm(row)"
+                      >
+                        Delete
+                      </CButton>
                     </CButtonGroup>
                   </CTableDataCell>
                 </CTableRow>
 
-                <!-- Empty -->
-                <CTableRow v-if="!isLoading && filteredFeeStructures.length === 0">
+                <CTableRow v-if="!isLoading && rows.length === 0">
                   <CTableDataCell colspan="7" class="text-center text-body-secondary">
                     No fee structures found
-                    <span v-if="searchTerm">
-                      for “{{ searchTerm }}”
-
-                    </span>
+                    <span v-if="searchTerm"> for “{{ searchTerm }}” </span>
                   </CTableDataCell>
                 </CTableRow>
               </CTableBody>
             </CTable>
 
-                      <!-- Pagination + Range -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-            <Pagination
-              :current-page="currentPage"
-              :total-pages="totalPages"
-              @page-changed="onPageChanged"
-            />
-            <div style="font-size: 14px; color: #7f8c8d;">
-              {{ showingRange }}
+            <!-- Pagination + Range -->
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px"
+            >
+              <Pagination
+                :current-page="currentPage"
+                :total-pages="totalPages"
+                @page-changed="onPageChanged"
+              />
+              <div style="font-size: 14px; color: #7f8c8d">
+                {{ showingRange }}
+              </div>
             </div>
-          </div>
-
-
           </DocsExample>
         </CCardBody>
-
       </CCard>
     </CCol>
   </CRow>
 
   <!-- Add/Edit Modal -->
- <CModal :visible="showFormModal" @close="closeFormModal" size="xl">
+  <CModal :visible="showFormModal" @close="closeFormModal" size="xl">
+    <CModalHeader>
+      <CModalTitle>{{ isEdit ? "Edit Fee Structure" : "Add Fee Structure" }}</CModalTitle>
+    </CModalHeader>
 
+    <CModalBody>
+      <!-- Academic Year -->
+      <div class="mb-3">
+        <CFormLabel for="academic_year">Academic Year</CFormLabel>
+        <CFormSelect id="academic_year" v-model="formFee.academicYearId">
+          <option value="" disabled>Select Academic Year</option>
+          <option v-for="ay in academicYears" :key="ay.id" :value="ay.id">
+            {{ ay.name }}
+          </option>
+        </CFormSelect>
+      </div>
 
+      <!-- Grade/Class (only when NOT discounted) -->
+      <div v-if="!formFee.is_discount" class="mb-3">
+        <CFormLabel for="grade_class">Class (Grade)</CFormLabel>
+        <CFormSelect id="grade_class" v-model="formFee.gradeClassId">
+          <option value="" disabled>Select Class</option>
+          <option v-for="gc in gradeClasses" :key="gc.id" :value="gc.id">
+            {{ gc.name }}
+          </option>
+        </CFormSelect>
+      </div>
 
+      <!-- Term -->
+      <div class="mb-3">
+        <CFormLabel for="term">Term</CFormLabel>
+        <CFormSelect id="term" v-model="formFee.termId">
+          <option value="" disabled>Select Term</option>
+          <option v-for="t in terms" :key="t.id" :value="t.id">
+            {{ t.name }}
+          </option>
+        </CFormSelect>
+      </div>
 
-  <CModalHeader>
-    <CModalTitle>{{ isEdit ? 'Edit Fee Structure' : 'Add Fee Structure' }}</CModalTitle>
-  </CModalHeader>
+      <!-- Amount -->
+      <div class="mb-3">
+        <CFormLabel for="amount">Amount (GHS)</CFormLabel>
+        <CFormInput
+          id="amount"
+          v-model="formFee.amount"
+          type="number"
+          step="0.01"
+          min="0"
+          placeholder="e.g., 250.00"
+        />
+      </div>
 
-  <CModalBody>
-    <!-- Academic Year -->
-    <div class="mb-3">
-      <CFormLabel for="academic_year">Academic Year</CFormLabel>
-      <CFormSelect id="academic_year" v-model="formFee.academicYearId">
-        <option value="" disabled selected>Select Academic Year</option>
-        <option v-for="ay in academicYears" :key="ay.id" :value="ay.id">{{ ay.name }}</option>
-      </CFormSelect>
-    </div>
+      <!-- Discount Toggle -->
+      <div class="mb-3 d-flex align-items-center">
+        <CFormLabel class="me-3 mb-0">Discounted Fee</CFormLabel>
+        <CFormSwitch v-model="formFee.is_discount" color="primary" label="Yes" />
+      </div>
 
-    <!-- Grade/Class -->
-       <div v-if="!formFee.is_discount" class="mb-3">
+      <!-- Discounted Students Selector -->
+      <div v-if="formFee.is_discount" class="mb-3">
+        <CFormLabel>Select Students for Discount</CFormLabel>
+        <v-select
+          v-model="formFee.discounted_student_ids"
+          :options="studentOptionsForSelect"
+          :multiple="true"
+          :close-on-select="false"
+          placeholder="Search and select students"
+          :reduce="(opt) => opt.value"
+        />
+      </div>
 
-    <div class="mb-3">
-      <CFormLabel for="grade_class">Class (Grade)</CFormLabel>
-      <CFormSelect id="grade_class" v-model="formFee.gradeClassId">
-        <option value="" disabled selected>Select Class</option>
-        <option v-for="gc in gradeClasses" :key="gc.id" :value="gc.id">{{ gc.name }}</option>
-      </CFormSelect>
-    </div>
-    </div>
+      <div class="text-danger small mt-2" v-if="formValidationMessage">
+        {{ formValidationMessage }}
+      </div>
+    </CModalBody>
 
-    <!-- Term -->
+    <CModalFooter>
+      <CButton
+        color="secondary"
+        variant="outline"
+        @click="closeFormModal"
+        :disabled="isSubmitting"
+      >
+        Cancel
+      </CButton>
 
-    <div class="mb-3">
-      <CFormLabel for="term">Term</CFormLabel>
-      <CFormSelect id="term" v-model="formFee.termId">
-        <option value="" disabled selected>Select Term</option>
-        <option v-for="t in terms" :key="t.id" :value="t.id">{{ t.name }}</option>
-      </CFormSelect>
-    </div>
-
-
-    <!-- Amount -->
-    <div class="mb-3">
-      <CFormLabel for="amount">Amount (GHS)</CFormLabel>
-      <CFormInput
-        id="amount"
-        v-model="formFee.amount"
-        type="number"
-        step="0.01"
-        min="0"
-        placeholder="e.g., 250.00"
-      />
-    </div>
-
-    <!-- Discount Toggle -->
-    <div class="mb-3 d-flex align-items-center">
-      <CFormLabel class="me-3 mb-0">Discounted Fee</CFormLabel>
-      <CFormSwitch
-        v-model="formFee.is_discount"
-        color="primary"
-        label="Yes"
-      />
-    </div>
-
-   <div v-if="formFee.is_discount" class="mb-3">
-  <CFormLabel>Select Students for Discount</CFormLabel>
-  <v-select
-    v-model="formFee.discounted_student_ids"
-    :options="studentOptionsForSelect"
-    :multiple="true"
-    :close-on-select="false"
-    placeholder="Search and select students"
-    :reduce="opt => opt.value"
-  />
-</div>
-
-
-
-    <!-- Validation Message -->
-    <div class="text-danger small mt-2" v-if="formValidationMessage">{{ formValidationMessage }}</div>
-  </CModalBody>
-
-  <CModalFooter>
-    <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">
-      Cancel
-    </CButton>
-
-    <CButton color="primary" @click="submitForm" :disabled="isSubmitting">
-      <CSpinner size="sm" v-if="isSubmitting" class="me-2" />
-      {{ isEdit ? 'Update' : 'Save' }}
-    </CButton>
-  </CModalFooter>
-</CModal>
-
-
-
+      <CButton color="primary" @click="submitForm" :disabled="isSubmitting">
+        <CSpinner size="sm" v-if="isSubmitting" class="me-2" />
+        {{ isEdit ? "Update" : "Save" }}
+      </CButton>
+    </CModalFooter>
+  </CModal>
 
   <!-- Confirm Delete (Single) -->
   <CModal :visible="showDeleteSingleModal" @close="closeDeleteSingleModal">
-    <CModalHeader><CModalTitle>Delete Fee Structure</CModalTitle></CModalHeader>
+    <CModalHeader>
+      <CModalTitle>Delete Fee Structure</CModalTitle>
+    </CModalHeader>
     <CModalBody>
       Are you sure you want to delete
-      <strong>{{ deleteTarget?.grade_class?.name }} / {{ deleteTarget?.term?.name }} / {{ deleteTarget?.academic_year?.name }}</strong>? This action cannot be reversed.
+      <strong>
+        {{ deleteTarget?.grade_class?.name }} / {{ deleteTarget?.term?.name }} /
+        {{ deleteTarget?.academic_year?.name }}
+      </strong>
+      ? This action cannot be reversed.
     </CModalBody>
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">Cancel</CButton>
+      <CButton
+        color="secondary"
+        variant="outline"
+        @click="closeDeleteSingleModal"
+        :disabled="isDeleting"
+      >
+        Cancel
+      </CButton>
       <CButton color="danger" @click="confirmDeleteSingle" :disabled="isDeleting">
         <CSpinner size="sm" v-if="isDeleting" class="me-2" />Delete
       </CButton>
@@ -256,12 +264,22 @@
 
   <!-- Confirm Delete (Bulk) -->
   <CModal :visible="showDeleteBulkModal" @close="closeBulkDeleteConfirm">
-    <CModalHeader><CModalTitle>Delete Selected</CModalTitle></CModalHeader>
+    <CModalHeader>
+      <CModalTitle>Delete Selected</CModalTitle>
+    </CModalHeader>
     <CModalBody>
-      You are about to delete <strong>{{ selectedIds.length }}</strong> fee structure(s). This action cannot be undone. Continue?
+      You are about to delete <strong>{{ selectedIds.length }}</strong> fee structure(s). This
+      action cannot be undone. Continue?
     </CModalBody>
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="closeBulkDeleteConfirm" :disabled="isDeleting">Cancel</CButton>
+      <CButton
+        color="secondary"
+        variant="outline"
+        @click="closeBulkDeleteConfirm"
+        :disabled="isDeleting"
+      >
+        Cancel
+      </CButton>
       <CButton color="danger" @click="confirmDeleteBulk" :disabled="isDeleting">
         <CSpinner size="sm" v-if="isDeleting" class="me-2" />Delete Selected
       </CButton>
@@ -273,388 +291,333 @@
 import vSelect from "vue3-select";
 import "vue3-select/dist/vue3-select.css";
 
-import { ref, computed, reactive,  watch, onMounted } from 'vue'
-import { useToast } from 'vue-toastification'
-import Pagination from '@/Pagination.vue'
+import { ref, computed, reactive, watch, onMounted } from "vue";
+import { useToast } from "vue-toastification";
+import Pagination from "@/Pagination.vue";
 
-const pageSize = 10
-const currentPage = ref(1)
-const totalPages = ref(1)
+import {
+  rawst,
+  get_academic_years,
+  get_classes,
+  get_terms,
+  create_fee_structure,
+  get_fee_structures,
+  update_fee_structure,
+  delete_fee_structure,
+} from "@/services/api.js";
 
-const toast = useToast()
+/* -------------------------------------------------------
+   CONSTANTS
+------------------------------------------------------- */
+const PAGE_SIZE = 10;
+const CRECHE_CLASS_ID = 1; // used when discounted fees should not require class selection
 
+/* -------------------------------------------------------
+   STATE
+------------------------------------------------------- */
+const toast = useToast();
 
+const isLoading = ref(false);
+const isSubmitting = ref(false);
+const isDeleting = ref(false);
+const errorMessage = ref("");
 
-import {rawst, get_academic_years, get_classes, get_terms, create_fee_structure, get_fee_structures, update_fee_structure, delete_fee_structure } from '@/services/api.js'
+const currentPage = ref(1);
+const totalPages = ref(1);
+const totalCount = ref(0);
 
-const feeStructureApi = {
-  async listAcademicYears() {
-    const res = await get_academic_years()
-    return res?.data || []
-  },
+const academicYears = ref([]);
+const gradeClasses = ref([]);
+const terms = ref([]);
 
-  async listTerms() {
-    const res = await get_terms()
-    return res?.data || []
-  },
+const feeStructures = ref([]); // current page rows
+const selectedIds = ref([]);
 
-  async listGradeClasses() {
-    const res = await get_classes()
+/* Search */
+const searchTerm = ref("");
 
-    return res?.data || []
-  },
+/* -------------------------------------------------------
+   HIGH-PERFORMANCE: In-memory pagination cache
+   Key = page + search term
+------------------------------------------------------- */
+const pageCache = reactive(new Map());
+const makeKey = (page, search) => `${page}__${search || ""}`;
 
-
-
-  async listFeeStructures(params = {}) {
-  const res = await get_fee_structures(params)
-  return res?.data
+function clearCache() {
+  pageCache.clear();
 }
-,
 
-  async createFeeStructure(payload) {
+/* Prevent out-of-order responses from overwriting newer data */
+let loadSeq = 0;
 
-    const res = await create_fee_structure(payload)
-    return res?.data
-  },
+/* -------------------------------------------------------
+   COMPUTED
+------------------------------------------------------- */
+const rows = computed(() => feeStructures.value);
 
-  async updateFeeStructure(id, payload) {
+const searchPlaceholder = computed(() => "Search Fee Structure");
 
-    const res = await update_fee_structure(id, payload)
+/* Select all / indeterminate applies to rows in current view (current page) */
+const allSelected = computed(() => {
+  const ids = rows.value.map((r) => r.id);
+  return ids.length > 0 && ids.every((id) => selectedIds.value.includes(id));
+});
 
+const someSelected = computed(() => {
+  const ids = rows.value.map((r) => r.id);
+  if (ids.length === 0) return false;
+  const selectedInView = ids.filter((id) => selectedIds.value.includes(id)).length;
+  return selectedInView > 0 && selectedInView < ids.length;
+});
 
+const showingRange = computed(() => {
+  if (totalCount.value === 0) return "Showing 0–0 of 0";
+  const start = (currentPage.value - 1) * PAGE_SIZE + 1;
+  const end = Math.min(currentPage.value * PAGE_SIZE, totalCount.value);
+  return `Showing ${start}–${end} of ${totalCount.value}`;
+});
 
-    return res?.data
+/* Format currency efficiently (reuse Intl formatter) */
+const moneyFmt = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+function formatAmount(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? moneyFmt.format(n) : v;
+}
 
+/* Row number */
+function rowNumber(idx) {
+  return (currentPage.value - 1) * PAGE_SIZE + idx + 1;
+}
 
-  },
+/* -------------------------------------------------------
+   LOADERS
+------------------------------------------------------- */
+async function loadReferenceData() {
+  const [years, classes, t] = await Promise.all([
+    get_academic_years(),
+    get_classes(),
+    get_terms(),
+  ]);
 
-  async deleteFeeStructure(id) {
-    const res = await delete_fee_structure(id)
-    return res?.data
-  },
+  academicYears.value = years?.data || [];
+  gradeClasses.value = classes?.data || [];
+  terms.value = t?.data || [];
+}
+
+async function loadFeeStructures(page = 1) {
+  const search = searchTerm.value.trim();
+  const key = makeKey(page, search);
+
+  // Serve from cache instantly (no spinner to avoid UI jitter)
+  if (pageCache.has(key)) {
+    const cached = pageCache.get(key);
+    feeStructures.value = cached.results;
+    totalCount.value = cached.count;
+    currentPage.value = page;
+    totalPages.value = Math.max(1, Math.ceil(cached.count / PAGE_SIZE));
+    return;
+  }
+
+  isLoading.value = true;
+  errorMessage.value = "";
+
+  const mySeq = ++loadSeq;
+
+  try {
+    const res = await get_fee_structures({
+      page,
+      search: search || undefined,
+    });
+
+    // Ignore outdated response
+    if (mySeq !== loadSeq) return;
+
+    const data = res?.data || { results: [], count: 0 };
+    feeStructures.value = data.results || [];
+    totalCount.value = data.count || 0;
+
+    currentPage.value = page;
+    totalPages.value = Math.max(1, Math.ceil((data.count || 0) / PAGE_SIZE));
+
+    // Cache the page
+    pageCache.set(key, { results: feeStructures.value, count: totalCount.value });
+  } catch (err) {
+    if (mySeq !== loadSeq) return;
+
+    errorMessage.value =
+      err?.response?.data?.message ||
+      err?.message ||
+      "Failed to load fee structures.";
+  } finally {
+    if (mySeq === loadSeq) isLoading.value = false;
+  }
 }
 
 function onPageChanged(page) {
-  loadFeeStructures(page)
+  loadFeeStructures(page);
 }
 
-/* ---------- State ---------- */
-const isLoading = ref(false)
-const isSubmitting = ref(false)
-const isDeleting = ref(false)
-const errorMessage = ref('')
+/* Debounced search */
+let searchTimer = null;
+watch(searchTerm, () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1;
+    loadFeeStructures(1);
+  }, 350);
+});
 
-const feeStructures = ref([])
-const academicYears = ref([])
-const gradeClasses = ref([])
-const terms = ref([])
-
-async function confirmDeleteBulk() {
-  if (selectedIds.value.length === 0) return
-
-  isDeleting.value = true
-
-  // Keep track of successful deletes
-  const failedDeletes = []
-
-  // Use Promise.allSettled for parallel deletion
-  const results = await Promise.allSettled(
-    selectedIds.value.map(id => feeStructureApi.deleteFeeStructure(id))
-  )
-
-  results.forEach((result, index) => {
-    const id = selectedIds.value[index]
-    if (result.status === 'fulfilled') {
-      // Remove from feeStructures
-      feeStructures.value = feeStructures.value.filter(r => r.id !== id)
-    } else {
-      failedDeletes.push({
-        id,
-        error: result.reason
-      })
-    }
-  })
-
-  // Show errors for failed deletes
-  failedDeletes.forEach(f => {
-    const associatedRecordName =
-      f.error.response?.data?.associatedRecordName ||
-      "a linked student's fee record"
-
-    let message =
-      f.error.response?.data?.message ||
-      f.error.response?.data?.error ||
-      f.error.response?.data?.detail ||
-      f.error.message ||
-      `Cannot delete fee structure ID ${f.id} because it is linked to ${associatedRecordName}.`
-
-    if (message.includes('violates foreign key constraint')) {
-      message = `Cannot delete fee structure ID ${f.id} because it is linked to ${associatedRecordName}. Please delete the associated record first.`
-    }
-
-    toast.error(message, { position: 'top-right' })
-  })
-
-  // Clear selection only for successfully deleted IDs
-  const successfulIds = selectedIds.value.filter(
-    id => !failedDeletes.some(f => f.id === id)
-  )
-  selectedIds.value = selectedIds.value.filter(id => failedDeletes.some(f => f.id === id))
-
-  showDeleteBulkModal.value = false
-
-  if (successfulIds.length > 0) {
-    toast.success(`Deleted ${successfulIds.length} fee structure(s) successfully.`, {
-      position: 'top-right'
-    })
-  }
-
-  isDeleting.value = false
-}
-
-
-
-/* NEW: search field */
-const searchField = ref('grade_class') // 'class' | 'academicYear' | 'term'
-const searchTerm = ref('')
-
-const selectedIds = ref([])
-
-/* ---------- Form (Add/Edit) ---------- */
-const showFormModal = ref(false)
-const isEdit = ref(false)
-const editingId = ref(null)
-
-const formFee = reactive({
-  academicYearId: '',
-  gradeClassId: '',
-  termId: '',
-  amount: '',
-  is_discount: false,
-  filtereddiscounted_student_ids: [], // array of student IDs
-})
-const formValidationMessage = ref('')
-
-/* ---------- Delete Confirmation State ---------- */
-const showDeleteSingleModal = ref(false)
-const deleteTarget = ref(null)
-const showDeleteBulkModal = ref(false)
-
-/* ---------- Computed ---------- */
-const searchPlaceholder = computed(() => {
-  switch (searchField.value) {
-    case 'academic_year': return 'Search academic year...'
-    case 'term': return 'Search term...'
-    default: return 'Search Fee Structure'
-  }
-})
-
-const filteredFeeStructures = computed(() => feeStructures.value)
-
-
-const filteredIds = computed(() => filteredFeeStructures.value.map(r => r.id))
-const allSelected = computed(() =>
-  filteredIds.value.length > 0 &&
-  filteredIds.value.every(id => selectedIds.value.includes(id)),
-)
-const someSelected = computed(() =>
-  filteredIds.value.length > 0 &&
-  !allSelected.value &&
-  filteredIds.value.some(id => selectedIds.value.includes(id)),
-)
-
-/* ---------- Helpers ---------- */
-function formatAmount(v) {
-  const n = Number(v)
-  if (Number.isNaN(n)) return v
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-
-
-function resetForm() {
-  formFee.academicYearId = ''
-  formFee.gradeClassId = ''
-  formFee.termId = ''
-  formFee.amount = ''
-  formFee.is_discount = false
-  formFee.discounted_student_ids = []
-  formValidationMessage.value = ''
-  editingId.value = null
-}
-function validateForm() {
-  if (!formFee.academicYearId || !formFee.termId) {
-    formValidationMessage.value = 'Academic Year and Term are required.'
-    return false
-  }
-
-  if (formFee.is_discount && !formFee.gradeClassId) {
-    formFee.gradeClassId = CRECHE_CLASS_ID
-  }
-
-  if (!formFee.is_discount && !formFee.gradeClassId) {
-    formValidationMessage.value = 'Class is required for non-discounted fees.'
-    return false
-  }
-
-  if (formFee.is_discount && formFee.discounted_student_ids.length === 0) {
-  formValidationMessage.value = 'Please select at least one discounted student.'
-  return false
-}
-
-
-  if (formFee.amount === '' || formFee.amount === null) {
-  formValidationMessage.value = 'Amount is required.'
-  return false
-}
-
-if (Number(formFee.amount) < 0) {
-  formValidationMessage.value = 'Amount cannot be negative.'
-  return false
-}
-
-
-  formValidationMessage.value = ''
-  return true
-}
-
-const CRECHE_CLASS_ID = 1
-
-
-/* ---------- Select All for current filtered view ---------- */
+/* -------------------------------------------------------
+   SELECT ALL (current view only)
+------------------------------------------------------- */
 function toggleSelectAll() {
+  const idsInView = rows.value.map((r) => r.id);
+  if (idsInView.length === 0) return;
+
   if (allSelected.value) {
-    selectedIds.value = selectedIds.value.filter(id => !filteredIds.value.includes(id))
+    // Remove only IDs in current view
+    const remove = new Set(idsInView);
+    selectedIds.value = selectedIds.value.filter((id) => !remove.has(id));
   } else {
-    const set = new Set(selectedIds.value)
-    filteredIds.value.forEach(id => set.add(id))
-    selectedIds.value = Array.from(set)
+    // Add IDs in current view
+    const set = new Set(selectedIds.value);
+    idsInView.forEach((id) => set.add(id));
+    selectedIds.value = [...set];
   }
 }
 
-/* ---------- Loaders ---------- */
-function loadReferenceData() {
-  return Promise.all([
-    feeStructureApi.listAcademicYears().then(x => (academicYears.value = x)),
-    feeStructureApi.listGradeClasses().then(x => (gradeClasses.value = x)),
-    feeStructureApi.listTerms().then(x => (terms.value = x)),
-  ])
-}
-
-const studentOptions = ref([])  // For discounted students selector
+/* -------------------------------------------------------
+   STUDENTS (discount selector)
+------------------------------------------------------- */
+const studentOptions = ref([]);
 
 const studentOptionsForSelect = computed(() =>
   studentOptions.value
-    .filter(s => s.is_discounted_student) // only include discounted students
-    .map(s => ({
+    .filter((s) => s.is_discounted_student)
+    .map((s) => ({
       label: s.user?.full_name ?? s.full_name ?? s.name ?? `ID ${s.id}`,
       value: s.id,
     }))
-)
-
-
+);
 
 async function fetchUsers() {
   try {
     const response = await rawst();
-    studentOptions.value = response.data;
-
-
-  }  catch (err) {
-    if (err.code === 'ERR_NETWORK') {
-      toast.error('Network error. Please check your internet connection.', { position: 'top-right' });
-    } else if (err.response) {
-      // API returned an error response
-      toast.error(err.response.data?.message || 'Failed to fetch students.', { position: 'top-right' });
-    } else {
-      // Unknown error
-      toast.error('An unexpected error occurred while fetching students.', { position: 'top-right' });
-    }
-  }
-}
-
-
-
-
-async function loadFeeStructures(page = 1) {
-  isLoading.value = true
-  errorMessage.value = ''
-
-  try {
-    const response = await feeStructureApi.listFeeStructures({
-      page,
-      search: searchTerm.value?.trim() || undefined,
-    })
-
-    const data = response
-
-
-    feeStructures.value = data.results
-    currentPage.value = page
-    totalPages.value = Math.ceil(data.count / pageSize)
-
+    studentOptions.value = response?.data || [];
   } catch (err) {
-    errorMessage.value =
+    toast.error(
       err?.response?.data?.message ||
-      err?.message ||
-      'Failed to load fee structures.'
-  } finally {
-    isLoading.value = false
+        "Failed to fetch students. Please check your connection.",
+      { position: "top-right" }
+    );
   }
 }
 
+/* -------------------------------------------------------
+   FORM (Add/Edit)
+------------------------------------------------------- */
+const showFormModal = ref(false);
+const isEdit = ref(false);
+const editingId = ref(null);
 
-watch(searchTerm, () => {
-  currentPage.value = 1
-  loadFeeStructures(1)
-})
+const formFee = reactive({
+  academicYearId: "",
+  gradeClassId: "",
+  termId: "",
+  amount: "",
+  is_discount: false,
+  discounted_student_ids: [],
+});
 
-/* ---------- Modal handlers ---------- */
+const formValidationMessage = ref("");
+
+function resetForm() {
+  formFee.academicYearId = "";
+  formFee.gradeClassId = "";
+  formFee.termId = "";
+  formFee.amount = "";
+  formFee.is_discount = false;
+  formFee.discounted_student_ids = [];
+  formValidationMessage.value = "";
+  editingId.value = null;
+}
+
+function validateForm() {
+  if (!formFee.academicYearId || !formFee.termId) {
+    formValidationMessage.value = "Academic Year and Term are required.";
+    return false;
+  }
+
+  // If discounted, class may be fixed (because class selector is hidden)
+  if (formFee.is_discount && !formFee.gradeClassId) {
+    formFee.gradeClassId = CRECHE_CLASS_ID;
+  }
+
+  if (!formFee.is_discount && !formFee.gradeClassId) {
+    formValidationMessage.value = "Class is required for non-discounted fees.";
+    return false;
+  }
+
+  if (formFee.is_discount && formFee.discounted_student_ids.length === 0) {
+    formValidationMessage.value = "Please select at least one discounted student.";
+    return false;
+  }
+
+  if (formFee.amount === "" || formFee.amount === null) {
+    formValidationMessage.value = "Amount is required.";
+    return false;
+  }
+
+  if (Number(formFee.amount) < 0) {
+    formValidationMessage.value = "Amount cannot be negative.";
+    return false;
+  }
+
+  formValidationMessage.value = "";
+  return true;
+}
+
 function openAddModal() {
-  isEdit.value = false
-  resetForm()
-  showFormModal.value = true
+  isEdit.value = false;
+  resetForm();
+  showFormModal.value = true;
 }
+
 function openEditModal(row) {
-  isEdit.value = true
-  editingId.value = row.id
-  formFee.academicYearId = row.academic_year?.id ?? ''
-  formFee.gradeClassId = row.grade_class?.id ?? ''
-  formFee.termId = row.term?.id ?? ''
-  formFee.amount = row.amount ?? ''
-  formValidationMessage.value = ''
-  showFormModal.value = true
+  isEdit.value = true;
+  editingId.value = row.id;
+
+  formFee.academicYearId = row.academic_year?.id ?? "";
+  formFee.gradeClassId = row.grade_class?.id ?? "";
+  formFee.termId = row.term?.id ?? "";
+  formFee.amount = row.amount ?? "";
+  formFee.is_discount = !!row.is_discounted;
+
+  // Handle multiple possible backend shapes
+  formFee.discounted_student_ids =
+    row.discounted_student_ids ??
+    row.discounted_students?.map((s) => s.id) ??
+    [];
+
+  formValidationMessage.value = "";
+  showFormModal.value = true;
 }
+
 function closeFormModal() {
   if (!isSubmitting.value) {
-    showFormModal.value = false
-    resetForm()
+    showFormModal.value = false;
+    resetForm();
   }
 }
 
-function openSingleDeleteConfirm(row) {
-  deleteTarget.value = row
-  showDeleteSingleModal.value = true
-}
-function closeDeleteSingleModal() {
-  showDeleteSingleModal.value = false
-  deleteTarget.value = null
-}
+async function submitForm() {
+  if (!validateForm()) return;
 
-function openBulkDeleteConfirm() {
-  showDeleteBulkModal.value = true
-}
-function closeBulkDeleteConfirm() {
-  if (!isDeleting.value) {
-    showDeleteBulkModal.value = false
-  }
-}
+  isSubmitting.value = true;
 
-/* ---------- Submit ---------- */
-function submitForm() {
-  if (!validateForm()) return
-  isSubmitting.value = true
   const payload = {
     academic_year_id: formFee.academicYearId,
     grade_class_id: formFee.gradeClassId,
@@ -662,100 +625,176 @@ function submitForm() {
     amount: formFee.amount,
     discounted_student_ids: formFee.is_discount ? formFee.discounted_student_ids : [],
     is_discounted: formFee.is_discount,
-  }
-
-  const done = () => (isSubmitting.value = false)
-
-  if (isEdit.value && editingId.value != null) {
-    feeStructureApi
-      .updateFeeStructure(editingId.value, payload)
-      .then((updated) => {
-        feeStructures.value = feeStructures.value.map(r => (r.id === updated.id ? updated : r))
-        showFormModal.value = false
-        resetForm()
-        toast.success('Fee structure updated successfully.', { position: 'top-right' })
-      })
-      .catch((err) => (formValidationMessage.value = err?.message || 'Failed to update fee structure.'))
-      .finally(done)
-  } else {
-    feeStructureApi.createFeeStructure(payload)
-      .then((created) => {
-
-        feeStructures.value = [...feeStructures.value, created]
-
-
-        showFormModal.value = false
-        toast.success('Fee structure added successfully.', { position: 'top-right' })
-
-        resetForm()
-      })
-      .catch((err) => (formValidationMessage.value = err?.message || 'Failed to add fee structure.'))
-      .finally(done)
-  }
-}
-
-/* ---------- Delete ---------- */
-async function confirmDeleteSingle() {
-  if (!deleteTarget.value) return
-
-  isDeleting.value = true
-  const recordName = deleteTarget.value.name || `ID ${deleteTarget.value.id}`
+  };
 
   try {
-    const id = deleteTarget.value.id
-    await feeStructureApi.deleteFeeStructure(id)
+    if (isEdit.value && editingId.value != null) {
+      const res = await update_fee_structure(editingId.value, payload);
+      const updated = res?.data;
 
-    feeStructures.value = feeStructures.value.filter(r => r.id !== id)
-    selectedIds.value = selectedIds.value.filter(selectedId => selectedId !== id)
-    closeDeleteSingleModal()
+      // Update current view optimistically if present
+      if (updated?.id != null) {
+        feeStructures.value = feeStructures.value.map((r) => (r.id === updated.id ? updated : r));
+      }
 
-    toast.success(`Fee structure deleted successfully.`, {
-      position: 'top-right',
-    })
-  } catch (error) {
+      toast.success("Fee structure updated successfully.", { position: "top-right" });
+    } else {
+      await create_fee_structure(payload);
+      toast.success("Fee structure added successfully.", { position: "top-right" });
 
-
-    // Extract associated record name if backend provides it
-    const associatedRecordName =
-      error.response?.data?.associatedRecordName ||
-      "a linked student's fee record"
-
-    let message =
-      error.response?.data?.message ||
-      error.response?.data?.error ||
-      error.response?.data?.detail ||
-      error.message ||
-      `Cannot delete this structure because it is linked to ${associatedRecordName}. Please delete the associated record first.`
-
-    // Override for FK constraint errors
-    if (message.includes('violates foreign key constraint')) {
-      message = `Cannot delete this structure because it is linked to ${associatedRecordName}. Please delete the associated record first.`
+      // New record likely belongs on page 1 (depends on backend ordering)
+      currentPage.value = 1;
     }
 
-    toast.error(message, { position: 'top-right' })
+    // Invalidate cache to avoid stale pages, then reload
+    clearCache();
+    await loadFeeStructures(currentPage.value);
+
+    showFormModal.value = false;
+    resetForm();
+  } catch (err) {
+    formValidationMessage.value =
+      err?.response?.data?.message ||
+      err?.message ||
+      "Failed to save fee structure.";
   } finally {
-    isDeleting.value = false
+    isSubmitting.value = false;
   }
 }
 
+/* -------------------------------------------------------
+   DELETE (Single & Bulk)
+------------------------------------------------------- */
+const showDeleteSingleModal = ref(false);
+const deleteTarget = ref(null);
+const showDeleteBulkModal = ref(false);
 
+function openSingleDeleteConfirm(row) {
+  deleteTarget.value = row;
+  showDeleteSingleModal.value = true;
+}
 
+function closeDeleteSingleModal() {
+  if (!isDeleting.value) {
+    showDeleteSingleModal.value = false;
+    deleteTarget.value = null;
+  }
+}
 
-/* ---------- Init ---------- */
+function openBulkDeleteConfirm() {
+  showDeleteBulkModal.value = true;
+}
+
+function closeBulkDeleteConfirm() {
+  if (!isDeleting.value) {
+    showDeleteBulkModal.value = false;
+  }
+}
+
+function friendlyDeleteError(error, id) {
+  const associatedRecordName =
+    error?.response?.data?.associatedRecordName || "a linked student's fee record";
+
+  let message =
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    error?.response?.data?.detail ||
+    error?.message ||
+    `Cannot delete fee structure ID ${id} because it is linked to ${associatedRecordName}.`;
+
+  if (String(message).includes("violates foreign key constraint")) {
+    message = `Cannot delete fee structure ID ${id} because it is linked to ${associatedRecordName}. Please delete the associated record first.`;
+  }
+
+  return message;
+}
+
+async function confirmDeleteSingle() {
+  if (!deleteTarget.value) return;
+
+  isDeleting.value = true;
+
+  try {
+    const id = deleteTarget.value.id;
+    await delete_fee_structure(id);
+
+    // Remove from current view
+    feeStructures.value = feeStructures.value.filter((r) => r.id !== id);
+
+    // Remove from selection
+    selectedIds.value = selectedIds.value.filter((x) => x !== id);
+
+    toast.success("Fee structure deleted successfully.", { position: "top-right" });
+
+    // Invalidate cache + reload current page to keep page counts accurate
+    clearCache();
+    await loadFeeStructures(currentPage.value);
+
+    closeDeleteSingleModal();
+  } catch (error) {
+    toast.error(friendlyDeleteError(error, deleteTarget.value.id), { position: "top-right" });
+  } finally {
+    isDeleting.value = false;
+  }
+}
+
+async function confirmDeleteBulk() {
+  if (selectedIds.value.length === 0) return;
+
+  isDeleting.value = true;
+
+  const ids = [...selectedIds.value];
+
+  try {
+    const results = await Promise.allSettled(ids.map((id) => delete_fee_structure(id)));
+
+    let successCount = 0;
+
+    results.forEach((result, idx) => {
+      const id = ids[idx];
+      if (result.status === "fulfilled") {
+        successCount++;
+      } else {
+        toast.error(friendlyDeleteError(result.reason, id), { position: "top-right" });
+      }
+    });
+
+    if (successCount > 0) {
+      toast.success(`Deleted ${successCount} fee structure(s) successfully.`, {
+        position: "top-right",
+      });
+    }
+
+    // Clear selection always after bulk attempt
+    selectedIds.value = [];
+    showDeleteBulkModal.value = false;
+
+    // Invalidate cache and reload current page
+    clearCache();
+    await loadFeeStructures(currentPage.value);
+  } finally {
+    isDeleting.value = false;
+  }
+}
+
+/* -------------------------------------------------------
+   INIT
+------------------------------------------------------- */
 onMounted(async () => {
   try {
-    isLoading.value = true
-    await loadReferenceData()
-    await loadFeeStructures()
-    await fetchUsers()
+    isLoading.value = true;
+    await Promise.all([loadReferenceData(), fetchUsers()]);
+    await loadFeeStructures(1);
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-})
+});
 </script>
 
 <style scoped>
 @media (max-width: 576px) {
-  .gap-2 { row-gap: 0.5rem; }
+  .gap-2 {
+    row-gap: 0.5rem;
+  }
 }
 </style>
