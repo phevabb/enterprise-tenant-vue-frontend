@@ -23,6 +23,28 @@
               <CButton color="primary" size="sm" @click="openAddModal">
                 Add Family Fee Record
               </CButton>
+
+              <!-- Export buttons -->
+              <CButton
+                color="success"
+                variant="outline"
+                size="sm"
+                :disabled="isLoading || isExporting || totalCount === 0"
+                @click="exportToExcel"
+              >
+                <CSpinner size="sm" v-if="isExporting" class="me-2" />
+                Export Excel
+              </CButton>
+              <CButton
+                color="secondary"
+                variant="outline"
+                size="sm"
+                :disabled="isLoading || isExporting || totalCount === 0"
+                @click="exportToPDF"
+              >
+                <CSpinner size="sm" v-if="isExporting" class="me-2" />
+                Export PDF
+              </CButton>
             </div>
           </div>
         </CCardHeader>
@@ -32,19 +54,15 @@
             Manage family-level fee obligations and payments by term and academic year.
           </p>
 
-
-
           <div v-if="isLoading" class="d-flex align-items-center gap-2 mb-3">
             <CSpinner size="sm" />
             <span class="text-body-secondary small">Loading family fee records…</span>
           </div>
 
-
-<div v-if="isLoading" class="text-center my-5">
+          <div v-if="isLoading" class="text-center my-5">
             <CSpinner color="primary" class="me-2" />
             <span class="text-primary fw-bold">Loading family fee records...</span>
           </div>
-
 
           <CTable v-else hover responsive>
             <CTableHead>
@@ -128,30 +146,28 @@
     </CModalHeader>
     <CModalBody>
       <CFormLabel for="family">Family</CFormLabel>
-<CFormSelect id="family" v-model="form.familyId" :disabled="isSubmitting">
-  <option value="" disabled selected>Select Family</option>
-  <option v-for="f in familyOptions" :key="f.id" :value="f.id">
-    {{ f.name }}
-  </option>
-</CFormSelect>
+      <CFormSelect id="family" v-model="form.familyId" :disabled="isSubmitting">
+        <option value="" disabled selected>Select Family</option>
+        <option v-for="f in familyOptions" :key="f.id" :value="f.id">
+          {{ f.name }}
+        </option>
+      </CFormSelect>
 
-<CFormLabel for="term">Term</CFormLabel>
-<CFormSelect id="term" v-model="form.termId" :disabled="isSubmitting" class="mt-3">
-  <option value="" disabled selected>Select Term</option>
-  <option v-for="t in termOptions" :key="t.id" :value="t.id">
-    {{ t.name }}
-  </option>
-</CFormSelect>
+      <CFormLabel for="term">Term</CFormLabel>
+      <CFormSelect id="term" v-model="form.termId" :disabled="isSubmitting" class="mt-3">
+        <option value="" disabled selected>Select Term</option>
+        <option v-for="t in termOptions" :key="t.id" :value="t.id">
+          {{ t.name }}
+        </option>
+      </CFormSelect>
 
-<CFormLabel for="academic_year">Academic Year</CFormLabel>
-<CFormSelect id="academic_year" v-model="form.academicYearId" :disabled="isSubmitting" class="mt-3">
-  <option value="" disabled selected>Select Academic Year</option>
-  <option v-for="ay in academicYearOptions" :key="ay.id" :value="ay.id">
-    {{ ay.name }}
-  </option>
-</CFormSelect>
-
-
+      <CFormLabel for="academic_year">Academic Year</CFormLabel>
+      <CFormSelect id="academic_year" v-model="form.academicYearId" :disabled="isSubmitting" class="mt-3">
+        <option value="" disabled selected>Select Academic Year</option>
+        <option v-for="ay in academicYearOptions" :key="ay.id" :value="ay.id">
+          {{ ay.name }}
+        </option>
+      </CFormSelect>
 
       <CFormInput
         v-model.number="form.amountToPay"
@@ -168,10 +184,8 @@
       </div>
 
       <CAlert color="danger" v-if="formValidationMessage" class="mt-3">
-  {{ formValidationMessage }}
-</CAlert>
-
-
+        {{ formValidationMessage }}
+      </CAlert>
     </CModalBody>
     <CModalFooter>
       <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">
@@ -236,7 +250,12 @@ import {
   get_raw_families,
   get_terms,
   get_academic_years
-} from '@/services/api'   // adjust path if needed
+} from '@/services/api'
+
+// 👉 NEW: exports
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import * as XLSX from 'xlsx'
 
 const toast = useToast()
 const pageSize = 10
@@ -245,6 +264,7 @@ const pageSize = 10
 const isLoading       = ref(false)
 const isSubmitting    = ref(false)
 const isDeleting      = ref(false)
+const isExporting     = ref(false) // NEW
 const errorMessage    = ref('')
 
 const records         = ref([])
@@ -300,7 +320,6 @@ const academicYearOptions = computed(() =>
   academicYears.value.map(ay => ({ id: ay.id, name: ay.name }))
 )
 
-
 const allSelected = computed(() =>
   records.value.length > 0 && records.value.every(r => selectedIds.value.includes(r.id))
 )
@@ -333,6 +352,7 @@ const formatDate = (iso) => {
 // ── Watchers ─────────────────────────────────────
 watch(searchTerm, () => {
   currentPage.value = 1
+  pageCache.value.clear()
   loadRecords()
 })
 
@@ -342,10 +362,17 @@ function changePage(page) {
   loadRecords()
 }
 
+function buildParams(page, size) {
+  const params = { page, page_size: size }
+  const q = searchTerm.value?.trim()
+  if (q) params.search = q
+  return params
+}
+
 async function loadRecords() {
   const page = currentPage.value
-  const search = searchTerm.value.trim() || undefined
-  const cacheKey = `${page}|${search || ''}`
+  const search = searchTerm.value.trim() || ''
+  const cacheKey = `${page}|${search}`
 
   if (pageCache.value.has(cacheKey)) {
     const cached = pageCache.value.get(cacheKey)
@@ -359,9 +386,7 @@ async function loadRecords() {
   errorMessage.value = ''
 
   try {
-    const params = { page, page_size: pageSize }
-    if (search) params.search = search
-
+    const params = buildParams(page, pageSize)
     const res = await get_family_fee_rec(params)
     const data = res.data || {}
 
@@ -388,13 +413,9 @@ async function loadLookups() {
       get_terms(),
       get_academic_years()
     ])
-
-
     families.value      = famRes.data  || []
     terms.value         = termRes.data || []
     academicYears.value = ayRes.data   || []
-
-
   } catch (err) {
     toast.error('Failed to load dropdown data')
   }
@@ -512,8 +533,7 @@ async function saveRecord() {
   try {
     let result
     if (isEdit.value && editingId.value) {
-      // Note: your backend has no separate update endpoint → using create with ID?
-      // If backend supports PUT/PATCH, change to proper update call
+      // TODO: replace with proper update call if backend supports PUT/PATCH
       result = await create_family_fee_rec(editingId.value, payload) // adjust if needed
       records.value = records.value.map(r =>
         r.id === result.id ? { ...r, ...result } : r
@@ -533,6 +553,158 @@ async function saveRecord() {
     isSubmitting.value = false
   }
 }
+
+/* -------------------- EXPORT (NEW) -------------------- */
+
+// Fetch ALL records matching current search (across pages)
+async function fetchAllRecordsForExport() {
+  const EXPORT_PAGE_SIZE = 500
+  const first = await get_family_fee_rec(buildParams(1, EXPORT_PAGE_SIZE))
+  const data = first.data || {}
+  const items = [...(data.results || [])]
+  const count = Number(data.count || items.length)
+  const pages = Math.max(1, Math.ceil(count / EXPORT_PAGE_SIZE))
+
+  for (let p = 2; p <= pages; p++) {
+    const res = await get_family_fee_rec(buildParams(p, EXPORT_PAGE_SIZE))
+    items.push(...(res.data?.results || []))
+  }
+  return items
+}
+
+// Transform for export (single source, then map for PDF/Excel)
+function mapForExport(list) {
+  return list.map((r, i) => ({
+    idx: i + 1,
+    family: r.family?.name || '',
+    term: r.term?.name || '',
+    ay: r.academic_year?.name || '',
+    toPay: Number(r.amount_to_pay) || 0,
+    paid: Number(r.amount_paid) || 0,
+    bal: Number(r.balance) || 0,
+    fully: r.is_fully_paid ? 'Yes' : 'No',
+    created: formatDate(r.date_created),
+  }))
+}
+
+async function exportToPDF() {
+  if (isExporting.value) return
+  try {
+    isExporting.value = true
+    const all = await fetchAllRecordsForExport()
+    if (!all.length) {
+      toast.info('No data to export')
+      return
+    }
+    const rows = mapForExport(all)
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+    doc.setFontSize(16)
+    doc.text('Family Fee Records', 40, 40)
+
+    const head = [['#', 'Family', 'Term', 'Academic Year', 'Amount To Pay', 'Amount Paid', 'Balance', 'Fully Paid', 'Created']]
+    const body = rows.map(r => [
+      r.idx,
+      r.family,
+      r.term,
+      r.ay,
+      formatCurrency(r.toPay),
+      formatCurrency(r.paid),
+      formatCurrency(r.bal),
+      r.fully,
+      r.created,
+    ])
+
+    autoTable(doc, {
+      head,
+      body,
+      startY: 60,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 6, valign: 'middle' },
+      headStyles: { fillColor: [78, 115, 223], textColor: 255, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 35 },     // #
+        1: { cellWidth: 160 },    // Family
+        2: { cellWidth: 90 },     // Term
+        3: { cellWidth: 120 },    // Academic Year
+        4: { cellWidth: 110 },    // To Pay
+        5: { cellWidth: 110 },    // Paid
+        6: { cellWidth: 100 },    // Balance
+        7: { cellWidth: 80 },     // Fully
+        8: { cellWidth: 120 },    // Created
+      },
+      didDrawPage() {
+        const w = doc.internal.pageSize.getWidth()
+        const h = doc.internal.pageSize.getHeight()
+        doc.setFontSize(9)
+        doc.setTextColor(120)
+        doc.text(`Page ${doc.internal.getNumberOfPages()}`, w - 50, h - 20)
+      }
+    })
+
+    const filename = `family-fee-records-${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(filename)
+    toast.success('Exported to PDF')
+  } catch (e) {
+
+    toast.error('Failed to export PDF')
+  } finally {
+    isExporting.value = false
+  }
+}
+
+async function exportToExcel() {
+  if (isExporting.value) return
+  try {
+    isExporting.value = true
+    const all = await fetchAllRecordsForExport()
+    if (!all.length) {
+      toast.info('No data to export')
+      return
+    }
+    const rows = mapForExport(all)
+
+    const headers = ['#', 'Family', 'Term', 'Academic Year', 'Amount To Pay', 'Amount Paid', 'Balance', 'Fully Paid', 'Created']
+    // Keep amounts numeric for formulas in Excel
+    const aoa = [
+      headers,
+      ...rows.map(r => [r.idx, r.family, r.term, r.ay, r.toPay, r.paid, r.bal, r.fully, r.created])
+    ]
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa)
+
+    // Auto width (basic)
+    const colWidths = headers.map((h, colIdx) => {
+      const colVals = aoa.map(r => String(r[colIdx] ?? ''))
+      const maxLen = Math.max(...colVals.map(v => v.length))
+      return { wch: Math.min(Math.max(maxLen + 2, 10), 40) }
+    })
+    ws['!cols'] = colWidths
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Family Fee Records')
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([wbout], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `family-fee-records-${new Date().toISOString().split('T')[0]}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    toast.success('Exported to Excel')
+  } catch (e) {
+
+    toast.error('Failed to export Excel')
+  } finally {
+    isExporting.value = false
+  }
+}
+
+/* ------------------ END EXPORT ------------------ */
 
 // ── Init ─────────────────────────────────────────
 onMounted(async () => {

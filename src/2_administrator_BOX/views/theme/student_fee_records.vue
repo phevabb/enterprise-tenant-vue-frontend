@@ -54,6 +54,28 @@
             >
               Delete ({{ selectedIds.length }})
             </CButton>
+
+            <!-- Export buttons -->
+            <CButton
+              color="success"
+              variant="outline"
+              size="sm"
+              :disabled="isLoading || isExporting || totalCount === 0"
+              @click="exportToExcel"
+            >
+              <CSpinner size="sm" v-if="isExporting" class="me-2" />
+              Export Excel
+            </CButton>
+            <CButton
+              color="secondary"
+              variant="outline"
+              size="sm"
+              :disabled="isLoading || isExporting || totalCount === 0"
+              @click="exportToPDF"
+            >
+              <CSpinner size="sm" v-if="isExporting" class="me-2" />
+              Export PDF
+            </CButton>
           </div>
         </CCardHeader>
 
@@ -116,7 +138,6 @@
                   <CBadge :color="Number(row.balance) === 0 ? 'success' : 'warning'">
                     {{ Number(row.balance) === 0 ? 'Yes' : 'No' }}
                   </CBadge>
-
                 </CTableDataCell>
                 <CTableDataCell>{{ formatDateTime(row.date_created) }}</CTableDataCell>
                 <CTableDataCell class="text-end">
@@ -154,7 +175,7 @@
     </CCol>
   </CRow>
 
-  <!-- Add Record Modal (no edit – usually immutable or recreated) -->
+  <!-- Add Record Modal -->
   <CModal :visible="showFormModal" @close="closeFormModal" size="lg">
     <CModalHeader>
       <CModalTitle>Add Fee Record</CModalTitle>
@@ -257,7 +278,12 @@ import {
   create_student_fee_record,
   delete_student_fee_record,
   get_raw_fee_structures,
-} from '@/services/api' // adjust path
+} from '@/services/api'
+
+// 👉 NEW: imports for export
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import * as XLSX from 'xlsx'
 
 const toast = useToast()
 const pageSize = 10
@@ -266,6 +292,7 @@ const pageSize = 10
 const isLoading = ref(false)
 const isSubmitting = ref(false)
 const isDeleting = ref(false)
+const isExporting = ref(false)   // <-- NEW
 const errorMessage = ref('')
 
 const records = ref([])
@@ -343,7 +370,6 @@ function formatDateTime(iso) {
 }
 
 function resetForm() {
-
   formRecord.studentId = ''
   formRecord.feeStructureId = ''
   studentSearch.value = ''
@@ -374,6 +400,21 @@ function toggleSelectAll() {
   }
 }
 
+// Build query params used by list & exports (keeps exports in sync with UI filters)
+function buildParams(page, size) {
+  const params = { page, page_size: size }
+  if (searchTerm.value?.trim()) {
+    params.search = searchTerm.value.trim()
+  }
+  if (selectedFeeStructureId.value) {
+    params.fee_structure = selectedFeeStructureId.value
+  }
+  if (fullyPaidFilter.value) {
+    params.is_fully_paid = fullyPaidFilter.value
+  }
+  return params
+}
+
 // ────────────────────────────────────── Data Loading
 
 async function loadLookups() {
@@ -385,6 +426,7 @@ async function loadLookups() {
     students.value = studentsRes.data || []
     feeStructures.value = fsRes.data || []
   } catch (err) {
+
     toast.error('Failed to load students or fee structures.')
   }
 }
@@ -414,25 +456,8 @@ async function loadRecords(page = 1, force = false) {
   errorMessage.value = ''
 
   try {
-    const params = {
-      page,
-      page_size: pageSize,
-    }
-
-    if (searchTerm.value?.trim()) {
-      params.search = searchTerm.value.trim()
-    }
-
-    if (selectedFeeStructureId.value) {
-      params.fee_structure = selectedFeeStructureId.value
-    }
-
-    if (fullyPaidFilter.value) {
-      params.is_fully_paid = fullyPaidFilter.value
-    }
-
+    const params = buildParams(page, pageSize)
     const res = await get_student_fee_record(params)
-
     const data = res.data || {}
 
     pageCache.value.set(cacheKey, { results: data.results || [], count: data.count || 0 })
@@ -475,7 +500,6 @@ function openAddModal() {
   showFormModal.value = true
 }
 
-
 function closeDeleteSingleModal() {
   if (isDeleting.value) return
   showDeleteSingleModal.value = false
@@ -496,23 +520,18 @@ async function submitForm() {
   isSubmitting.value = true
 
   const payload = {
-
-
     student_id: formRecord.studentId,
     fee_structure_id: formRecord.feeStructureId,
   }
 
   try {
-
-    const res = await create_student_fee_record(payload)
-
+    await create_student_fee_record(payload)
     toast.success('Fee record created.')
     showFormModal.value = false
     resetForm()
     loadRecords(currentPage.value, true)
   } catch (err) {
-
-    formValidationMessage.value = err.response?.data?.detail || 'Failed to create record.'
+    formValidationMessage.value = err?.response?.data?.detail || 'Failed to create record.'
     toast.error(formValidationMessage.value)
   } finally {
     isSubmitting.value = false
@@ -562,6 +581,164 @@ async function confirmDeleteBulk() {
   } finally {
     isDeleting.value = false
     closeBulkDeleteConfirm()
+  }
+}
+
+// ────────────────────────────────────── Export helpers (NEW)
+
+/**
+ * Fetches *all* records matching current filters (across pages) to export.
+ */
+async function fetchAllRecordsForExport() {
+  // Choose a larger page size for fewer round trips
+  const EXPORT_PAGE_SIZE = 500
+  const firstParams = buildParams(1, EXPORT_PAGE_SIZE)
+  const firstRes = await get_student_fee_record(firstParams)
+  const firstData = firstRes.data || {}
+  const results = [...(firstData.results || [])]
+  const count = Number(firstData.count || results.length)
+  const totalPagesNeeded = Math.max(1, Math.ceil(count / EXPORT_PAGE_SIZE))
+
+  for (let p = 2; p <= totalPagesNeeded; p++) {
+    const res = await get_student_fee_record(buildParams(p, EXPORT_PAGE_SIZE))
+    results.push(...(res.data?.results || []))
+  }
+
+  return results
+}
+
+/**
+ * Shapes rows like the table view (keeps headers simple & consistent)
+ */
+function buildExportRows(rows) {
+  return rows.map((r, i) => {
+    const fullyPaid = Number(r.balance) === 0 ? 'Yes' : 'No'
+    return [
+      i + 1,
+      r.student?.user?.full_name || '',
+      r.fee_structure?.grade_class?.name || '',
+      r.fee_structure?.term?.name || '',
+      r.fee_structure?.academic_year?.name || '',
+      formatAmount(r.amount_paid),
+      formatAmount(r.balance),
+      fullyPaid,
+      formatDateTime(r.date_created),
+    ]
+  })
+}
+
+// ────────────────────────────────────── Export: PDF (NEW)
+
+async function exportToPDF() {
+  if (isExporting.value) return
+  try {
+    isExporting.value = true
+
+    // 1) Fetch all filtered rows
+    const all = await fetchAllRecordsForExport()
+    if (!all.length) {
+      toast.info('No data to export')
+      return
+    }
+
+    // 2) Build table data
+    const headers = ['#', 'Student', 'Class', 'Term', 'Academic Year', 'Amount Paid', 'Balance', 'Fully Paid', 'Created']
+    const rows = buildExportRows(all)
+
+    // 3) Create PDF
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+    doc.setFontSize(16)
+    doc.text('Student Fee Records', 40, 40)
+
+    autoTable(doc, {
+      head: [headers],
+      body: rows,
+      startY: 60,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 6, valign: 'middle' },
+      headStyles: { fillColor: [78, 115, 223], textColor: 255, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 35 },     // #
+        1: { cellWidth: 160 },    // Student
+        2: { cellWidth: 80 },     // Class
+        3: { cellWidth: 80 },     // Term
+        4: { cellWidth: 120 },    // Academic Year
+        5: { cellWidth: 100 },    // Amount Paid
+        6: { cellWidth: 90 },     // Balance
+        7: { cellWidth: 80 },     // Fully Paid
+        8: { cellWidth: 120 },    // Created
+      },
+      didDrawPage(data) {
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const pageHeight = doc.internal.pageSize.getHeight()
+        doc.setFontSize(9)
+        doc.setTextColor(120)
+        const str = `Page ${doc.internal.getNumberOfPages()}`
+        doc.text(str, pageWidth - 50, pageHeight - 20)
+      }
+    })
+
+    const filename = `fee-records-${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(filename)
+    toast.success('Exported to PDF', { position: 'top-right' })
+  } catch (e) {
+
+    toast.error('Failed to export PDF', { position: 'top-right' })
+  } finally {
+    isExporting.value = false
+  }
+}
+
+// ────────────────────────────────────── Export: Excel (NEW)
+
+async function exportToExcel() {
+  if (isExporting.value) return
+  try {
+    isExporting.value = true
+
+    // 1) Fetch all filtered rows
+    const all = await fetchAllRecordsForExport()
+    if (!all.length) {
+      toast.info('No data to export')
+      return
+    }
+
+    // 2) Build sheet data
+    const headers = ['#', 'Student', 'Class', 'Term', 'Academic Year', 'Amount Paid', 'Balance', 'Fully Paid', 'Created']
+    const rows = buildExportRows(all)
+    const aoa = [headers, ...rows]
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa)
+
+    // Optional: auto width
+    const colWidths = headers.map((h, colIdx) => {
+      const colVals = aoa.map(r => String(r[colIdx] ?? ''))
+      const maxLen = Math.max(...colVals.map(v => v.length))
+      return { wch: Math.min(Math.max(maxLen + 2, 10), 40) } // clamp width
+    })
+    ws['!cols'] = colWidths
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Fee Records')
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([wbout], {
+      type:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `fee-records-${new Date().toISOString().split('T')[0]}.xlsx`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    toast.success('Exported to Excel', { position: 'top-right' })
+  } catch (e) {
+
+    toast.error('Failed to export Excel', { position: 'top-right' })
+  } finally {
+    isExporting.value = false
   }
 }
 

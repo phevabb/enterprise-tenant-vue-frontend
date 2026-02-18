@@ -8,7 +8,7 @@
           <div class="d-flex align-items-center gap-2 flex-wrap">
             <CFormInput
               v-model="searchTerm"
-              placeholder="Search by name..."
+              placeholder="Search by name, class, or contacts..."
               size="sm"
               class="shadow-sm border-primary"
               style="min-width: 260px;"
@@ -29,7 +29,7 @@
             </CButton>
 
             <CDropdown variant="btn-group" size="sm">
-              <CDropdownToggle color="success" :disabled="loading || !students.length">
+              <CDropdownToggle color="success" :disabled="loading || !filteredStudents.length">
                 Export
               </CDropdownToggle>
               <CDropdownMenu>
@@ -41,8 +41,6 @@
         </CCardHeader>
 
         <CCardBody>
-
-
           <div v-if="loading" class="text-center my-5">
             <CSpinner color="primary" class="me-2" />
             <span class="text-primary fw-bold">Loading students...</span>
@@ -56,7 +54,7 @@
                     :checked="allSelected"
                     :indeterminate="someSelected"
                     @change="toggleSelectAll"
-                    :disabled="loading"
+                    :disabled="loading || !displayedStudents.length"
                   />
                 </CTableHeaderCell>
                 <CTableHeaderCell>#</CTableHeaderCell>
@@ -70,7 +68,7 @@
             </CTableHead>
 
             <CTableBody>
-              <CTableRow v-for="(student, idx) in students" :key="student.id">
+              <CTableRow v-for="(student, idx) in displayedStudents" :key="student.id">
                 <CTableDataCell class="text-center">
                   <CFormCheck v-model="selectedIds" :value="Number(student.id)" />
                 </CTableDataCell>
@@ -98,7 +96,7 @@
                 </CTableDataCell>
               </CTableRow>
 
-              <CTableRow v-if="!loading && !students.length">
+              <CTableRow v-if="!loading && !filteredStudents.length">
                 <CTableDataCell colspan="8" class="text-center text-muted py-5">
                   No students found<span v-if="searchTerm"> for “{{ searchTerm }}”</span>.
                 </CTableDataCell>
@@ -111,7 +109,7 @@
               :current-page="currentPage"
               :total-pages="totalPages"
               @page-changed="changePage"
-              :disabled="loading"
+              :disabled="loading || !filteredStudents.length"
             />
             <div style="font-size:14px; color:#6c757d;">
               {{ showingRange }}
@@ -336,27 +334,51 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+
 import { useToast } from 'vue-toastification'
-import { useRouter } from 'vue-router'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 import Pagination from '@/Pagination.vue'
 import { st, create_student, update_student, delete_student } from '@/services/api'
 
 const toast = useToast()
-const router = useRouter()
-const pageSize = 10
 
-// ── State ────────────────────────────────────────
+// ── UI and API page sizes ─────────────────────────────────
+const pageSize = 10                 // UI page size (client pagination)
+const API_PAGE_SIZE = 100           // API fetch size (bigger = fewer requests)
+
+
+function normalizeCurrentClass(val) {
+  // Convert label or numeric-string to number value for consistency
+  if (val == null || val === '') return ''
+  if (typeof val === 'number') return val
+  const s = String(val).trim()
+  if (/^\d+$/.test(s)) return Number(s)
+  const match = classOptions.find(c => c.label.toLowerCase() === s.toLowerCase())
+  return match ? match.value : '' // fallback to '' if unknown
+}
+
+function normalizeStudent(student) {
+  if (!student) return student
+  const normalized = { ...student }
+  normalized.current_class = normalizeCurrentClass(student.current_class)
+  normalized.class_seeking_admission_to = normalizeCurrentClass(student.class_seeking_admission_to)
+  // You can normalize other fields here if backend returns varied shapes
+  return normalized
+}
+
+
+
+// ── State ────────────────────────────────────────────────
 const loading = ref(false)
 const errorMessage = ref('')
-const students = ref([])
-const searchTerm = ref('')
+
+const allStudents = ref([])         // full dataset loaded from backend (no server search)
+const searchTerm = ref('')          // client-only filter
 const currentPage = ref(1)
-const totalPages = ref(1)
-const totalCount = ref(0)
 
 const selectedIds = ref([])
 const showDeleteModal = ref(false)
@@ -395,26 +417,7 @@ const form = ref({
   active: true,
 })
 
-// ── Cache ────────────────────────────────────────
-const pageCache = ref(new Map())
-
-// ── Computed ─────────────────────────────────────
-const showingRange = computed(() => {
-  if (!students.value.length) return 'Showing 0 students'
-  const start = (currentPage.value - 1) * pageSize + 1
-  const end = start + students.value.length - 1
-  return `Showing ${start}–${end} of ${totalCount.value}`
-})
-
-const allSelected = computed(() =>
-  students.value.length > 0 && students.value.every(s => selectedIds.value.includes(Number(s.id)))
-)
-
-const someSelected = computed(() =>
-  !allSelected.value && students.value.some(s => selectedIds.value.includes(Number(s.id)))
-)
-
-// ── Helpers ──────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────
 const classOptions = [
   { label: 'Creche', value: 1 },
   { label: 'Nursery 1', value: 2 },
@@ -448,47 +451,84 @@ const mapClassStringToValue = (input) => {
   return match ? match.value : ''
 }
 
-// ── Watchers ─────────────────────────────────────
-watch(searchTerm, () => {
-  currentPage.value = 1
-  loadStudents()
+// ── Client-side filtering & pagination ───────────────────
+const filteredStudents = computed(() => {
+  const q = (searchTerm.value || '').trim().toLowerCase()
+  if (!q) return allStudents.value
+
+  return allStudents.value.filter(s => {
+    const name = (s.user?.full_name || '').toLowerCase()
+    const classLabel = classValueToLabel(s.current_class).toLowerCase()
+    const dad = (s.contact_of_father || '').toLowerCase()
+    const mom = (s.contact_of_mother || '').toLowerCase()
+    return (
+      name.includes(q) ||
+      classLabel.includes(q) ||
+      dad.includes(q) ||
+      mom.includes(q)
+    )
+  })
 })
 
-// ── Core Methods ─────────────────────────────────
-async function loadStudents(page = currentPage.value) {
-  const search = searchTerm.value.trim() || undefined
-  const cacheKey = `${page}|${search || ''}`
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredStudents.value.length / pageSize))
+})
 
-  if (pageCache.value.has(cacheKey)) {
-    const cached = pageCache.value.get(cacheKey)
-    students.value = cached.results
-    totalCount.value = cached.count
-    totalPages.value = Math.ceil(cached.count / pageSize)
-    currentPage.value = page
-    return
-  }
+const displayedStudents = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredStudents.value.slice(start, start + pageSize)
+})
 
+const showingRange = computed(() => {
+  const total = filteredStudents.value.length
+  if (total === 0) return 'Showing 0 students'
+  const start = (currentPage.value - 1) * pageSize + 1
+  const end = Math.min(start + displayedStudents.value.length - 1, total)
+  return `Showing ${start}–${end} of ${total}`
+})
+
+const allSelected = computed(() =>
+  displayedStudents.value.length > 0 &&
+  displayedStudents.value.every(s => selectedIds.value.includes(Number(s.id)))
+)
+
+const someSelected = computed(() =>
+  !allSelected.value &&
+  displayedStudents.value.some(s => selectedIds.value.includes(Number(s.id)))
+)
+
+// Keep the page valid when filters change or after deletes
+function ensureValidPage() {
+  const pages = totalPages.value
+  if (currentPage.value > pages) currentPage.value = pages
+  if (currentPage.value < 1) currentPage.value = 1
+}
+
+// ── Core Methods ─────────────────────────────────────────
+async function loadAllStudents() {
   loading.value = true
   errorMessage.value = ''
 
   try {
-    const params = { page, page_size: pageSize }
-    if (search) params.search = search
+    // 1) First page
+    const first = await st({ page: 1, page_size: API_PAGE_SIZE })
+    const data = first.data || {}
+    const firstResults = data.results || []
+    const count = Number(data.count) || firstResults.length
+    const pages = Math.max(1, Math.ceil(count / API_PAGE_SIZE))
 
-    const res = await st(params)
-    const data = res.data || {}
+    const all = [...firstResults]
 
-    const results = data.results || []
-    const count = Number(data.count) || 0
+    // 2) Remaining pages (sequential to avoid hammering)
+    for (let p = 2; p <= pages; p++) {
+      const res = await st({ page: p, page_size: API_PAGE_SIZE })
+      all.push(...(res.data?.results || []))
+    }
 
-    pageCache.value.set(cacheKey, { results, count })
-
-    students.value = results
-    totalCount.value = count
-    totalPages.value = Math.ceil(count / pageSize)
-    currentPage.value = page
+    allStudents.value = all
+    ensureValidPage()
   } catch (err) {
-    errorMessage.value = err.response?.data?.detail || 'Failed to load students'
+    errorMessage.value = err?.response?.data?.detail || 'Failed to load students'
     toast.error(errorMessage.value, { position: 'top-right' })
   } finally {
     loading.value = false
@@ -496,14 +536,15 @@ async function loadStudents(page = currentPage.value) {
 }
 
 function changePage(page) {
-  loadStudents(page)
+  currentPage.value = page
 }
 
+// ── Export (filtered dataset) ─────────────────────────────
 function exportToCSV() {
-  if (!students.value.length) return toast.info('No data to export')
+  if (!filteredStudents.value.length) return toast.info('No data to export')
 
   const headers = ['#', 'Name', 'Current Class', "Dad's Contact", "Mom's Contact", 'Discounted']
-  const rows = students.value.map((s, i) => [
+  const rows = filteredStudents.value.map((s, i) => [
     i + 1,
     s.user?.full_name || '',
     classValueToLabel(s.current_class),
@@ -524,37 +565,87 @@ function exportToCSV() {
   toast.success('Exported to CSV', { position: 'top-right' })
 }
 
-function exportToPDF() {
-  if (!students.value.length) return toast.info('No data to export')
+async function exportToPDF() {
+  try {
+    if (!filteredStudents.value.length) {
+      toast.info('No data to export')
+      return
+    }
 
-  const doc = new jsPDF()
-  doc.setFontSize(16)
-  doc.text('Student Profiles', 14, 20)
+    // Create PDF
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
 
-  const columns = ['#', 'Name', 'Class', "Dad's Contact", "Mom's Contact", 'Discounted']
-  const rows = students.value.map((s, i) => [
-    i + 1,
-    s.user?.full_name || '',
-    classValueToLabel(s.current_class),
-    s.contact_of_father || '',
-    s.contact_of_mother || '',
-    s.is_discounted_student ? 'Yes' : 'No',
-  ])
+    // Title
+    doc.setFontSize(16)
+    doc.text('Student Profiles', 40, 40)
 
-  doc.autoTable({
-    head: [columns],
-    body: rows,
-    startY: 30,
-    theme: 'grid',
-    headStyles: { fillColor: [78, 115, 223] },
-    styles: { fontSize: 9, cellPadding: 3 },
-    margin: { top: 30 }
-  })
+    // Data
+    const columns = ['#', 'Name', 'Class', "Dad's Contact", "Mom's Contact", 'Discounted']
+    const rows = filteredStudents.value.map((s, i) => [
+      i + 1,
+      s.user?.full_name || '',
+      classValueToLabel(s.current_class),
+      s.contact_of_father || '',
+      s.contact_of_mother || '',
+      s.is_discounted_student ? 'Yes' : 'No',
+    ])
 
-  doc.save(`students-${new Date().toISOString().split('T')[0]}.pdf`)
-  toast.success('Exported to PDF', { position: 'top-right' })
+    // Table (use the function import)
+    autoTable(doc, {
+      head: [columns],
+      body: rows,
+      startY: 60,
+      theme: 'grid',
+      styles: {
+        fontSize: 9,
+        cellPadding: 6,
+        valign: 'middle',
+      },
+      headStyles: {
+        fillColor: [78, 115, 223],
+        textColor: 255,
+        fontStyle: 'bold',
+      },
+      // Optional: set relative column widths so contacts wrap nicely
+      columnStyles: {
+        0: { cellWidth: 30 },     // #
+        1: { cellWidth: 140 },    // Name
+        2: { cellWidth: 70 },     // Class
+        3: { cellWidth: 120 },    // Dad
+        4: { cellWidth: 120 },    // Mom
+        5: { cellWidth: 70 },     // Discounted
+      },
+      // Add a footer with page numbers
+      didDrawPage: (data) => {
+        const pageSize = doc.internal.pageSize
+        const pageWidth = pageSize.getWidth()
+        const pageHeight = pageSize.getHeight()
+        doc.setFontSize(9)
+        doc.setTextColor(120)
+        const str = `Page ${doc.internal.getNumberOfPages()}`
+        doc.text(str, pageWidth - 40, pageHeight - 20)
+      },
+      // Split long rows across pages
+      willDrawCell: (data) => {
+        // You can customize wrapping if needed
+      }
+    })
+
+    const filename = `students-${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(filename)
+    toast.success('Exported to PDF', { position: 'top-right' })
+  } catch (e) {
+    // Helpful diagnostics
+
+    if (String(e).includes('autoTable')) {
+      toast.error('PDF export failed: autoTable is not available. Check imports.', { position: 'top-right' })
+    } else {
+      toast.error('Failed to export PDF', { position: 'top-right' })
+    }
+  }
 }
 
+// ── CRUD handlers (sync with allStudents) ─────────────────
 function openAddModal() {
   isEdit.value = false
   currentStudent.value = null
@@ -682,19 +773,23 @@ async function submitForm() {
     let response
     if (isEdit.value && currentStudent.value) {
       response = await update_student(currentStudent.value.id, payload)
-      const index = students.value.findIndex(s => s.id === currentStudent.value.id)
-      if (index !== -1) {
-        students.value[index] = { ...students.value[index], ...response.data }
+      const idx = allStudents.value.findIndex(s => s.id === currentStudent.value.id)
+      if (idx !== -1) {
+        // Merge response into local dataset
+        const updated = { ...allStudents.value[idx], ...response.data }
         if (response.data.user) {
-          students.value[index].user = { ...students.value[index].user, ...response.data.user }
+          updated.user = { ...allStudents.value[idx].user, ...response.data.user }
         }
+        allStudents.value.splice(idx, 1, updated)
       }
       toast.success('Student updated successfully!')
     } else {
       response = await create_student(payload)
-      students.value.unshift(response.data)
-      totalCount.value += 1
+      // Normalize what the backend returned so your UI stays consistent
+      const normalized = normalizeStudent(response.data)
+      allStudents.value.unshift(normalized)
       toast.success('Student created successfully!')
+      currentPage.value = 1
     }
 
     closeFormModal()
@@ -722,10 +817,10 @@ async function confirmDelete() {
 
   try {
     await delete_student(id)
-    students.value = students.value.filter(s => Number(s.id) !== id)
+    allStudents.value = allStudents.value.filter(s => Number(s.id) !== id)
     selectedIds.value = selectedIds.value.filter(sid => sid !== id)
-    totalCount.value = Math.max(0, totalCount.value - 1)
     toast.success(`${name} deleted successfully!`)
+    ensureValidPage()
   } catch (err) {
     toast.error('Failed to delete student')
   } finally {
@@ -747,10 +842,10 @@ async function confirmDeleteBulk() {
 
   try {
     await Promise.all(ids.map(id => delete_student(id)))
-    students.value = students.value.filter(s => !ids.includes(Number(s.id)))
+    allStudents.value = allStudents.value.filter(s => !ids.includes(Number(s.id)))
     selectedIds.value = []
-    totalCount.value = Math.max(0, totalCount.value - ids.length)
     toast.success('Selected students deleted successfully!')
+    ensureValidPage()
   } catch (err) {
     toast.error('Failed to delete some students')
   } finally {
@@ -761,9 +856,14 @@ async function confirmDeleteBulk() {
 
 function toggleSelectAll() {
   if (allSelected.value) {
-    selectedIds.value = []
+    // Unselect the ones on the current page
+    const pageIds = displayedStudents.value.map(s => Number(s.id))
+    selectedIds.value = selectedIds.value.filter(id => !pageIds.includes(id))
   } else {
-    selectedIds.value = students.value.map(s => Number(s.id))
+    // Add all on the current page
+    const pageIds = displayedStudents.value.map(s => Number(s.id))
+    const set = new Set(selectedIds.value.concat(pageIds))
+    selectedIds.value = Array.from(set)
   }
 }
 
@@ -790,7 +890,7 @@ function formatBackendErrors(errData) {
 }
 
 onMounted(() => {
-  loadStudents()
+  loadAllStudents()
 })
 </script>
 

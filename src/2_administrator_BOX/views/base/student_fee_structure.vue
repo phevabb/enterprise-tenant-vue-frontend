@@ -666,7 +666,7 @@ async function submitForm() {
     showFormModal.value = false;
     resetForm();
   } catch (err) {
-    console.error("Error saving fee structure: print", err);
+
     formValidationMessage.value =
       err?.response?.data?.message ||
       err?.message ||
