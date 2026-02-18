@@ -37,16 +37,21 @@
                 <CTableHeaderCell scope="col">Class</CTableHeaderCell>
                 <CTableHeaderCell scope="col">Term</CTableHeaderCell>
                 <CTableHeaderCell scope="col">Academic Year </CTableHeaderCell>
-                <CTableHeaderCell scope="col">Expected Amount (GHS)</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Expected Amt. (GHS)</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Collected Amt. (GHS)</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Unpaid Amt. (GHS)</CTableHeaderCell>
+
               </CTableRow>
             </CTableHead>
             <CTableBody>
               <CTableRow v-for="(row, idx) in filteredRecords" :key="row.id">
                 <CTableHeaderCell scope="row">{{ idx + 1 }}</CTableHeaderCell>
-                <CTableDataCell>{{ row.grade_class_name }}</CTableDataCell>
-                <CTableDataCell>{{ row.term_name }}</CTableDataCell>
-                <CTableDataCell>{{ row.academic_year_name }}</CTableDataCell>
-                <CTableDataCell>{{ formatNumber(row.expected_amount) }}</CTableDataCell>
+                <CTableDataCell>{{ row.class_name }}</CTableDataCell>
+                <CTableDataCell>{{ row.term }}</CTableDataCell>
+                <CTableDataCell>{{ row.academic_year}}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatNumber(row.expected_amount) }}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatNumber(row.collected_amount) }}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatNumber(row.pending_amount) }}</CTableDataCell>
               </CTableRow>
             </CTableBody>
           </CTable>
@@ -85,8 +90,10 @@ async function loadRecords() {
   try {
     const rows = await get_expected_fees_insight()
 
+
     records.value = rows.data || rows
   } catch (err) {
+
     errorMessage.value = err?.message || 'Failed to load fee records.'
   } finally {
     isLoading.value = false

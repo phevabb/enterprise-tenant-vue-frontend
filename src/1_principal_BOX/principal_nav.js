@@ -12,7 +12,7 @@ export default [
   { component: 'CNavTitle', name: ' Demographics' },
 
 
-  
+
   {
     component: 'CNavItem',
     name: 'Pupils per Class',
@@ -34,12 +34,7 @@ export default [
     to: { name: 'fee_collections' },
     icon: 'cil-chart-pie',
   },
-  {
-    component: 'CNavItem',
-    name: 'Debt Percentage by Class',
-    to: { name: 'class_debt' },
-    icon: 'cil-chart-pie',
-  },
+
 
   { component: 'CNavTitle', name: 'Add Admin' },
 
@@ -49,11 +44,11 @@ export default [
     to: { name: 'add_admin' },
     icon: 'cil-chart-pie',
   },
-  
 
 
 
-  
-  
-  
+
+
+
+
 ]
