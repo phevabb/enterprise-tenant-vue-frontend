@@ -427,7 +427,8 @@ async function loadLookups() {
     feeStructures.value = fsRes.data || []
   } catch (err) {
 
-    toast.error('Failed to load students or fee structures.')
+
+    toast.error(err)
   }
 }
 

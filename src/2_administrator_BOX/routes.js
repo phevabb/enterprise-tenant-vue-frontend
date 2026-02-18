@@ -21,6 +21,18 @@ export const adminRoutes = {
         import('@/2_administrator_BOX/views/base/student_fee_structure.vue'),
       meta: { roles: ['administrator'] },
     },
+
+
+    {
+      path: 'student/student-details',
+      name: 'student_details',
+      component: () =>
+        import('@/2_administrator_BOX/views/base/StudentDetail.vue'),
+      meta: { roles: ['administrator'] },
+    },
+
+
+
     {
       path: 'fees/student-fee-payments',
       name: 'student_fee_payments',

@@ -1,5 +1,5 @@
 
-// admin_nav.js
+// student_nav.js
 import { cilCreditCard, cilLibrary, cilSchool, cilCalendar, cilAddressBook, cilPeople, cilList, cilSpreadsheet, cilCalculator, cilMoney } from '@coreui/icons'
 
 
@@ -7,11 +7,11 @@ export default [
 
   {
   component: 'CNavItem',
-  name: 'Administrator',
+  name: 'Student',
   to: '#',                // no real link
   disabled: true,         // disable click
   icon: null,
-  badge: { color: 'primary', text: 'ADMINISTRATOR' },
+  badge: { color: 'primary', text: 'STUDENT' },
 },
 
 
@@ -21,7 +21,7 @@ export default [
 
   {
     component: 'CNavItem',
-    name: 'Fee Structure',
+    name: 'Fees',
     to: { name: 'student_fee_structure' },
     icon: cilList,
   },
@@ -38,7 +38,7 @@ export default [
     icon: cilSpreadsheet,
   },
 
-  { component: 'CNavTitle', name: 'Family Fees' },
+  { component: 'CNavTitle', name: 'Academic Records' },
 
   {
     component: 'CNavItem',
@@ -59,7 +59,7 @@ export default [
     icon: cilMoney,
   },
 
-  { component: 'CNavTitle', name: 'Staff / Student' },
+  { component: 'CNavTitle', name: 'Performance Analysis' },
 
   {
     component: 'CNavItem',

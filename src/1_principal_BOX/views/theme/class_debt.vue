@@ -5,7 +5,7 @@
       <CCardHeader class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2">
         <div>
           <h5 class="mb-0">Fee Overview </h5>
-          <small class="text-body-secondary">Projected Collections</small>
+          <small class="text-body-secondary">Projected Collectionsssssssssss</small>
         </div>
 
         <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
@@ -53,9 +53,9 @@
 <CTableDataCell>{{ formatNumber(row.unpaid_percentage) }}</CTableDataCell>
 
 
-        
 
-       
+
+
               </CTableRow>
             </CTableBody>
           </CTable>

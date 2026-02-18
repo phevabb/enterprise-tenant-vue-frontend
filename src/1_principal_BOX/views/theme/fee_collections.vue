@@ -5,7 +5,7 @@
       <CCardHeader class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2">
         <div>
           <h5 class="mb-0">Fee Overview </h5>
-          <small class="text-body-secondary">Projected Collections</small>
+          <small class="text-body-secondary">Projected Collectionstt</small>
         </div>
 
         <div class="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
@@ -34,7 +34,7 @@
             <CTableHead>
               <CTableRow>
                 <CTableHeaderCell scope="col" style="width: 60px;">#</CTableHeaderCell>
-               
+
                 <CTableHeaderCell scope="col">Term</CTableHeaderCell>
                 <CTableHeaderCell scope="col">Academic Year</CTableHeaderCell>
                 <CTableHeaderCell scope="col">Collected Amount (GHS)</CTableHeaderCell>
@@ -44,15 +44,15 @@
             <CTableBody>
               <CTableRow v-for="(row, idx) in filteredRecords" :key="row.id">
                 <CTableHeaderCell scope="row">{{ idx + 1 }}</CTableHeaderCell>
-               
+
                 <CTableDataCell>{{ row.term }}</CTableDataCell>
                 <CTableDataCell>{{ row.academic_year }}</CTableDataCell>
-<CTableDataCell>{{ formatNumber(row.total_collected) }}</CTableDataCell>
-<CTableDataCell>{{ formatNumber(row.total_pending) }}</CTableDataCell>
+                <CTableDataCell>{{ formatNumber(row.collected_amount) }}</CTableDataCell>
+                <CTableDataCell>{{ formatNumber(row.pending_amount) }}</CTableDataCell>
 
-        
 
-       
+
+
               </CTableRow>
             </CTableBody>
           </CTable>
@@ -103,8 +103,10 @@ async function loadRecords() {
     const rows = await get_collected_vs_pending_insight()
 
 
-    records.value = rows.data.data || rows
+
+    records.value = rows.data || rows
   } catch (err) {
+
     errorMessage.value = err?.message || 'Failed to load fee records.'
   } finally {
     isLoading.value = false

@@ -3,10 +3,10 @@ import { createPinia } from 'pinia'
 import Toast, { POSITION } from 'vue-toastification'
 import 'vue-toastification/dist/index.css'
 
-
 import App from './App.vue'
 import router from './router'
 
+/* ------------------ COREUI ------------------ */
 import CoreuiVue from '@coreui/vue'
 import CIcon from '@coreui/icons-vue'
 import { iconsSet as icons } from '@/assets/icons'
@@ -14,6 +14,20 @@ import DocsComponents from '@/components/DocsComponents'
 import DocsExample from '@/components/DocsExample'
 import DocsIcons from '@/components/DocsIcons'
 
+/* ------------------ VUETIFY ------------------ */
+import 'vuetify/styles'
+import { createVuetify } from 'vuetify'
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
+import '@mdi/font/css/materialdesignicons.css'   // icons for Vuetify
+
+// configure vuetify
+const vuetify = createVuetify({
+  components,
+  directives,
+})
+
+/* ------------------ APP INIT ------------------ */
 const app = createApp(App)
 
 app.use(Toast, {
@@ -25,6 +39,8 @@ app.use(Toast, {
 app.use(createPinia())
 app.use(router)
 app.use(CoreuiVue)
+app.use(vuetify)   // <-- IMPORTANT: add Vuetify here
+
 app.provide('icons', icons)
 app.component('CIcon', CIcon)
 app.component('DocsComponents', DocsComponents)
