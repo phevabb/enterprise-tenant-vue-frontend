@@ -7,7 +7,7 @@ export default [
 
   {
   component: 'CNavItem',
-  name: 'Student',
+  name: 'Dashboard',
   to: '#',                // no real link
   disabled: true,         // disable click
   icon: null,
@@ -21,20 +21,20 @@ export default [
 
   {
     component: 'CNavItem',
-    name: 'Fees',
-    to: { name: 'student_fee_structure' },
+    name: 'Payment History',
+    to: { name: 'StudentDashboard' },
     icon: cilList,
   },
   {
     component: 'CNavItem',
-    name: 'Payments',
-    to: { name: 'student_fee_payments' },
+    name: 'Fee Breakdown',
+    to: { name: 'StudentDashboard' },
     icon: cilCreditCard,
   },
   {
     component: 'CNavItem',
-    name: 'Student Fee Records',
-    to: { name: 'student_fee_records_admin' }, // removed trailing space
+    name: 'Online Payment',
+    to: { name: 'StudentDashboard' }, // removed trailing space
     icon: cilSpreadsheet,
   },
 
@@ -42,35 +42,30 @@ export default [
 
   {
     component: 'CNavItem',
-    name: 'Families',
-    to: { name: 'families' },
+    name: 'Subjects & Exams Scores',
+    to: { name: 'StudentDashboard' },
     icon: cilPeople,
   },
   {
     component: 'CNavItem',
-    name: 'Family Fee Records',
-    to: { name: 'family_fee_records' },
+    name: 'Academic Calendar',
+    to: { name: 'StudentDashboard' },
     icon: cilCalculator,
   },
-  {
-    component: 'CNavItem',
-    name: 'Family Payments',
-    to: { name: 'family_fee_payments' },
-    icon: cilMoney,
-  },
+
 
   { component: 'CNavTitle', name: 'Performance Analysis' },
 
   {
     component: 'CNavItem',
     name: 'Staff Profiles',
-    to: { name: 'staffProfile' },
+    to: { name: 'StudentDashboard' },
     icon: cilAddressBook,
   },
   {
     component: 'CNavItem',
     name: 'Student Profiles',
-    to: { name: 'studentProfile' },
+    to: { name: 'StudentDashboard' },
     icon: 'cil-user',
   },
 
@@ -83,18 +78,18 @@ export default [
 
   {
     component: 'CNavTitle',
-    name: 'Activation',
+    name: 'ANALYTICS',
   },
     {
     component: 'CNavItem',
-    name: 'Deactivated Students',
-    to: { name: 'deactivatedStudents' },
+    name: 'Performance Trend Analysis',
+    to: { name: 'StudentDashboard' },
     icon: 'cil-chart-pie',
   },
     {
       component: 'CNavItem',
-      name: 'Deactivated Families',
-      to: { name: 'deactivatedFamilies' },
+      name: 'Class Ranking',
+      to: { name: 'StudentDashboard' },
       icon: 'cil-chart-pie',
     },
 
@@ -103,32 +98,20 @@ export default [
 
 
     // others section
-  { component: 'CNavTitle', name: 'Others' },
+  { component: 'CNavTitle', name: 'COMMUNICATION' },
 
   {
     component: 'CNavItem',
-    name: 'Academic Years',
-    to: { name: 'academicYears' },
+    name: 'Messages',
+    to: { name: 'StudentDashboard' },
     icon: cilCalendar,
   },
   {
     component: 'CNavItem',
-    name: 'Classes',
-    to: { name: 'classes' },
+    name: 'Announcements',
+    to: { name: 'StudentDashboard' },
     icon: cilSchool,
   },
-  {
-    component: 'CNavItem',
-    name: 'Terms',
-    to: { name: 'terms' },
-    icon: cilLibrary,
-  },
 
-   {
-    component: 'CNavItem',
-    name: 'Student Details',
-    to: { name: 'student_details' },
-    icon: cilLibrary,
-  },
 
 ]

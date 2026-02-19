@@ -51,6 +51,7 @@
                       <option disabled value="" selected>Select role</option>
                       <option value="administrator">Administrator</option>
                       <option value="principal">Principal</option>
+                      <option value="student">Parent</option>
                       <!-- Add more if applicable -->
                       <!-- <option value="manager">Manager</option>
                       <option value="staff">Staff</option> -->
@@ -140,13 +141,16 @@ function nextTarget() {
 
   // 3) Role-based landing (use names that DEFINITELY exist)
   if (user && user.role === 'administrator') {
-    // Pick ONE canonical admin home: 'Dashboard' OR 'student_fee_records_admin'
     return { name: 'student_fee_records_admin' }
-    // return { name: 'Dashboard' } // <- use this if your admin home is the dashboard
   }
 
   if (user && user.role === 'principal') {
     return { name: 'PrincipalDashboard' }
+  }
+
+
+  if (user && user.role === 'student') {
+    return { name: 'StudentDashboard' }
   }
 
   // 4) Fallback
@@ -178,14 +182,20 @@ async function onSubmit() {
     if (target?.name && target.name !== currentName) {
       await router.replace(target)
     } else {
-      // As a last-resort fallback, go to role home explicitly
-      await router.replace(
-        data.user?.role === 'principal'
-          ? { name: 'PrincipalDashboard' }
-          : { name: 'student_fee_records_admin' } // or { name: 'Dashboard' }
-      )
-    }
+  const roleRoutes = {
+    principal: { name: 'PrincipalDashboard' },
+    administrator: { name: 'student_fee_records_admin' },
+    student: { name: 'StudentDashboard' }
+  }
+
+  await router.replace(
+    roleRoutes[data.user?.role] || { name: 'Login' }
+  )
+}
+
+
   } catch (e) {
+
 
     const backendError =
       e?.response?.data?.non_field_errors?.[0] ||

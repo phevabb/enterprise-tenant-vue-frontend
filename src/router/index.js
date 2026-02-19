@@ -3,6 +3,7 @@ import { h, resolveComponent } from 'vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { adminRoutes } from '@/2_administrator_BOX/routes'
 import { principalRoutes } from '@/1_principal_BOX/routes'
+import { studentRoutes } from '@/3_student_BOX/routes'
 const ResetPassword = () => import('@/registration/ResetPassword.vue')
 const ResetPasswordDone = () => import('@/registration/ResetPasswordDone.vue')
 const ResetPasswordConfirm = () => import('@/registration/ResetPasswordConfirm.vue')
@@ -45,6 +46,7 @@ const routes = [
 
   adminRoutes,
   principalRoutes,
+  studentRoutes,
 
   // Optional generic landing that decides based on role
   {

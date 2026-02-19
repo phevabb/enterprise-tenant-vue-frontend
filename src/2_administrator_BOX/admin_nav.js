@@ -124,11 +124,4 @@ export default [
     icon: cilLibrary,
   },
 
-   {
-    component: 'CNavItem',
-    name: 'Student Details',
-    to: { name: 'student_details' },
-    icon: cilLibrary,
-  },
-
 ]

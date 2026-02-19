@@ -9,6 +9,9 @@ import { CBadge, CSidebarNav, CNavItem, CNavGroup, CNavTitle } from '@coreui/vue
 import adminNav from '@/2_administrator_BOX/admin_nav'
 import principalNav from '@/1_principal_BOX/principal_nav'
 
+import studentNav from '@/3_student_BOX/student_nav'  // <-- import student nav
+
+
 import simplebar from 'simplebar-vue'
 import 'simplebar-vue/dist/simplebar.min.css'
 
@@ -56,6 +59,8 @@ const AppSidebarNav = defineComponent({
       ? adminNav
       : role === 'principal'
       ? principalNav
+      : role === 'student'
+      ? studentNav
       : [] // default empty (or a minimal nav)
 
     const renderItem = (item) => {
