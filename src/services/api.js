@@ -8,10 +8,10 @@ import axios from 'axios'
 
 
 const api = axios.create({
-  // baseURL: 'http://127.0.0.1:8000/api/',
+ // baseURL: 'http://127.0.0.1:8000/api/',
 
 
- baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
+    baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
 
 
   headers: {
@@ -114,6 +114,10 @@ export const create_payment = (payload) => api.post("fees/payments/", payload);
 export const delete_payment = (id) => api.delete(`fees/payments/${id}/`);
 
 // Student APIs
+
+
+
+export const student_profile = (id) => api.get(`student/student-profile/${id}/`);
 export const st = (params) => api.get("student/students", { params });
 export const rawst = () => api.get("student/rawstudents");
 
