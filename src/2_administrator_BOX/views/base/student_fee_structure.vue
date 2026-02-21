@@ -520,9 +520,7 @@ async function fetchUsers() {
     studentOptions.value = response?.data || [];
   } catch (err) {
 
-    toast.error(
-      err?.response?.data?.message ||
-        "Failed to fetch students. Please check your connection.",
+    toast.error( err,
       { position: "top-right" }
     );
   }
