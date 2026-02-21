@@ -20,9 +20,9 @@
               >
                 Delete Selected ({{ selectedIds.length }})
               </CButton>
-              <CButton color="primary" size="sm" @click="openAddModal">
-                Add Family
-              </CButton>
+              <CButton class="text-white" color="primary" size="sm" @click="openAddModal">
+  Add Family
+</CButton>
             </div>
           </div>
         </CCardHeader>

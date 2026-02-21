@@ -7,11 +7,11 @@
             <strong>Administrators</strong>
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
-              
 
-              
 
-              <CButton color="primary" size="sm" @click="openAddModal">
+
+
+              <CButton class="text-white" color="primary" size="sm" @click="openAddModal">
                 Add Administrator
               </CButton>
               <small> Default password for Administrator is: TempPassword123!</small>
@@ -27,14 +27,14 @@
           <CTable v-else hover responsive bordered class="shadow-sm">
             <CTableHead>
               <CTableRow>
-                
+
                 <CTableHeaderCell>#</CTableHeaderCell>
                 <CTableHeaderCell>Name</CTableHeaderCell>
-                <CTableHeaderCell>Email</CTableHeaderCell>                
+                <CTableHeaderCell>Email</CTableHeaderCell>
                 <CTableHeaderCell>Gender</CTableHeaderCell>
-               
-                
-                
+
+
+
                 <CTableHeaderCell>Status</CTableHeaderCell>
                 <CTableHeaderCell class="text-end">Actions</CTableHeaderCell>
               </CTableRow>
@@ -42,15 +42,15 @@
 
             <CTableBody>
               <CTableRow v-for="(row, idx) in  staff" :key="row.id">
-                
+
                 <CTableHeaderCell>{{ idx + 1 }}</CTableHeaderCell>
                 <CTableDataCell>{{ row.full_name }}</CTableDataCell>
                 <CTableDataCell>{{ row.email }}</CTableDataCell>
-                
+
                 <CTableDataCell>{{ row.gender }}</CTableDataCell>
-                
-                
-                
+
+
+
                 <CTableDataCell>
                   <CBadge :color="row.is_active ? 'success' : 'secondary'">
                     {{ row.is_active ? 'Active' : 'Inactive' }}
@@ -117,10 +117,10 @@
       </CFormSelect>
     </div>
 
-   
 
 
-      
+
+
       <CButton color="primary" @click="submitForm">
         {{ isEdit ? 'Update' : 'Create' }}
       </CButton>
@@ -139,7 +139,7 @@ import {
 
 
 const loading = ref(false)
-const errorMessage = ref('')  
+const errorMessage = ref('')
 const staff = ref([])
 
 import { useToast } from 'vue-toastification'
@@ -167,7 +167,7 @@ const confirmDelete = async () => {
     const idtodelete = staffToDelete.value.id
     const fullNameToDelete = staffToDelete.value.full_name
 
-      
+
     const res = await delete_administrator(staffToDelete.value.id)
 
 
@@ -192,14 +192,14 @@ async function fetchAdministrators() {
   errorMessage.value = ''
   try {
     const response = await get_administrators()
- 
+
 
     staff.value = response.data
   } catch (err) {
 
     if(err.code === 'ERR_NETWORK'){
       toast.error('Network error. Please check you internet connection.', {position: 'top-right'});
-      
+
     }else if (err.response) {
       // API returned an error response
       toast.error(err.response.data?.message || 'Failed to fetch staff.', { position: 'top-right' });
@@ -210,8 +210,8 @@ async function fetchAdministrators() {
   } finally {
     loading.value = false
   }
- 
-} 
+
+}
 
 
 onMounted (()=>{
@@ -230,7 +230,7 @@ const isEdit = ref(false)
 const currentStaff = ref(null)
 
 const form = ref({
- 
+
     full_name: '',
     gender: '',            // 'male' | 'female'
 
@@ -269,7 +269,7 @@ const openAddModal = () => {
     user: {
       full_name: '',
       gender: '',
- 
+
       date_of_birth: '', // match backend field name
       role: 'staff'
     }
@@ -288,7 +288,7 @@ const openEditModal = (staffMember) => {
     user: {
       full_name: user.full_name || '',
       gender: user.gender ? user.gender.toLowerCase() : '',
-     
+
       date_of_birth: user.date_of_birth || '',
       role: user.role || 'staff'
     }
@@ -333,7 +333,7 @@ const submitForm = async () => {
     fetchAdministrators();
 
   } catch (error) {
- 
+
     toast.error("Failed to save administrator.");
   } finally {
     loading.value = false;

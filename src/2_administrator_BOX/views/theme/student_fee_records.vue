@@ -43,7 +43,7 @@
             />
 
             <!-- Actions -->
-            <CButton color="primary" size="sm" @click="openAddModal">
+            <CButton class="text-white" color="primary" size="sm" @click="openAddModal">
               Add Record
             </CButton>
             <CButton
@@ -223,7 +223,7 @@
       <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">
         Cancel
       </CButton>
-      <CButton color="primary" @click="submitForm" :disabled="isSubmitting">
+      <CButton class="text-white" color="primary" @click="submitForm" :disabled="isSubmitting">
         <CSpinner size="sm" v-if="isSubmitting" class="me-2" />
         Save Record
       </CButton>

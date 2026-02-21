@@ -235,8 +235,8 @@
         Cancel
       </CButton>
 
-      <CButton color="primary" @click="submitForm" :disabled="isSubmitting">
-        <CSpinner size="sm" v-if="isSubmitting" class="me-2" />
+      <CButton  class="text-white" color="primary" @click="submitForm" :disabled="isSubmitting">
+        <CSpinner size="sm" v-if="isSubmitting" class="me-2 "  />
         {{ isEdit ? "Update" : "Save" }}
       </CButton>
     </CModalFooter>

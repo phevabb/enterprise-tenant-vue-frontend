@@ -266,7 +266,7 @@
             <CButton color="secondary" size="lg"> Large button </CButton>
           </DocsExample>
           <DocsExample href="components/button.html#sizes">
-            <CButton color="primary" size="sm"> Small button </CButton>
+            <CButton class="text-white" color="primary" size="sm"> Small button </CButton>
             <CButton color="secondary" size="sm"> Small button </CButton>
           </DocsExample>
         </CCardBody>

@@ -20,7 +20,7 @@
               >
                 Delete Selected ({{ selectedIds.length }})
               </CButton>
-              <CButton color="primary" size="sm" @click="openAddModal">
+              <CButton class="text-white" color="primary" size="sm" @click="openAddModal">
                 Add Family Fee Record
               </CButton>
 
