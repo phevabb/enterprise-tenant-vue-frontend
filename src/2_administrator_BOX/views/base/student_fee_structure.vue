@@ -24,7 +24,7 @@
                 Delete Selected ({{ selectedIds.length }})
               </CButton>
 
-              <CButton color="primary" size="sm" @click="openAddModal">
+              <CButton  class="text-white" color="primary" size="sm" @click="openAddModal">
                 Add Fee Structure
               </CButton>
             </div>
@@ -519,6 +519,7 @@ async function fetchUsers() {
     const response = await rawst();
     studentOptions.value = response?.data || [];
   } catch (err) {
+
     toast.error(
       err?.response?.data?.message ||
         "Failed to fetch students. Please check your connection.",

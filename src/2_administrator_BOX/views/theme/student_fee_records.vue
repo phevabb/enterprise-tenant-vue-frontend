@@ -419,14 +419,12 @@ function buildParams(page, size) {
 
 async function loadLookups() {
   try {
-    console.log('Loading students and fee structures print sssssssssss...')
+
     const [studentsRes, fsRes] = await Promise.all([
       rawst(),
       get_raw_fee_structures(),
     ])
-     console.log('Loaded students printtt:', studentsRes)
-    console.log('Loaded students printtt:', studentsRes.data)
-    console.log('Loaded fee structures: print', fsRes.data)
+
     students.value = studentsRes.data || []
     feeStructures.value = fsRes.data || []
   } catch (err) {
@@ -472,7 +470,7 @@ async function loadRecords(page = 1, force = false) {
     totalPages.value = Math.ceil(totalCount.value / pageSize)
     currentPage.value = page
   } catch (err) {
-    console.error('Error loading fee records: print', err)
+
     errorMessage.value = 'Failed to load fee records.'
     toast.error(errorMessage.value)
   } finally {

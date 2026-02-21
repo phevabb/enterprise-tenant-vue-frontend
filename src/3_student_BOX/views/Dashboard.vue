@@ -208,10 +208,9 @@ onMounted(async () => {
 
     // IMPORTANT: use user_id (not id)
     const uid = userLocal.user_id
-    console.log("User data from localStorage:", uid)
-    console.log("Fetching profile for user_id:", uid)
+
     const res = await student_profile(userLocal.user_id)
-    console.log("Student profile response: print", res)
+
     const { user, profile } = res.data || {}
 
     if (!user || !profile) {
@@ -257,7 +256,7 @@ onMounted(async () => {
       is_active: !!user.is_active,
     }
   } catch (err) {
-    console.error("Failed to load student:", err)
+
     errorMsg.value = "Failed to load student profile."
   } finally {
     loading.value = false
