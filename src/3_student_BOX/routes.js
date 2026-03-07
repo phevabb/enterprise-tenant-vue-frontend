@@ -15,5 +15,21 @@ export const studentRoutes = {
         import('@/3_student_BOX/views/Dashboard.vue'),
       meta: { roles: ['student'] },
     },
+    {
+      path: 'paymenthistory',
+      name: 'StudentPaymentHistory',
+      component: () =>
+        import('@/3_student_BOX/views/PaymentHistory.vue'),
+      meta: { roles: ['student'] },
+    },
+
+    {
+      path: 'onlinepayment',
+      name: 'StudentOnlinePayment',
+      component: () =>
+        import('@/3_student_BOX/views/PaymentOnline.vue'),
+      meta: { roles: ['student'] },
+    },
+
   ],
 }

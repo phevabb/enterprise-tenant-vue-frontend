@@ -223,6 +223,7 @@
         <!-- Loading / Error -->
         <div v-if="loading" class="mt-4 text-grey">Loading student…</div>
         <div v-if="errorMsg" class="mt-2" style="color:#d32f2f;">{{ errorMsg }}</div>
+
       </v-col>
     </v-row>
   </v-container>
@@ -230,7 +231,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue"
-import { student_profile, get_student_payment_list } from "@/services/api"
+import { student_profile, get_student_payment_list_per_term } from "@/services/api"
 
 const loading = ref(false)
 const errorMsg = ref("")
@@ -272,7 +273,7 @@ onMounted(async () => {
     const uid = userLocal.user_id
 
     const res = await student_profile(userLocal.user_id)
-    const paymentsRes = await get_student_payment_list(userLocal.user_id)
+    const paymentsRes = await get_student_payment_list_per_term(userLocal.user_id)
 
     payments.value = paymentsRes.data.map(item => ({
       term: item.fee_structure.term.name,
@@ -342,6 +343,9 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+
+
 
 const stats = ref({
   // attendance: 95, // keep if still needed

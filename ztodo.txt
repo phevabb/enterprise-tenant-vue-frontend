@@ -1,0 +1,13 @@
+import { CIcon } from '@coreui/icons-vue'
+import { cilCreditCard } from '@coreui/icons'
+
+<CIcon :icon="cilCreditCard" class="me-2" />
+              Pay Securely Now
+            </CButton>
+
+
+
+rasther pas the student id:
+ ref: `SCH_${Date.now()}`,
+
+ also use kog email as default

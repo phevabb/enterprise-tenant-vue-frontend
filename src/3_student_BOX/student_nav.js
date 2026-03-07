@@ -6,13 +6,11 @@ import { cilCreditCard, cilLibrary, cilSchool, cilCalendar, cilAddressBook, cilP
 export default [
 
   {
-  component: 'CNavItem',
-  name: 'Dashboard',
-  to: '#',                // no real link
-  disabled: true,         // disable click
-  icon: null,
-  badge: { color: 'primary', text: 'STUDENT' },
-},
+    component: 'CNavItem',
+    name: 'Dashboard',
+    to: { name: 'StudentDashboard' },
+    icon: cilPeople,
+  },
 
 
 
@@ -22,19 +20,14 @@ export default [
   {
     component: 'CNavItem',
     name: 'Payment History',
-    to: { name: 'StudentDashboard' },
+    to: { name: 'StudentPaymentHistory' },
     icon: cilList,
   },
-  {
-    component: 'CNavItem',
-    name: 'Fee Breakdown',
-    to: { name: 'StudentDashboard' },
-    icon: cilCreditCard,
-  },
+
   {
     component: 'CNavItem',
     name: 'Online Payment',
-    to: { name: 'StudentDashboard' }, // removed trailing space
+    to: { name: 'StudentOnlinePayment' },
     icon: cilSpreadsheet,
   },
 
