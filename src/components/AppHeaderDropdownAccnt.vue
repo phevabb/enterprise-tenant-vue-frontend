@@ -11,6 +11,7 @@ const handleLogout = async () => {
     await logout()
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    localStorage.removeItem('family')
     router.push('/login')
   } catch (error) {
 
@@ -24,7 +25,7 @@ const goToChangePassword = () => {
   if (!user) {
 
     return
-  } 
+  }
   const role = user.role   // or your actual auth store
 
   if (role === "principal") {
@@ -52,14 +53,14 @@ const goToChangePassword = () => {
         Account
       </CDropdownHeader>
 
-     
 
-    
-     
 
-   
 
-      <CDropdownItem  @click="goToChangePassword" style="cursor:pointer;"><CIcon icon="cil-shield-alt" /> 
+
+
+
+
+      <CDropdownItem  @click="goToChangePassword" style="cursor:pointer;"><CIcon icon="cil-shield-alt" />
         Change Password
       </CDropdownItem>
 
@@ -67,11 +68,11 @@ const goToChangePassword = () => {
         <CIcon icon="cil-lock-locked" /> Logout
       </CDropdownItem>
 
-      
 
-      
 
-      
+
+
+
     </CDropdownMenu>
   </CDropdown>
 </template>

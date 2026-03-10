@@ -10,11 +10,7 @@
             </v-avatar>
 
             <h2 class="text-h6 font-weight-bold mb-1">{{ student.full_name || '—' }}</h2>
-            <v-chip
-              :color="student.is_active ? 'success' : 'grey'"
-              size="small"
-              class="mb-3"
-            >
+            <v-chip :color="student.is_active ? 'success' : 'grey'" size="small" class="mb-3">
               {{ student.is_active ? 'Active Student' : 'Inactive' }}
             </v-chip>
           </div>
@@ -48,23 +44,29 @@
           </v-list>
         </v-card>
 
-        <!-- Parent Info -->
-        <v-card class="pa-4 mt-4" elevation="3">
-          <h3 class="text-subtitle-1 font-weight-bold mb-2">Parent Contacts</h3>
+        <!-- family info -->
+        <v-card v-if="family" class="pa-4 mt-4" elevation="3">
+          <h3 class="text-subtitle-1 font-weight-bold mb-2">Family Info</h3>
 
-          <v-list density="compact">
-            <v-list-item>
-              <v-list-item-title>
-                <strong>Father:</strong> {{ student.name_of_father || '—' }}
-                <div class="text-grey">{{ student.contact_of_father || '—' }}</div>
-              </v-list-item-title>
-            </v-list-item>
-
-            <v-list-item>
-              <v-list-item-title>
-                <strong>Mother:</strong> {{ student.name_of_mother || '—' }}
-                <div class="text-grey">{{ student.contact_of_mother || '—' }}</div>
-              </v-list-item-title>
+          <v-list dense>
+            <v-list-item
+              v-for="member in (family.members || [])"
+              :key="member?.id ?? member?.user_id ?? Math.random()"
+              class="mb-3"
+            >
+              <v-list-item-content>
+                <h4 class="text-subtitle-2 font-weight-medium mb-1">
+                  <strong>Name:</strong> {{ member?.full_name || '—' }}
+                </h4>
+                <h4 class="text-subtitle-2 font-weight-medium mb-1">
+                  <strong>Student ID:</strong> {{ member?.user_id ?? '—' }}
+                </h4>
+                <h4 class="text-subtitle-2 font-weight-medium mb-1">
+                  <strong>Class:</strong>
+                  {{ member?.current_class_display || member?.current_class || '—' }}
+                </h4>
+                <hr>
+              </v-list-item-content>
             </v-list-item>
           </v-list>
         </v-card>
@@ -90,40 +92,26 @@
             </v-list-item>
           </v-list>
         </v-card>
+
       </v-col>
 
       <!-- RIGHT COLUMN -->
       <v-col cols="12" md="8">
-        <!-- Stats (demo) -->
+        <!-- Stats -->
         <v-row>
-          <!-- <v-col cols="12" sm="4">
-            <v-card elevation="3" class="pa-4 text-center">
-              <h4 class="text-body-2 text-grey">Attendance</h4>
-              <h2>{{ stats.attendance }}%</h2>
-            </v-card>
-          </v-col> -->
 
+          <!-- total payments -->
           <v-col cols="12" sm="6">
             <v-card elevation="3" class="pa-4 text-center">
               <h4 class="text-body-2 text-grey">Total Payments</h4>
-              <h2>
-                GHS {{ Number(stats.total_payments).toLocaleString('en-GH', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }) }}
-              </h2>
+              <h2>{{ formatGHS(sumAmounts) }}</h2>
             </v-card>
           </v-col>
-
+          <!-- balance -->
           <v-col cols="12" sm="6">
             <v-card elevation="3" class="pa-4 text-center">
-              <h4 class="text-body-2 text-grey">Amount Owed</h4>
-              <h2>
-                GHS {{ Number(stats.balance).toLocaleString('en-GH', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2
-                }) }}
-              </h2>
+              <h4 class="text-body-2 text-grey">You owe the institution</h4>
+              <h2>{{ formatGHS(sumBalances) }}</h2>
             </v-card>
           </v-col>
 
@@ -140,68 +128,101 @@
                 <strong>Current Class:</strong> {{ student.current_class_display || student.current_class || '—' }}
               </v-list-item-title>
             </v-list-item>
-
-
           </v-list>
         </v-card>
 
-
-
-        <!-- Payment History (demo) -->
+        <!-- Payment History (single, filterable) -->
         <v-card elevation="3" class="pa-4 mt-4">
-          <h3 class="text-subtitle-1 font-weight-bold mb-4">Payment History</h3>
+          <div class="d-flex align-center justify-space-between mb-3">
+            <h3 class="text-subtitle-1 font-weight-bold">
+              Payment History for {{ (family_name || student.full_name).toUpperCase() }}
+            </h3>
+
+          </div>
 
           <v-table density="comfortable">
+
             <thead>
               <tr>
                 <th>#</th>
 
                 <th>Term</th>
-                  <th>Academic Year</th>
-                  <th>Class</th>
-                  <th class="text-end">Amount Paid (GHS)</th>
-                  <th class="text-end">Balance (GHS)</th>
-                  <th>Fully Paid</th>
-
+                <th>Academic Year</th>
+                <th>Class</th>
+                <th>Date</th>
+                <th class="text-end">Amount Paid (GHS)</th>
+                <th class="text-end">Balance (GHS)</th>
+                <th>Fully Paid</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(p, i) in payments" :key="i">
-                <td>{{ i + 1 }}</td>
+              <!-- Loading -->
+              <template v-if="loading">
+                <tr v-for="i in 5" :key="'skeleton-' + i">
+                  <td colspan="9" class="py-4">
+                    <v-skeleton-loader type="text" class="mb-2" />
+                    <v-skeleton-loader type="text" width="60%" />
+                  </td>
+                </tr>
+              </template>
 
-                <td>{{ p.term }}</td>
-                <td>{{ p.academicyear }}</td>
-                <td>{{ p.gradeclass }}</td>
-                <td class="text-end">{{ p.amount }}</td>
-                <td class="text-end">{{ p.balance }}</td>
+              <!-- Empty -->
+              <template v-else-if="filteredPayments.length === 0">
+                <tr>
+                  <td colspan="9" class="text-center py-6 text-medium-emphasis">
+                    No payment records found.
+                  </td>
+                </tr>
+              </template>
 
-                <td>
-                  <v-chip
-                    :color="p.fullypaid ? 'success' : 'error'"
-                    variant="flat"
-                    size="small"
-                    class="text-white"
-                  >
-                    <v-icon
-                      size="16"
-                      class="mr-1"
+              <!-- Rows -->
+              <template v-else>
+                <tr v-for="(p, i) in filteredPayments" :key="(p.scope || 'row') + '-' + i">
+                  <td>{{ i + 1 }}</td>
+
+
+
+                  <td>{{ p.term }}</td>
+                  <td>{{ p.academicyear }}</td>
+                  <td>{{ (p.gradeclass && p.gradeclass !== '-') ? p.gradeclass : '—' }}</td>
+                  <td>{{ p.date || '—' }}</td>
+
+                  <td class="text-end">{{ formatGHS(p.amount) }}</td>
+                  <td class="text-end">{{ formatGHS(p.balance) }}</td>
+
+                  <td>
+                    <v-chip
+                      :color="p.fullypaid ? 'success' : 'error'"
+                      variant="flat"
+                      size="small"
+                      class="text-white"
                     >
-                      {{ p.fullypaid ? 'mdi-check-circle' : 'mdi-alert-circle' }}
-                    </v-icon>
-
-                    {{ p.fullypaid ? 'Fully Paid' : 'Not Paid' }}
-                  </v-chip>
-                </td>
-
-              </tr>
+                      <v-icon size="16" class="mr-1">
+                        {{ p.fullypaid ? 'mdi-check-circle' : 'mdi-alert-circle' }}
+                      </v-icon>
+                      {{ p.fullypaid ? 'Fully Paid' : 'Not Paid' }}
+                    </v-chip>
+                  </td>
+                </tr>
+              </template>
             </tbody>
+
           </v-table>
+
+          <!-- Totals footer -->
+          <div v-if="!loading && filteredPayments.length > 0" class="d-flex justify-end mt-3 text-body-2">
+            <div>
+              <div><strong>Sum of Amounts:</strong> {{ formatGHS(sumAmounts) }}</div>
+              <div><strong>Sum of Balances:</strong> {{ formatGHS(sumBalances) }}</div>
+            </div>
+          </div>
         </v-card>
+
+
 
         <!-- Academic records (demo) -->
         <v-card elevation="3" class="pa-4 mt-4">
           <h3 class="text-subtitle-1 font-weight-bold mb-4">Academic records</h3>
-
           <v-table density="comfortable">
             <thead>
               <tr>
@@ -211,10 +232,10 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(p, i) in payments" :key="i">
+              <tr v-for="(p, i) in filteredPayments" :key="'ac-' + i">
                 <td>{{ i + 1 }}</td>
-                <td>{{ p.date }}</td>
-                <td class="text-end">{{ p.amount }}</td>
+                <td>{{ p.date || '—' }}</td>
+                <td class="text-end">{{ formatGHS(p.amount) }}</td>
               </tr>
             </tbody>
           </v-table>
@@ -223,18 +244,26 @@
         <!-- Loading / Error -->
         <div v-if="loading" class="mt-4 text-grey">Loading student…</div>
         <div v-if="errorMsg" class="mt-2" style="color:#d32f2f;">{{ errorMsg }}</div>
-
       </v-col>
+
     </v-row>
   </v-container>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from "vue"
-import { student_profile, get_student_payment_list_per_term } from "@/services/api"
+import { student_profile, get_student_payment_list_per_term, get_family_payment_list_per_term } from "@/services/api"
 
 const loading = ref(false)
 const errorMsg = ref("")
+
+const isFamily = ref(false)
+
+const familyString = localStorage.getItem("family")
+if (familyString) {
+  isFamily.value = true
+}
+
 
 const student = ref({
   full_name: "",
@@ -256,50 +285,60 @@ const student = ref({
   is_active: false,
 })
 
-const payments = ref([])
+const payments = ref([])               // family payments
+const payments_individual = ref([])    // individual payments
+const family = ref(null)
+const family_name = ref("")
+
+const stats = ref({
+  total_payments: 0,
+  balance: 0,
+  is_fully_cleared: false,
+})
+
+const scopeFilter = ref('all') // 'all' | 'family' | 'individual'
+
+// Format to GHS (Ghana)
+const formatGHS = (value) => {
+  const num = Number(value ?? 0)
+  return new Intl.NumberFormat('en-GH', {
+    style: 'currency',
+    currency: 'GHS',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(num)
+}
+
+const sumAmounts = computed(() =>
+  filteredPayments.value.reduce((acc, p) => acc + Number(p.amount ?? 0), 0)
+)
+const sumBalances = computed(() =>
+  filteredPayments.value.reduce((acc, p) => acc + Number(p.balance ?? 0), 0)
+)
+
+// Merge & filter payments according to scope
+const filteredPayments = computed(() => {
+  return [
+    ...payments.value,
+    ...payments_individual.value
+  ]
+})
 
 
-onMounted(async () => {
-  try {
-    loading.value = true
-
-    // For demo: ensure we have a user with a user_id in localStorage
-    let userLocal = null
-    const userString = localStorage.getItem("user")
-
-      userLocal = JSON.parse(userString)
-
-    // IMPORTANT: use user_id (not id)
-    const uid = userLocal.user_id
-
-    const res = await student_profile(userLocal.user_id)
-    const paymentsRes = await get_student_payment_list_per_term(userLocal.user_id)
-
-    payments.value = paymentsRes.data.map(item => ({
-      term: item.fee_structure.term.name,
-      academicyear: item.fee_structure.academic_year.name,
-      balance: item.balance,
-      gradeclass: item.fee_structure.grade_class.name,
-      fullypaid: item.is_fully_paid,
-  date: new Date(item.date_created).toLocaleDateString(),
-  amount: Number(item.amount_paid)
-}))
 
 
+const initials = computed(() => {
+  if (!student.value.full_name) return "S"
+  return student.value.full_name.split(" ").map(n => n[0]).join("")
+})
 
-    stats.value.total_payments = Number(res.data.total_amount_paid)
-    stats.value.balance = Number(res.data.total_balance)
-    stats.value.is_fully_cleared = res.data.is_fully_cleared
+// Helpers for robustness
+const safeParse = (raw) => {
+  if (!raw) return null
+  try { return JSON.parse(raw) } catch { return null }
+}
 
-
-    const { user, profile } = res.data || {}
-
-    if (!user || !profile) {
-      errorMsg.value = "Incomplete data returned by server."
-      return
-    }
-
-    const classMap = {
+const classMap = {
   1: "Creche",
   2: "Nursery 1",
   3: "Nursery 2",
@@ -316,25 +355,113 @@ onMounted(async () => {
   14: "JHS 3",
 }
 
+onMounted(async () => {
+  loading.value = true
+  try {
+    // 1) Read local user
+    const userLocal = safeParse(localStorage.getItem("user"))
+    if (!userLocal || userLocal.user_id == null) {
+      throw new Error("User not found or invalid in localStorage.")
+    }
 
-    student.value = {
-      full_name: user.full_name || "",
-      gender: user.gender || "",
-      nationality: user.nationality || "",
-      date_of_birth: user.date_of_birth || "",
-      current_class: profile.current_class ?? "",
-      current_class_display: classMap[profile.current_class] || profile.current_class_display || "",
-      class_seeking_admission_to: profile.class_seeking_admission_to || "",
-      name_of_father: profile.name_of_father || "",
-      contact_of_father: profile.contact_of_father || "",
-      name_of_mother: profile.name_of_mother || "",
-      contact_of_mother: profile.contact_of_mother || "",
-      is_immunized: !!profile.is_immunized,
-      has_allergies: !!profile.has_allergies,
-      allergic_foods: profile.allergic_foods || "",
-      last_school_attended: profile.last_school_attended || "",
-      other_related_info: profile.other_related_info || "",
-      is_active: !!user.is_active,
+    // 2) Read family (optional)
+    const familyData = safeParse(localStorage.getItem("family"))
+    if (familyData) {
+      family_name.value = familyData.name || ""
+      if (Array.isArray(familyData.members) && familyData.members.length > 0) {
+        family.value = familyData
+      }
+    }
+
+    // 3) Resolve UID
+    let uid = userLocal.user_id
+    if (Array.isArray(familyData?.members)) {
+      const firstWithId = familyData.members.find(m => m && m.user_id != null)
+      if (firstWithId && firstWithId.user_id != null) uid = firstWithId.user_id
+    }
+
+    // 4) Fetch in parallel
+    const familyPaymentsPromise = (async () => {
+      if (!familyData || familyData.id == null) return []
+      try {
+        const famRes = await get_family_payment_list_per_term(familyData.id)
+
+        const records = Array.isArray(famRes?.data?.records) ? famRes.data.records : []
+        return records.map(item => ({
+          term: item.term_name,
+          academicyear: item.academic_year_name,
+          balance: Number(item.balance ?? 0),
+          gradeclass: "-", // no class at family level
+          fullypaid: !!item.is_fully_paid,
+          date: item.date_created ? new Date(item.date_created).toLocaleDateString() : "",
+          amount: Number(item.amount_paid ?? 0)
+        }))
+      } catch (err) {
+
+        return []
+      }
+    })()
+
+    const profilePromise = student_profile(uid)
+    const individualPayments = await get_student_payment_list_per_term(uid)
+
+
+
+payments_individual.value = individualPayments.data.map(item => ({
+  id: item.id,
+  amount: Number(item.amount_paid),
+  balance: Number(item.balance),
+  fullypaid: item.is_fully_paid,
+  date: new Date(item.date_created).toLocaleDateString(),
+  term: item.fee_structure?.term.name,
+  academicyear: item.fee_structure.academic_year?.name,
+  gradeclass:item.fee_structure.grade_class.name
+}))
+
+    const [famPayments, profileRes, paymentsRes] = await Promise.all([
+      familyPaymentsPromise,
+      profilePromise,
+
+    ])
+
+    // Save payments
+    payments.value = famPayments
+
+
+    // Stats + profile
+    if (profileRes?.data) {
+      stats.value.total_payments = Number(profileRes.data.total_amount_paid ?? 0)
+      stats.value.balance = Number(profileRes.data.total_balance ?? 0)
+      stats.value.is_fully_cleared = !!profileRes.data.is_fully_cleared
+
+      const user = profileRes.data.user || {}
+      const profile = profileRes.data.profile || {}
+      const currentClass = profile.current_class
+
+      student.value = {
+        full_name: user.full_name || "",
+        gender: user.gender || "",
+        nationality: user.nationality || "",
+        date_of_birth: user.date_of_birth || "",
+        current_class: currentClass ?? "",
+        current_class_display:
+          (typeof currentClass === "number" ? classMap[currentClass] : "") ||
+          profile.current_class_display ||
+          "",
+        class_seeking_admission_to: profile.class_seeking_admission_to || "",
+        name_of_father: profile.name_of_father || "",
+        contact_of_father: profile.contact_of_father || "",
+        name_of_mother: profile.name_of_mother || "",
+        contact_of_mother: profile.contact_of_mother || "",
+        is_immunized: !!profile.is_immunized,
+        has_allergies: !!profile.has_allergies,
+        allergic_foods: profile.allergic_foods || "",
+        last_school_attended: profile.last_school_attended || "",
+        other_related_info: profile.other_related_info || "",
+        is_active: !!user.is_active,
+      }
+    } else {
+
     }
   } catch (err) {
 
@@ -344,28 +471,14 @@ onMounted(async () => {
   }
 })
 
-
-
-
-const stats = ref({
-  // attendance: 95, // keep if still needed
-  total_payments: 0,
-  balance: 0,
-  is_fully_cleared: false,
-})
-
-
-
-
-const initials = computed(() => {
-  if (!student.value.full_name) return "S"
-  return student.value.full_name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-})
+// (Kept your helpers in case you use them elsewhere)
+function shouldShow(label) {
+  return !['id', 'user_id', 'full_name'].includes(label)
+}
+function formatLabel(label) {
+  return label.replace(/_/g, ' ').toUpperCase()
+}
 </script>
-
 <style scoped>
 .text-grey { color: #6c757d; }
 </style>

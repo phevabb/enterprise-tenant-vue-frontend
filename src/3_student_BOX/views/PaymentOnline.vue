@@ -69,16 +69,24 @@
 
             <!-- Student Info -->
             <div class="text-center mb-4">
-              <h5 class="fw-bold mb-1">ken</h5>
-              <small class="text-muted">class 2 • 2023</small>
+            <h5 class="fw-bold mb-1">{{ user?.full_name }}</h5>
+            <small class="text-muted">Student ID • {{ user?.user_id }}</small>
             </div>
 
             <!-- Outstanding Panel -->
             <div class="premium-panel shadow-sm mb-4 text-center mx-auto">
               <small class="text-muted text-uppercase">Outstanding Balance</small>
+
+
               <h2 class="fw-bold text-danger mt-2 mb-0">
-                788.00 GHS
+                GHS {{ Number(stats.balance).toLocaleString('en-GH', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2
+                }) }}
               </h2>
+
+
+
             </div>
 
             <!-- Amount Field -->
@@ -122,44 +130,7 @@
 
 
 
-    <!-- =================================================== -->
-    <!--  ALL PAYMENTS — PREMIUM TABLE PANEL                -->
-    <!-- =================================================== -->
-    <CRow class="mt-5">
-      <CCol>
-        <h3 class="fw-bold mb-3">All Payments</h3>
-      </CCol>
-    </CRow>
 
-    <CCard class="border-0 shadow-lg premium-card">
-      <CCardBody class="p-0">
-
-        <CTable hover responsive borderless class="mb-0">
-
-          <CTableHead class="bg-light">
-            <CTableRow>
-              <CTableHeaderCell>#</CTableHeaderCell>
-              <CTableHeaderCell>Payment Method</CTableHeaderCell>
-              <CTableHeaderCell>Date</CTableHeaderCell>
-              <CTableHeaderCell class="text-end">Amount (GHS)</CTableHeaderCell>
-            </CTableRow>
-          </CTableHead>
-
-          <CTableBody>
-            <CTableRow v-for="(rec, i) in allPayments" :key="rec.id">
-              <CTableDataCell>{{ i + 1 }}</CTableDataCell>
-              <CTableDataCell class="fw-semibold">{{ rec.payment_method }}</CTableDataCell>
-              <CTableDataCell>{{ rec.date }}</CTableDataCell>
-              <CTableDataCell class="text-end text-primary fw-bold">
-                {{ rec.amount }}
-              </CTableDataCell>
-            </CTableRow>
-          </CTableBody>
-
-        </CTable>
-
-      </CCardBody>
-    </CCard>
 
   </CContainer>
 </template>
@@ -168,7 +139,7 @@
 <script setup>
 import { useToast } from 'vue-toastification'
 
-import { create_online_transaction, verify_payment } from "@/services/api"
+import { create_online_transaction, verify_payment, student_profile } from "@/services/api"
 
 import { ref, computed, onMounted } from 'vue'
 import { cilCreditCard } from '@coreui/icons'
@@ -181,9 +152,8 @@ const toast = useToast()
 // =====================
 
 const amount = ref(null)
-const outstandingBalance = ref(788)
+const outstandingBalance = computed(() => stats.value.balance)
 
-const studentName = ref("Ken")
 const studentClass = ref("Class 2")
 const academicYear = ref("2023")
 
@@ -223,59 +193,82 @@ const payWithPaystack = async () => {
     currency: "GHS",
     ref: reference,
     callback: function(response) {
-
-       verify_payment(response.reference);
-    },
+   verifyPayment(response.reference);
+},
     onClose: function() {
 
     }
-  });
+
+  }
+);
+
 
   handler.openIframe();
 };
-// =====================
-// VERIFY WITH DJANGO
-// =====================
+
 
 const verifyPayment = async (reference) => {
   try {
-    const res = await fetch(`/api/payments/verify/${reference}/`)
-    const data = await res.json()
 
-    if (data.status) {
-      alert("Payment successful!")
+    const res = await verify_payment({ reference })
 
-      allPayments.value.unshift({
-        id: Date.now(),
-        payment_method: "Paystack",
-        date: new Date().toLocaleDateString(),
-        amount: amount.value
-      })
+    if (res.data.ok) {
 
-      outstandingBalance.value -= Number(amount.value)
+      toast.success("Payment successful")
+
+      // reset amount field
       amount.value = null
+
+      // reload student profile from backend
+      const profile = await student_profile(user.value.user_id)
+
+      // update outstanding balance
+      stats.value.balance = Number(profile.data.total_balance)
+
+      // UPDATE PAYMENTS TABLE HERE
+      allPayments.value = profile.data.payments
+
     } else {
-      alert("Verification failed")
+
+      toast.error("Payment verification failed")
+
     }
+
   } catch (err) {
-    alert("Verification failed")
+
+    toast.error("Verification error")
+
   }
 }
+// =====================
+// VERIFY WITH DJANGO
+// =====================
+const stats = ref({
+
+  balance: 0,
+  is_fully_cleared: false,
+})
+
+
 
 const createTransaction = async () => {
   try {
-    const payload = {
-      amount: amount.value,
-      student: 35171792,
-      email: "phevan1@gmail.com"
-    }
+  const payload = {
+    amount: amount.value,
+    student: user.value.user_id || "A family",
+    name: user.value.full_name,
+    email: "phevan1@gmail.com",
+    payment_method: "online",
+    payment_type: user.value.user_id ? "student" : "family"
+  }
 
     const res = await create_online_transaction(payload)
 
 
     if (res.data.status) {
-      toast.success("Transaction created successfully");
+
       return res.data.reference;  // ✅ RETURN — do NOT call payWithPaystack
+
     } else {
       toast.error("Transaction creation failed", res.data)
 
@@ -291,8 +284,21 @@ const createTransaction = async () => {
 // =====================
 // LOAD PAYSTACK SCRIPT
 // =====================
+const user = ref(null)
 
-onMounted(() => {
+onMounted(async () => {
+
+  // Get user from localStorage
+  const userString = localStorage.getItem("user")
+  if (!userString) return
+
+  user.value = JSON.parse(userString)
+
+  // Fetch student profile
+  const res = await student_profile(user.value.user_id)
+  stats.value.balance = Number(res.data.total_balance)
+
+  // Load Paystack script if not already loaded
   if (!document.getElementById("paystack-script")) {
     const script = document.createElement("script")
     script.id = "paystack-script"
@@ -300,7 +306,9 @@ onMounted(() => {
     script.async = true
     document.body.appendChild(script)
   }
+
 })
+
 </script>
 
 

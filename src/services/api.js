@@ -75,6 +75,7 @@ api.interceptors.response.use(
 
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      localStorage.removeItem('family')
       // Optionally: window.location.hash = '#/login'
     }
     return Promise.reject(error)
@@ -131,7 +132,10 @@ export const create_online_transaction = (payload) => api.post("fees/paystack/cr
 export const verify_payment = (payload) => api.post("fees/paystack/verify/", payload);
 
 
+// family fee records api
 
+export const get_family_payment_list_per_term = (id) => api.get(`family-fees/family-payment-records/${id}/`);
+export const get_family_payment_list_regular = (id) => api.get(`family-fees/family-regular-payments/${id}/`);
 
 
 

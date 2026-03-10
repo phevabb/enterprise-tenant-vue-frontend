@@ -95,9 +95,11 @@
                 <CTableHeaderCell scope="row">
                   {{ (currentPage - 1) * pageSize + idx + 1 }}
                 </CTableHeaderCell>
-                <CTableDataCell>{{ record.family?.name || '—' }}</CTableDataCell>
-                <CTableDataCell>{{ record.term?.name || '—' }}</CTableDataCell>
-                <CTableDataCell>{{ record.academic_year?.name || '—' }}</CTableDataCell>
+                <CTableDataCell>
+  {{ capitalizeWords(record.family_name) || '—' }}
+</CTableDataCell>
+                <CTableDataCell>{{ record.term_name || '—' }}</CTableDataCell>
+                <CTableDataCell>{{ record.academic_year_name || '—' }}</CTableDataCell>
                 <CTableDataCell class="text-end">{{ formatCurrency(record.amount_to_pay) }}</CTableDataCell>
                 <CTableDataCell class="text-end">{{ formatCurrency(record.amount_paid) }}</CTableDataCell>
                 <CTableDataCell class="text-end">{{ formatCurrency(record.balance) }}</CTableDataCell>
@@ -377,6 +379,7 @@ async function loadRecords() {
   if (pageCache.value.has(cacheKey)) {
     const cached = pageCache.value.get(cacheKey)
     records.value = cached.results
+
     totalCount.value = cached.count
     totalPages.value = Math.ceil(cached.count / pageSize)
     return
@@ -388,6 +391,7 @@ async function loadRecords() {
   try {
     const params = buildParams(page, pageSize)
     const res = await get_family_fee_rec(params)
+
     const data = res.data || {}
 
     const results = data.results || []
@@ -396,6 +400,7 @@ async function loadRecords() {
     pageCache.value.set(cacheKey, { results, count })
 
     records.value = results
+
     totalCount.value = count
     totalPages.value = Math.ceil(count / pageSize)
   } catch (err) {
@@ -524,9 +529,9 @@ async function saveRecord() {
   formValidationMessage.value = ''
 
   const payload = {
-    family_id: Number(form.familyId),
-    term_id: Number(form.termId),
-    academic_year_id: Number(form.academicYearId),
+    family: Number(form.familyId),
+    term: Number(form.termId),
+    academic_year: Number(form.academicYearId),
     amount_to_pay: Number(form.amountToPay),
   }
 
@@ -540,7 +545,9 @@ async function saveRecord() {
       )
       toast.success('Record updated')
     } else {
+
       result = await create_family_fee_rec(payload)
+
       records.value.unshift(result.data)
       totalCount.value += 1
       toast.success('Record created')
@@ -711,6 +718,15 @@ onMounted(async () => {
   await loadLookups()
   await loadRecords()
 })
+
+function capitalizeWords(text) {
+  if (!text) return ''
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
 </script>
 
 <style scoped>

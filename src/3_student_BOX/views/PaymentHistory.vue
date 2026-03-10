@@ -35,7 +35,7 @@
     </thead>
 
     <tbody>
-      <tr v-for="(rec, i) in perTermRecords" :key="rec.id">
+      <tr v-for="(rec, i) in filteredPayments_year" :key="rec.id">
         <td>{{ i + 1 }}</td>
         <td>{{ rec.term }}</td>
         <td>{{ rec.academicyear }}</td>
@@ -78,32 +78,7 @@
     <!-- ========================== -->
 
     <!-- Filters -->
-    <CRow class="mb-4 g-3">
-      <CCol md="3">
-        <CFormInput
-          type="text"
-          placeholder="Search by Student or SFR ID"
-          v-model="search"
-        />
-      </CCol>
 
-      <CCol md="3">
-        <CFormSelect v-model="paymentMethod">
-          <option value="">All Payment Methods</option>
-          <option value="Cash">Cash</option>
-          <option value="Momo">Mobile Money</option>
-          <option value="Bank">Bank Transfer</option>
-        </CFormSelect>
-      </CCol>
-
-      <CCol md="3">
-        <CFormInput type="date" v-model="dateFrom" />
-      </CCol>
-
-      <CCol md="3">
-        <CFormInput type="date" v-model="dateTo" />
-      </CCol>
-    </CRow>
 
     <!-- Payment Table -->
     <CCard>
@@ -126,7 +101,7 @@
           </CTableHead>
 
           <CTableBody>
-<CTableRow v-for="(p, index) in payments" :key="p.id">
+<CTableRow v-for="(p, index) in filteredPayments_regular" :key="p.id">
   <CTableDataCell>{{ index + 1 + (page-1)*perPage }}</CTableDataCell>
 
   <CTableDataCell>{{ p.class }}</CTableDataCell>
@@ -148,63 +123,152 @@
   </CContainer>
 </template>
 
+
+
 <script setup>
 import {
   CContainer, CRow, CCol, CCard, CCardHeader, CCardBody,
-  CFormInput, CFormSelect, CTable, CTableBody, CTableHead,
-  CTableRow, CTableDataCell, CTableHeaderCell,
-  CPagination, CPaginationItem, CBadge
+  CTable, CTableBody, CTableHead, CTableRow, CTableDataCell, CTableHeaderCell,
 } from '@coreui/vue'
-import { ref, computed, onMounted } from 'vue'
-
-import {  get_student_payment_list_per_term, get_regular_payments } from "@/services/api"
-import { id } from 'vuetify/locale'
+import { ref, computed, onMounted, watch } from 'vue'
+import {
+  get_student_payment_list_per_term,
+  get_family_payment_list_per_term,
+  get_family_payment_list_regular,
+  get_regular_payments
+} from "@/services/api"
 
 /* ---------------------------------------------
-   SECTION 1: Dummy per-term fee summary
+   STATE
 --------------------------------------------- */
-
 const loading = ref(false)
 const errorMsg = ref("")
 
-const perTermRecords = ref([])
+// Per-term data
+const perTermRecords = ref([])          // student per-term (year summary)
+const payments_family_year = ref([])    // family per-term (year summary)
 
+// Regular payments (second table)
+const payments = ref([])                // student regular payments
+const payments_family_regular = ref([]) // family regular payments
 
+// Simple flags (optional)
+const isFamily = ref(false)
+const fam_id = ref("")
+
+// Initialize family flag safely
+try {
+  const tmp = localStorage.getItem("family")
+  if (tmp) isFamily.value = true
+} catch (e) {
+  // ignore parse/availability errors
+}
+
+/* ---------------------------------------------
+   MERGED LISTS
+--------------------------------------------- */
+const filteredPayments_year = computed(() => [
+  ...perTermRecords.value,
+  ...payments_family_year.value
+])
+
+const filteredPayments_regular = computed(() => [
+  ...payments.value,
+  ...payments_family_regular.value
+])
+
+// Debug: see when merged lists update
+watch(filteredPayments_year, (v) => {
+
+}, { immediate: true })
+
+watch(filteredPayments_regular, (v) => {
+
+}, { immediate: true })
+
+/* ---------------------------------------------
+   LIFECYCLE: FETCH ALL DATA
+--------------------------------------------- */
 onMounted(async () => {
+  loading.value = true
   try {
-    loading.value = true
 
-    const userString = localStorage.getItem("user")
+
+    // --- user id from localStorage (defensive) ---
+    const userString = localStorage.getItem("user") || "{}"
     const userLocal = JSON.parse(userString)
+    const uid = userLocal?.user_id
 
-    const uid = userLocal.user_id
+    // --- fetch student per-term + student regular in parallel ---
+    const [paymentsRes, regular] = await Promise.all([
+      get_student_payment_list_per_term(uid),
+      get_regular_payments(uid)
+    ])
 
-    const paymentsRes = await get_student_payment_list_per_term(uid)
-    const regular = await get_regular_payments(uid)
+    // --- prepare holders for family responses (DO NOT re-declare later) ---
+    let fam_year_rec = { data: { records: [] } }
+    let fam_fee_reg = { data: [] } // assuming .data is an array for family regulars
 
+    // --- fetch family per-term + family regular if present in localStorage ---
+    const familyData = localStorage.getItem("family")
+    if (familyData) {
+      const familyLocal = JSON.parse(familyData)
+      if (familyLocal?.id) {
+        fam_id.value = familyLocal.id
+        // IMPORTANT: assign to outer lets (no const here)
+        fam_year_rec = await get_family_payment_list_per_term(fam_id.value)
+        fam_fee_reg = await get_family_payment_list_regular(fam_id.value)
 
+     }
+    }
 
-    perTermRecords.value = paymentsRes.data.map(item => ({
-      term: item.fee_structure.term.name,
-      academicyear: item.fee_structure.academic_year.name,
-      balance: item.balance,
-      gradeclass: item.fee_structure.grade_class.name,
-      fullypaid: item.is_fully_paid,
-      date: new Date(item.date_created).toLocaleDateString(),
-      amount: Number(item.amount_paid)
+    // --- map family per-term (use API shape you logged) ---
+    payments_family_year.value = (fam_year_rec?.data?.records ?? []).map(item => ({
+      term: item?.term_name,
+      academicyear: item?.academic_year_name, // keep your chosen key
+      balance: item?.balance,
+      gradeclass: item?.fee_structure?.grade_class?.name,
+      fullypaid: item?.is_fully_paid,
+      date: item?.date_created ? new Date(item.date_created).toLocaleDateString() : "",
+      amount: Number(item?.amount_paid ?? 0),
     }))
 
-payments.value = regular.data.map(item => ({
-  id: item.id,
-  date: item.date,
-  amount: Number(item.amount),
-  payment_method: item.payment_method,
-  term: item.term,
-  year:item.academic_year,
-  class:item.grade_class
-}))
+    // --- map student per-term ---
+    perTermRecords.value = (paymentsRes?.data ?? []).map(item => ({
+      term: item?.fee_structure?.term?.name,
+      academicyear: item?.fee_structure?.academic_year?.name,
+      balance: item?.balance,
+      gradeclass: item?.fee_structure?.grade_class?.name,
+      fullypaid: item?.is_fully_paid,
+      date: item?.date_created ? new Date(item.date_created).toLocaleDateString() : "",
+      amount: Number(item?.amount_paid ?? 0),
+    }))
+
+    // --- map student regular payments (second table) ---
+    payments.value = (regular?.data ?? []).map(item => ({
+      id: item?.id,
+      date: item?.date ?? "",
+      amount: Number(item?.amount ?? 0),
+      payment_method: item?.payment_method ?? "Cash",
+      term: item?.term ?? "",
+      year: item?.academic_year ?? "",
+      class: item?.grade_class ?? "",
+    }))
+
+    // --- map family regular payments (second table) ---
+    // If your API returns { data: [] } for family regulars:
+    payments_family_regular.value = (fam_fee_reg?.data ?? []).map(item => ({
+      id: item?.id,
+      date: item?.date ?? "",
+      amount: Number(item?.amount ?? 0),
+      payment_method: item?.payment_method ?? "Cash",
+      term: item?.term_name ?? item?.term ?? "",
+      year: item?.academic_year ?? item?.academicyear ?? "",
+      class: item?.grade_class ?? item?.class ?? "",
+    }))
 
   } catch (err) {
+
     errorMsg.value = "Failed to load student profile."
   } finally {
     loading.value = false
@@ -212,26 +276,38 @@ payments.value = regular.data.map(item => ({
 })
 
 /* ---------------------------------------------
-   SECTION 2: Payment list (your original data)
+   OPTIONAL: Filtering/paging for regular payments
+   (update to work on the merged regular list)
 --------------------------------------------- */
-const payments = ref([])
-
 const search = ref("")
 const paymentMethod = ref("")
 const dateFrom = ref("")
 const dateTo = ref("")
 
-const filtered = computed(() => {
-  return payments.value.filter(p => {
-    const matchSearch =
-      p.student_fee_record.student.full_name.toLowerCase().includes(search.value.toLowerCase()) ||
-      p.student_fee_record.id.toString().includes(search.value)
+function normalizeDate(d) {
+  return d || ""
+}
 
-    const matchMethod =
-      paymentMethod.value ? p.payment_method === paymentMethod.value : true
+const filteredRegular = computed(() => {
+  const s = search.value.trim().toLowerCase()
+  const method = paymentMethod.value
+  const from = normalizeDate(dateFrom.value)
+  const to = normalizeDate(dateTo.value)
 
-    const matchDateFrom = dateFrom.value ? p.date >= dateFrom.value : true
-    const matchDateTo = dateTo.value ? p.date <= dateTo.value : true
+  return filteredPayments_regular.value.filter(p => {
+    const haystack = [
+      p.class ?? "",
+      p.term ?? "",
+      p.year ?? "",
+      p.payment_method ?? "",
+      String(p.amount ?? ""),
+      p.date ?? ""
+    ].join(" ").toLowerCase()
+
+    const matchSearch = s ? haystack.includes(s) : true
+    const matchMethod = method ? (p.payment_method === method) : true
+    const matchDateFrom = from ? (p.date >= from) : true
+    const matchDateTo = to ? (p.date <= to) : true
 
     return matchSearch && matchMethod && matchDateFrom && matchDateTo
   })
@@ -239,26 +315,24 @@ const filtered = computed(() => {
 
 const page = ref(1)
 const perPage = 10
-
-const totalPages = computed(() =>
-  Math.ceil(filtered.value.length / perPage)
-)
-
-const paginatedData = computed(() => {
+const totalPages = computed(() => Math.ceil(filteredRegular.value.length / perPage))
+const paginatedRegular = computed(() => {
   const start = (page.value - 1) * perPage
-  return filtered.value.slice(start, start + perPage)
+  return filteredRegular.value.slice(start, start + perPage)
 })
 
+/* ---------------------------------------------
+   FORMATTING
+--------------------------------------------- */
 const formatAmount = (a) => `${Number(a).toFixed(2)} GHS`
-
 
 function formatMoney(value) {
   const num = typeof value === 'string' ? Number(value) : value
-  if (Number.isNaN(num)) return value // fallback if it's not numeric
+  if (Number.isNaN(num)) return value
   return new Intl.NumberFormat('en-GH', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(num)
 }
-
 </script>
+
