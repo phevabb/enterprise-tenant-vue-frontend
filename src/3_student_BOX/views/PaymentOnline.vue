@@ -243,7 +243,7 @@ const payWithPaystack = async () => {
 
   try {
     const handler = window.PaystackPop.setup({
-      key: 'pk_test_a5628172fea1fc91e2744361548513a3a3598252',
+      key: 'pk_live_c928f270c0cfe8fc1da8403d43b56194b659eaeb',
       email: user.value?.email || 'payer@example.com',
       amount: Number(amount.value) * 100,
       currency: 'GHS',
@@ -314,6 +314,7 @@ const createTransaction = async () => {
       return null
     }
   } catch (err) {
+    console.log("err is print: ", err)
     toast.error('Unable to create transaction')
     return null
   }
