@@ -8,7 +8,7 @@ import axios from 'axios'
 
 
 const api = axios.create({
-//  baseURL: 'http://127.0.0.1:8000/api/',
+ // baseURL: 'http://127.0.0.1:8000/api/',
 
 
      baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
@@ -215,15 +215,21 @@ export const get_deactivated_families = () => api.get("family-fees/deactivated-f
 export const activate_deactivated_family = (id) => api.post(`family-fees/deactivated-families/${id}/activate/`);
 export const update_deactivated_family = (id, payload) => api.put(`family-fees/deactivated-families/${id}/`, payload);
 export const delete_deactivated_family = (id) => api.delete(`family-fees/deactivated-families/${id}/`);
+// academic records
 
 
 
 
+export const academic_records = (payload) =>  api.post("academic-records/student-academic-records/submit-subject/", payload);
+
+// Report card: all terms for one student
+export const getReportCardByStudent = (studentId) =>  api.get(`academic-records/report/report-card/student/${studentId}/`); // → /api/report-card/student/<id>/
+
+// Report card: single record by id
+export const getReportRecord = (recordId) =>  api.get(`academic-records/report/report-card/record/${recordId}/`); // → /api/report-card/record/<id>/
 
 
-
-
-
+export const getReportCardByUser = (userId) =>  api.get(`academic-records/report/report-card/user/${userId}/`);  // → /api/report-card/user/<id>/
 
 
 

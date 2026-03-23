@@ -29,6 +29,7 @@
     "@popperjs/core": "^2.11.8",
     "axios": "^1.13.2",
     "chart.js": "^4.5.0",
+    "html2pdf.js": "^0.14.0",
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.7",
     "lodash": "^4.17.23",

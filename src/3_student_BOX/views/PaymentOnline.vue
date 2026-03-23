@@ -215,7 +215,7 @@ async function reconcileBalances() {
 
     displayBalance.value = Math.max(0, Number(totalBalance))
   } catch (err) {
-    toast.error('Reconciliation error:', err)
+
 
     // Keep optimistic UI; optionally notify
   }
@@ -355,7 +355,7 @@ onMounted(async () => {
     }
   } catch (error) {
 
-    toast.error(error)
+
     displayBalance.value = Number(stats.value?.balance || 0)
   }
 

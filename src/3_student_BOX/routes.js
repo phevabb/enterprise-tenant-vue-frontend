@@ -16,6 +16,13 @@ export const studentRoutes = {
       meta: { roles: ['student'] },
     },
     {
+      path: 'academicrecords',
+      name: 'AcademicRecords',
+      component: () =>
+        import('@/3_student_BOX/views/AcademicRecords.vue'),
+      meta: { roles: ['student'] },
+    },
+    {
       path: 'paymenthistory',
       name: 'StudentPaymentHistory',
       component: () =>

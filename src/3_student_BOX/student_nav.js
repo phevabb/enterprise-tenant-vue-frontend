@@ -35,8 +35,8 @@ export default [
 
   {
     component: 'CNavItem',
-    name: 'Subjects & Exams Scores',
-    to: { name: 'StudentDashboard' },
+    name: 'Exams Records',
+    to: { name: 'AcademicRecords' },
     icon: cilPeople,
   },
   {

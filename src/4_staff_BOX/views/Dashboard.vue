@@ -21,290 +21,276 @@
           </v-chip>
           <v-chip :color="published ? 'success' : 'warning'" text-color="white" size="small"
                   :prepend-icon="published ? 'mdi-check-decagram' : 'mdi-progress-clock'">
-            {{ published ? 'Published (Locked)' : 'Draft' }}
+            {{ published ? 'Published' : 'Draft' }}
           </v-chip>
         </div>
       </div>
     </v-card>
 
     <v-row>
-      <!-- LEFT: Context & Subject/Search -->
-      <v-col cols="12" md="4">
-        <v-card class="pa-4 mb-4 premium-card" elevation="6">
-          <div class="text-subtitle-1 font-weight-bold mb-2">Context</div>
+      <v-col cols="12">
+        <v-card class="pa-3 premium-card" elevation="6">
 
-          <v-progress-linear v-if="booting" indeterminate color="primary" class="mb-3" />
+          <!-- TOP BAR: Context + Controls -->
+          <div class="d-flex flex-wrap align-center justify-space-between mb-2">
+            <!-- Context -->
+            <div class="d-flex flex-wrap align-center">
+              <v-chip size="x-small" color="primary" class="mr-1 mb-1">
+                {{ ctx.year || '—' }}
+              </v-chip>
+              <v-chip size="x-small" color="primary" class="mr-1 mb-1">
+                {{ ctx.term || '—' }}
+              </v-chip>
+              <v-chip size="x-small" color="primary" class="mr-2 mb-1">
+                {{ ctx.gradeclassName || ctx.gradeclassId || '—' }}
+              </v-chip>
 
-          <v-row dense>
-            <v-col cols="12">
-              <v-chip color="primary" text-color="white" class="mr-1 mb-1" size="small">
-                Year: {{ ctx.year || '—' }}
+              <v-chip size="x-small" color="secondary" class="mr-1 mb-1">
+                {{ subjectLabel(subject) }}
               </v-chip>
-              <v-chip color="primary" text-color="white" class="mr-1 mb-1" size="small">
-                Term: {{ ctx.term || '—' }}
-              </v-chip>
-              <v-chip color="primary" text-color="white" class="mr-1 mb-1" size="small">
-                Class: {{ ctx.gradeclassName || ctx.gradeclassId || '—' }}
-              </v-chip>
-            </v-col>
+            </div>
 
-            <v-col cols="12">
+            <!-- Controls -->
+            <div class="d-flex flex-wrap align-center">
               <v-select
                 v-model="subject"
                 :items="SUBJECTS"
-                label="Subject"
+                density="compact"
                 variant="solo-filled"
-                density="comfortable"
+                hide-details
+                style="max-width: 150px"
+                class="mr-2 mb-1"
                 :disabled="booting"
               />
-            </v-col>
 
-            <v-col cols="12">
               <v-text-field
                 v-model="search"
-                label="Search student or index"
-                prepend-inner-icon="mdi-magnify"
+                density="compact"
                 variant="solo-filled"
-                density="comfortable"
-                clearable
+                hide-details
+                prepend-inner-icon="mdi-magnify"
+                style="max-width: 180px"
+                class="mr-2 mb-1"
                 :disabled="booting"
               />
+
+              <v-btn size="x-small" variant="tonal" color="primary"
+                     @click="schemeDialog = true"
+                     :disabled="booting">
+                Edit Scheme
+              </v-btn>
+            </div>
+          </div>
+
+          <!-- Scheme Info -->
+          <div class="d-flex flex-wrap align-center mb-2">
+            <v-chip size="x-small" class="mr-1">
+              C: {{ scheme[subject].classMax }}
+            </v-chip>
+            <v-chip size="x-small" class="mr-1">
+              E: {{ scheme[subject].examMax }}
+            </v-chip>
+            <v-chip size="x-small" color="info">
+              Total: {{ scheme[subject].classMax + scheme[subject].examMax }}
+            </v-chip>
+          </div>
+
+          <v-progress-linear v-if="booting" indeterminate class="mb-2" />
+          <v-divider class="mb-2" />
+
+          <!-- KPIs -->
+          <v-row dense class="mb-2">
+            <v-col cols="6" md="3">
+              <v-card class="pa-2 kpi-card gradient-1" elevation="4">
+                <div class="text-caption text-white">Completion</div>
+                <div class="text-subtitle-1 text-white">{{ completionRate }}%</div>
+              </v-card>
+            </v-col>
+
+            <v-col cols="6" md="3">
+              <v-card class="pa-2 kpi-card gradient-2" elevation="4">
+                <div class="text-caption text-white">Average</div>
+                <div class="text-subtitle-1 text-white">{{ subjectAverage.toFixed(1) }}</div>
+              </v-card>
+            </v-col>
+
+            <v-col cols="6" md="3">
+              <v-card class="pa-2 kpi-card gradient-3" elevation="4">
+                <div class="text-caption text-white">Highest</div>
+                <div class="text-subtitle-1 text-white">{{ subjectMax.score.toFixed(1) }}</div>
+              </v-card>
+            </v-col>
+
+            <v-col cols="6" md="3">
+              <v-card class="pa-2 kpi-card gradient-4" elevation="4">
+                <div class="text-caption text-white">Lowest</div>
+                <div class="text-subtitle-1 text-white">{{ subjectMin.score.toFixed(1) }}</div>
+              </v-card>
             </v-col>
           </v-row>
 
-          <v-divider class="my-3" />
+          <v-divider class="mb-2" />
 
-          <div class="d-flex align-center justify-space-between mb-2">
-            <div class="text-subtitle-2 font-weight-bold">Scoring Scheme ({{ subjectLabel(subject) }})</div>
-            <v-btn size="small" variant="tonal" color="primary" @click="schemeDialog = true" :disabled="booting || published">
-              <v-icon start>mdi-pencil</v-icon>Edit
-            </v-btn>
-          </div>
-
-          <v-chip class="mr-1 mb-1" color="primary" text-color="white" size="small">
-            Class: {{ scheme[subject].classMax }}
-          </v-chip>
-          <v-chip class="mr-1 mb-1" color="primary" text-color="white" size="small">
-            Exam: {{ scheme[subject].examMax }}
-          </v-chip>
-          <v-alert type="info" variant="tonal" density="compact" border="start" class="mt-2">
-            Total: <strong>{{ scheme[subject].classMax + scheme[subject].examMax }}</strong> (should be 100)
-          </v-alert>
-        </v-card>
-
-        <!-- Student List -->
-        <v-card class="pa-0 premium-card" elevation="6">
-          <div class="pa-4 d-flex align-center justify-space-between">
-            <div class="text-subtitle-1 font-weight-bold">Students</div>
-            <v-chip size="small" color="secondary" text-color="white">{{ filteredStudents.length }} in class</v-chip>
-          </div>
-          <v-divider />
-          <v-virtual-scroll :items="filteredStudents" height="420" item-height="64">
-            <template #default="{ item }">
-              <v-list-item :key="item.id" class="px-4" @click="selectStudent(item.id)"
-                           :active="item.id === selectedStudentId" :subtitle="item.indexNo" :title="item.full_name">
-                <template #prepend>
-                  <v-avatar color="indigo" size="36">
-                    <span class="text-white">{{ initials(item.full_name) }}</span>
-                  </v-avatar>
-                </template>
-                <template #append>
-                  <v-chip size="x-small" :color="isComplete(item.id, subject) ? 'success' : 'grey'"
-                          text-color="white" variant="elevated">
-                    {{ isComplete(item.id, subject) ? 'Done' : 'Pending' }}
-                  </v-chip>
-                </template>
-              </v-list-item>
-              <v-divider />
-            </template>
-          </v-virtual-scroll>
-        </v-card>
-      </v-col>
-
-      <!-- RIGHT: KPI + Editable Table + Summary -->
-      <v-col cols="12" md="8">
-        <!-- KPIs -->
-        <v-row>
-          <v-col cols="12" sm="6" lg="3">
-            <v-card class="pa-4 kpi-card gradient-1" elevation="8">
-              <div class="text-caption text-white opacity-80">Completion</div>
-              <div class="d-flex align-center justify-space-between">
-                <div class="text-h5 text-white">{{ completionRate }}%</div>
-                <v-progress-circular :model-value="completionRate" color="white" size="42" width="4" />
-              </div>
-              <div class="text-caption text-white opacity-80 mt-1">{{ completedCount }}/{{ filteredStudents.length }} done</div>
-            </v-card>
-          </v-col>
-
-          <v-col cols="12" sm="6" lg="3">
-            <v-card class="pa-4 kpi-card gradient-2" elevation="8">
-              <div class="text-caption text-white opacity-80">Class Average ({{ subjectLabel(subject) }})</div>
-              <div class="text-h5 text-white">{{ subjectAverage.toFixed(1) }}</div>
-              <div class="text-caption text-white opacity-80 mt-1">out of 100</div>
-            </v-card>
-          </v-col>
-
-          <v-col cols="12" sm="6" lg="3">
-            <v-card class="pa-4 kpi-card gradient-3" elevation="8">
-              <div class="text-caption text-white opacity-80">Highest</div>
-              <div class="text-h5 text-white">{{ subjectMax.score.toFixed(1) }}</div>
-              <div class="text-caption text-white opacity-80 mt-1">{{ subjectMax.holder }}</div>
-            </v-card>
-          </v-col>
-
-          <v-col cols="12" sm="6" lg="3">
-            <v-card class="pa-4 kpi-card gradient-4" elevation="8">
-              <div class="text-caption text-white opacity-80">Lowest</div>
-              <div class="text-h5 text-white">{{ subjectMin.score.toFixed(1) }}</div>
-              <div class="text-caption text-white opacity-80 mt-1">{{ subjectMin.holder }}</div>
-            </v-card>
-          </v-col>
-        </v-row>
-
-        <!-- Context bar -->
-        <v-alert type="info" variant="tonal" border="start" class="mb-4">
-          <strong>Context:</strong>
-          {{ ctx.year }} • {{ ctx.term }} • {{ ctx.gradeclassName || ctx.gradeclassId || '—' }} •
-          <strong>{{ subjectLabel(subject) }}</strong>
-        </v-alert>
-
-        <!-- Editable table -->
-        <v-card elevation="6" class="premium-card">
-          <div class="d-flex align-center justify-space-between pa-4">
-            <div class="text-subtitle-1 font-weight-bold">
-              Marks Entry — {{ subjectLabel(subject) }}
+          <!-- TABLE HEADER ACTIONS -->
+          <div class="d-flex flex-wrap justify-space-between align-center mb-2">
+            <div class="text-subtitle-2 font-weight-bold">
+              Marks Entry
             </div>
-            <div class="d-flex flex-wrap align-center">
-              <v-btn class="mr-2 mb-2" size="small" variant="tonal" color="secondary"
-                     @click="fillBlanks(subject, 20, 40)" :disabled="published || booting">
-                <v-icon start>mdi-auto-fix</v-icon>Fill Blanks
+
+            <div class="d-flex flex-wrap">
+              <v-btn size="x-small" class="mr-1 mb-1" variant="tonal"
+                     @click="fillBlanks(subject, 40, 50)" :disabled="booting">
+                Fill
               </v-btn>
-              <v-btn class="mr-2 mb-2" size="small" variant="tonal" color="error"
-                     @click="clearSubject(subject)" :disabled="published || booting">
-                <v-icon start>mdi-broom</v-icon>Clear Subject
+
+              <v-btn size="x-small" class="mr-1 mb-1" variant="tonal" color="error"
+                     @click="clearSubject(subject)" :disabled="booting">
+                Clear
               </v-btn>
-              <v-btn class="mr-2 mb-2" size="small" variant="tonal" color="primary"
-                     @click="importDialog = true" :disabled="published || booting">
-                <v-icon start>mdi-tray-arrow-down</v-icon>Import CSV
+
+              <v-btn size="x-small" class="mr-1 mb-1" variant="tonal"
+                     @click="importDialog = true" :disabled="booting">
+                Import
               </v-btn>
-              <v-btn class="mb-2" size="small" variant="tonal" color="primary" @click="exportCSV" :disabled="booting">
-                <v-icon start>mdi-tray-arrow-up</v-icon>Export CSV
+
+              <v-btn size="x-small" class="mb-1" variant="tonal"
+                     @click="exportCSV" :disabled="booting">
+                Export
               </v-btn>
             </div>
           </div>
 
-          <v-divider />
-
-          <v-table density="comfortable" class="marks-table">
+          <!-- TABLE (striped, sticky header, beautiful) -->
+          <v-table
+            fixed-header
+            height="60vh"
+            density="compact"
+            class="marks-table striped-table beautiful-table"
+          >
             <thead>
               <tr>
-                <th style="width: 44px;">#</th>
+                <th style="width: 48px;">#</th>
                 <th>Student</th>
-                <th>Class ({{ scheme[subject].classMax }})</th>
-                <th>Exam ({{ scheme[subject].examMax }})</th>
-                <th>Total</th>
-                <th>Grade</th>
-                <th>Interpretation</th>
-                <th class="text-right">Status</th>
+                <th class="text-left">Class</th>
+                <th class="text-left">Exam</th>
+                <th class="text-right">Total</th>
+                <th class="text-center">Grade</th>
+                <th class="text-center">Status</th>
               </tr>
             </thead>
+
             <tbody>
               <tr v-for="(stu, i) in filteredStudents" :key="stu.id">
-                <td>{{ i + 1 }}</td>
+                <td class="text-medium-emphasis">{{ i + 1 }}</td>
+
                 <td>
                   <div class="d-flex align-center">
-                    <v-avatar size="28" class="mr-2" color="indigo">
+                    <v-avatar size="26" class="mr-2" color="indigo">
                       <span class="text-white text-caption">{{ initials(stu.full_name) }}</span>
                     </v-avatar>
                     <div>
                       <div class="text-body-2">{{ stu.full_name }}</div>
-                      <div class="text-caption text-medium-emphasis">{{ stu.indexNo }}</div>
+                      <div class="text-caption text-disabled">{{ stu.indexNo }}</div>
                     </div>
                   </div>
                 </td>
 
-                <td>
+                <td class="text-left">
                   <v-text-field
                     v-model.number="rec(stu.id)[`${subject}_class_score`]"
-                    variant="plain" density="compact" type="number"
-                    :min="0" :max="scheme[subject].classMax" :step="1" hide-details
-                    :class="scoreClass(rec(stu.id)[`${subject}_class_score`], 0, scheme[subject].classMax)"
-                    @change="recalc(stu.id, subject)" @blur="autoSaveDraft" :disabled="published || booting"
-                  />
-                </td>
-                <td>
-                  <v-text-field
-                    v-model.number="rec(stu.id)[`${subject}_exam_score`]"
-                    variant="plain" density="compact" type="number"
-                    :min="0" :max="scheme[subject].examMax" :step="1" hide-details
-                    :class="scoreClass(rec(stu.id)[`${subject}_exam_score`], 0, scheme[subject].examMax)"
-                    @change="recalc(stu.id, subject)" @blur="autoSaveDraft" :disabled="published || booting"
+                    density="compact"
+                    variant="plain"
+                    type="number"
+                    hide-details
+                    :min="0"
+                    :max="scheme[subject].classMax"
+                    :step="1"
+                    @change="recalc(stu.id, subject)"
+                    @blur="autoSaveDraft"
+                    :disabled="booting"
+                    :style="{
+                      '--v-theme-on-background': '#1976d2',
+                      color: '#1976d2'
+                    }"
+                    class="cell-input"
                   />
                 </td>
 
-                <td>
-                  <v-chip :color="colorForScore(rec(stu.id)[`${subject}_total_score`] ?? 0)" text-color="white" size="small" variant="elevated">
-                    {{ (rec(stu.id)[`${subject}_total_score`] ?? 0).toFixed(0) }}
-                  </v-chip>
+                <td class="text-left">
+                  <v-text-field
+                    v-model.number="rec(stu.id)[`${subject}_exam_score`]"
+                    density="compact"
+                    variant="plain"
+                    type="number"
+                    hide-details
+                    :min="0"
+                    :max="scheme[subject].examMax"
+                    :step="1"
+                    @change="recalc(stu.id, subject)"
+                    @blur="autoSaveDraft"
+                    :disabled="booting"
+                    :style="{
+                      '--v-theme-on-background': '#1976d2',
+                      color: '#1976d2'
+                    }"
+                    class="cell-input"
+                  />
                 </td>
-                <td>
-                  <v-chip :color="colorForGrade(rec(stu.id)[`${subject}_grade`])" size="small" text-color="white">
-                    {{ rec(stu.id)[`${subject}_grade`] || '—' }}
-                  </v-chip>
-                </td>
-                <td class="text-no-wrap">
-                  {{ rec(stu.id)[`${subject}_interpretation`] || '—' }}
-                </td>
+
                 <td class="text-right">
-                  <v-chip size="x-small" :color="isComplete(stu.id, subject) ? 'success' : 'grey'"
-                          text-color="white" variant="elevated">
-                    {{ isComplete(stu.id, subject) ? 'Complete' : 'Pending' }}
+                  {{
+                    rec(stu.id)[`${subject}_total_score`] == null
+                      ? '—'
+                      : Number(rec(stu.id)[`${subject}_total_score`]).toFixed(0)
+                  }}
+                </td>
+
+                <td class="text-center">
+                  {{ rec(stu.id)[`${subject}_grade`] || '—' }}
+                </td>
+
+                <td class="text-center">
+                  <v-chip size="x-small"
+                    :color="isComplete(stu.id, subject) ? 'success' : 'grey'">
+                    {{ isComplete(stu.id, subject) ? 'Done' : 'Pending' }}
                   </v-chip>
                 </td>
               </tr>
             </tbody>
           </v-table>
 
-          <v-divider />
+          <v-divider class="my-2" />
 
-          <!-- Class Meta -->
-
-
-          <!-- Footer actions -->
-          <div class="pa-4 d-flex flex-wrap justify-space-between align-center">
-            <div class="text-body-2">
-              <v-icon size="16" class="mr-1">mdi-information-outline</v-icon>
-              Class {{ scheme[subject].classMax }} + Exam {{ scheme[subject].examMax }} = 100. Grading: A≥85, B≥70, C≥50, D≥30, else E.
+          <!-- FOOTER -->
+          <div class="d-flex flex-wrap justify-space-between align-center">
+            <div class="text-caption">
+              Total = {{ scheme[subject].classMax + scheme[subject].examMax }}
             </div>
+
             <div class="d-flex">
-              <v-btn class="mr-2" variant="tonal" color="secondary" @click="saveDraft" :loading="saving" :disabled="published || booting">
-                <v-icon start>mdi-content-save-outline</v-icon>Save Draft
+              <v-btn size="small" class="mr-1" variant="tonal"
+                     @click="saveDraft" :loading="saving"
+                     :disabled="booting">
+                Save
               </v-btn>
-              <v-btn class="mr-2" variant="tonal" color="primary" @click="rankAndPreview" :disabled="published || booting">
-                <v-icon start>mdi-numeric</v-icon>Compute Positions
+
+              <v-btn size="small" class="mr-1" variant="tonal"
+                     @click="rankAndPreview"
+                     :disabled="booting">
+                Rank
               </v-btn>
-              <v-btn color="success" @click="publishDialog = true" :disabled="published || completionRate < 60 || booting">
-                <v-icon start>mdi-check-decagram</v-icon>Publish
+
+
+
+              <v-btn size="small" color="success"
+                     @click="publishDialog = true"
+                     :disabled="completionRate < 60 || booting">
+                Publish ({{ subjectLabel(subject) }})
               </v-btn>
             </div>
           </div>
-        </v-card>
 
-        <!-- JSON Preview -->
-        <v-card class="pa-4 mt-4 premium-card" elevation="6">
-          <div class="d-flex align-center justify-space-between">
-            <div class="text-subtitle-1 font-weight-bold">Payload Preview (per student)</div>
-            <v-btn size="small" color="primary" variant="tonal" @click="saveToServer" :disabled="published || booting">
-              <v-icon start>mdi-cloud-upload</v-icon>Submit (stub)
-            </v-btn>
-          </div>
-          <pre class="mt-3 payload-pre">{{ JSON.stringify(samplePayload, null, 2) }}</pre>
         </v-card>
-
-        <!-- Snackbar -->
-        <v-snackbar v-model="snack.show" :timeout="2200" :color="snack.color" rounded="pill">
-          <v-icon start>mdi-check-circle</v-icon>{{ snack.text }}
-        </v-snackbar>
       </v-col>
     </v-row>
 
@@ -342,7 +328,8 @@
         <v-divider />
         <v-card-text>
           <v-alert type="warning" variant="tonal" border="start" class="mb-3">
-            After publishing, entries lock for this class, year & term.
+            Publishing will mark this subject as published for this class, year & term,
+            but entries remain editable.
           </v-alert>
           <ul class="mt-2">
             <li>{{ completedCount }}/{{ filteredStudents.length }} students complete (for {{ subjectLabel(subject) }})</li>
@@ -354,7 +341,9 @@
         <v-card-actions>
           <v-spacer />
           <v-btn variant="tonal" @click="publishDialog = false">Cancel</v-btn>
-          <v-btn color="success" @click="confirmPublish"><v-icon start>mdi-check-decagram</v-icon>Publish</v-btn>
+          <v-btn color="success" :loading="sending" :disabled="sending" @click="confirmPublishAndSend">
+            <v-icon start>mdi-check-decagram</v-icon>Publish ({{ subjectLabel(subject) }})
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -374,8 +363,8 @@
             rows="10"
             variant="outlined"
             placeholder="indexNo, class, exam
-S-001, 32, 52
-S-002, 28, 45"
+            S-001, 32, 52
+            S-002, 28, 45"
           />
           <v-alert type="info" variant="tonal" class="mt-3" border="start">
             Index numbers must match the class list. Values must respect the class/exam maxima.
@@ -389,16 +378,27 @@ S-002, 28, 45"
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Snackbar -->
+    <v-snackbar v-model="snack.show" :timeout="2200" :color="snack.color" rounded="pill">
+      <v-icon start>mdi-check-circle</v-icon>{{ snack.text }}
+    </v-snackbar>
   </v-container>
 </template>
 
 <script setup>
+
+import { useToast } from 'vue-toastification'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { get_terms_with_year, get_teacher_student } from '@/services/api'
+import { get_terms_with_year, get_teacher_student, academic_records } from '@/services/api'
 
 /* ---------------------------
    CONSTANTS
 --------------------------- */
+
+const toast = useToast()
+
+
 const SUBJECTS = [
   'english', 'maths', 'science', 'rme', 'ict', 'history', 'fante', 'creativearts'
 ]
@@ -413,15 +413,18 @@ const search = ref('')
 const staff = ref(null)
 const selectedStudentId = ref(null)
 
-const scheme = reactive(Object.fromEntries(SUBJECTS.map(s => [s, { classMax: 40, examMax: 60 }])))
-const schemeWorking = ref({ classMax: 40, examMax: 60 })
+const scheme = reactive(Object.fromEntries(SUBJECTS.map(s => [s, { classMax: 50, examMax: 50 }])))
+const schemeWorking = ref({ classMax: 50, examMax: 50 })
 const schemeDialog = ref(false)
 
 const published = ref(false)
 const autoSave = ref(true)
 const saving = ref(false)
+const sending = ref(false)
 
-const records = reactive({})  // { [studentId]: ... }
+/* ✅ Context-scoped records (fix for wrong-term/class bleed) */
+const recordsByCtx = reactive({}) // { "<yearId>|<termId>|<gradeclassId>": { [studentId]: record } }
+
 const classMeta = reactive({ attendance: 0, number_on_roll: 0, teacher_remarks: '', head_teacher_remarks: '', next_term_begins: '' })
 const snack = reactive({ show: false, text: '', color: 'success' })
 
@@ -436,6 +439,17 @@ const studentsFromApi = ref([])
    COMPUTEDS
 --------------------------- */
 const students = computed(() => studentsFromApi.value || [])
+
+/* ✅ a key that changes with Year/Term/Class */
+const ctxKey = computed(() =>
+  `${ctx.yearId || ctx.year}|${ctx.termId || ctx.term}|${ctx.gradeclassId || ctx.gradeclassName || ''}`
+)
+
+function currentRecordsBucket() {
+  const key = ctxKey.value
+  if (!recordsByCtx[key]) recordsByCtx[key] = {}
+  return recordsByCtx[key]
+}
 
 const filteredStudents = computed(() => {
   const list = students.value
@@ -491,7 +505,8 @@ function initials(name = '') {
   return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase()
 }
 function rec(studentId) {
-  records[studentId] ||= {
+  const bucket = currentRecordsBucket()   // ✅ context-scoped
+  bucket[studentId] ||= {
     student: studentId,
     term: ctx.termId ?? ctx.term,
     academic_year: ctx.yearId ?? ctx.year,
@@ -508,7 +523,7 @@ function rec(studentId) {
       [`${s}_interpretation`, null],
     ]))),
   }
-  return records[studentId]
+  return bucket[studentId]
 }
 function isValidRange(v, min, max) {
   if (v === null || v === '' || v === undefined) return true
@@ -559,6 +574,7 @@ function recalc(studentId, subj) {
   r[`${subj}_interpretation`] = GRADE_TO_TEXT[g]
 }
 function clearSubject(subj) {
+  const bucket = currentRecordsBucket() // ✅ scope
   filteredStudents.value.forEach(s => {
     const r = rec(s.id)
     r[`${subj}_class_score`] = null
@@ -597,16 +613,95 @@ function rankAndPreview() {
 }
 
 /* ---------------------------
-   PERSISTENCE
+   CAPTURE & SEND
+--------------------------- */
+function collectSubjectRows() {
+  const subj = subject.value
+  return filteredStudents.value.map(stu => {
+    const r = rec(stu.id)
+    return {
+      student_id: stu.id,
+      index_no: stu.indexNo,
+      class_score: r[`${subj}_class_score`],
+      exam_score: r[`${subj}_exam_score`],
+      total_score: r[`${subj}_total_score`],
+      grade: r[`${subj}_grade`],
+      interpretation: r[`${subj}_interpretation`],
+    }
+  })
+}
+
+function buildSubjectPayload() {
+  return {
+    context: {
+      academic_year: ctx.year,
+      academic_year_id: ctx.yearId,
+      term: ctx.term,
+      term_id: ctx.termId,
+      gradeclass_id: ctx.gradeclassId,
+      gradeclass_name: ctx.gradeclassName,
+    },
+    subject: subject.value,
+    scheme: { ...scheme[subject.value] },
+    rows: collectSubjectRows(),
+  }
+}
+
+async function submitScores() {
+  const payload = buildSubjectPayload()
+
+  sending.value = true
+  try {
+    const res = await academic_records(payload) // axios instance call
+
+    return res.data
+  } catch (e) {
+    if (e.response) {
+
+      toast(`Failed to send: ${e.response.status}`, 'error')
+    } else {
+
+      toast(`Failed to send: ${e.message}`, 'error')
+    }
+    return null
+  } finally {
+    sending.value = false
+  }
+}
+
+/* Publish flow that also sends */
+async function confirmPublishAndSend() {
+  const result = await submitScores()
+  if (result !== null) {
+    published.value = true
+    publishDialog.value = false
+
+
+    toast.success('Results Published ')
+  }
+}
+
+/* ---------------------------
+   PERSISTENCE (scoped per context)
 --------------------------- */
 const LS_KEY = 'acad_records_demo_v1'
+
 function saveDraft() {
   saving.value = true
-  const payload = { ctx, records, scheme, classMeta, published: published.value }
+  const payload = {
+    ctx,
+    recordsByCtx,           // ✅ save all context buckets
+    scheme,
+    classMeta,
+    published: published.value
+  }
   localStorage.setItem(LS_KEY, JSON.stringify(payload))
-  setTimeout(() => { saving.value = false; toast('Draft saved', 'success') }, 300)
+  setTimeout(() => { saving.value = false;  }, 300)
 }
-function autoSaveDraft() { if (autoSave.value && !published.value) saveDraft() }
+
+/* keep autosave even when published */
+function autoSaveDraft() { if (autoSave.value) saveDraft() }
+
 function restoreDraft() {
   const raw = localStorage.getItem(LS_KEY)
   if (!raw) return
@@ -615,7 +710,11 @@ function restoreDraft() {
     Object.assign(classMeta, parsed.classMeta || {})
     published.value = !!parsed.published
     if (parsed.scheme) for (const s of SUBJECTS) { if (parsed.scheme[s]) scheme[s] = parsed.scheme[s] }
-    for (const k of Object.keys(parsed.records || {})) { records[k] = parsed.records[k] }
+    if (parsed.recordsByCtx && typeof parsed.recordsByCtx === 'object') {
+      for (const k of Object.keys(parsed.recordsByCtx)) {
+        recordsByCtx[k] = parsed.recordsByCtx[k] || {}
+      }
+    }
   } catch {}
 }
 
@@ -691,7 +790,7 @@ function saveScheme() {
 }
 
 /* ---------------------------
-   PAYLOAD
+   PAYLOAD (FULL per student if you need it)
 --------------------------- */
 function buildPayload(studentId) {
   const r = rec(studentId)
@@ -703,13 +802,6 @@ function buildPayload(studentId) {
     promoted_to: r.promoted_to,
     attendance: classMeta.attendance,
     number_on_roll: classMeta.number_on_roll,
-    attitude: r.attitude,
-    interest: r.interest,
-    teacher_remarks: classMeta.teacher_remarks,
-    head_teacher_remarks: classMeta.head_teacher_remarks,
-    next_term_begins: classMeta.next_term_begins,
-    position: r.position,
-    conduct: r.conduct,
     interpretation: r.interpretation,
     ...Object.fromEntries(SUBJECTS.flatMap(s => ([
       [`${s}_class_score`, r[`${s}_class_score`]],
@@ -719,11 +811,6 @@ function buildPayload(studentId) {
       [`${s}_interpretation`, r[`${s}_interpretation`]],
     ]))),
   }
-}
-async function saveToServer() {
-  const rows = filteredStudents.value.map(s => buildPayload(s.id))
-
-  toast('Payloads logged to console (stub). Replace with real API.', 'info')
 }
 
 /* ---------------------------
@@ -736,27 +823,19 @@ function normalizeStudent(raw = {}) {
     full_name: raw.full_name ?? `${raw.first_name ?? ''} ${raw.last_name ?? ''}`.trim(),
   }
 }
-function initStudentsState() {
-  classMeta.number_on_roll = students.value.length
-  students.value.forEach(s => rec(s.id))
-  // optional demo seed; remove in prod if not needed
-  const subj = subject.value
-  const list = students.value
-  const seed = [
-    { id: list[0]?.id, c: 28, e: 52 },
-    { id: list[1]?.id, c: 30, e: 40 },
-    { id: list[2]?.id, c: 18, e: 45 },
-  ].filter(Boolean)
-  seed.forEach(row => {
-    const r = rec(row.id)
-    r[`${subj}_class_score`] = row.c
-    r[`${subj}_exam_score`] = row.e
-    recalc(row.id, subj)
-  })
-}
+
 function pruneStaleRecords() {
+  const bucket = currentRecordsBucket() // ✅ scoped
   const valid = new Set(students.value.map(s => String(s.id)))
-  for (const k of Object.keys(records)) { if (!valid.has(String(k))) delete records[k] }
+  for (const k of Object.keys(bucket)) { if (!valid.has(String(k))) delete bucket[k] }
+}
+
+/* Ensure each student has an initialized record (for THIS context) */
+function initStudentsState() {
+  const bucket = currentRecordsBucket() // ✅ scoped
+  for (const s of studentsFromApi.value) {
+    if (!bucket[s.id]) rec(s.id)
+  }
 }
 
 async function hydrateCtxFromApi() {
@@ -767,7 +846,7 @@ async function hydrateCtxFromApi() {
     ctx.gradeclassId   = staff.value.assigned_class_id ?? staff.value.assigned_class ?? ''
     ctx.gradeclassName = staff.value.assigned_class_name ?? staff.value.assigned_class ?? ''
   }
-  // term + year
+  // Get latest term + academic year from API
   const trm = await get_terms_with_year()
   const t = trm?.data ?? trm
   ctx.termId = t?.id ?? null
@@ -784,7 +863,7 @@ async function loadTeacherStudents() {
 /* ---------------------------
    LIFECYCLE
 --------------------------- */
-function toast(text, color = 'success') { snack.text = text; snack.color = color; snack.show = true }
+
 function confirmPublish() { published.value = true; publishDialog.value = false; toast('Published', 'success') }
 function selectStudent(id) { selectedStudentId.value = id }
 
@@ -796,6 +875,8 @@ onMounted(async () => {
     initStudentsState()
     pruneStaleRecords()
     restoreDraft()
+    // After restore, ensure current context bucket exists
+    currentRecordsBucket()
   } catch (e) {
 
     toast('Could not load students', 'error')
@@ -804,7 +885,13 @@ onMounted(async () => {
   }
 })
 
-// keep state in sync if students list refreshes again later
+/* ✅ when Year/Term/Class context changes, reset/init THIS context */
+watch(ctxKey, () => {
+  initStudentsState()
+  pruneStaleRecords()
+})
+
+/* Also re-init if student list refreshes later */
 watch(studentsFromApi, () => { initStudentsState(); pruneStaleRecords() })
 </script>
 
@@ -813,20 +900,67 @@ watch(studentsFromApi, () => { initStudentsState(); pruneStaleRecords() })
 .premium-bg { background: linear-gradient(135deg, #0d1321 0%, #1d2d44 40%, #3e5c76 100%); min-height: 100vh; }
 .premium-hero { background: linear-gradient(135deg, rgba(103,58,183,0.82) 0%, rgba(33,150,243,0.82) 100%); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(4px); }
 .premium-avatar { border: 2px solid rgba(255,255,255,0.6); }
-.premium-card { border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.96); }
+.premium-card { border-radius: 18px; border: 1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.98); }
 
-.kpi-card { border-radius: 16px; color: white; }
+/* KPI Cards */
+.kpi-card { border-radius: 14px; color: white; }
 .gradient-1 { background: linear-gradient(135deg, #1de9b6, #1dc4e9); }
 .gradient-2 { background: linear-gradient(135deg, #ff8a65, #ff5252); }
 .gradient-3 { background: linear-gradient(135deg, #9ccc65, #43a047); }
 .gradient-4 { background: linear-gradient(135deg, #ffd54f, #ffa000); }
 
-.marks-table thead th { background: #f6f7fb; font-weight: 700; color: #3b3f5c; }
-.marks-table tbody tr:hover { background: #fafbff; }
-.score-error input { color: #d32f2f !important; font-weight: 600; }
-.score-ok input { color: #1b5e20 !important; font-weight: 600; }
+/* Table redesign */
+.marks-table thead th {
+  background: #f5f7fb;
+  color: #3b3f5c;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.beautiful-table table {
+  border-collapse: separate !important;
+  border-spacing: 0;
+}
+.beautiful-table tbody td, .beautiful-table thead th {
+  border-bottom: 1px solid #eef1f6;
+}
+.beautiful-table tbody tr:hover {
+  background: #fafcff;
+}
 
-.payload-pre { background: #0d1321; color: #e3f2fd; padding: 12px; border-radius: 12px; font-size: 12px; max-height: 320px; overflow: auto; }
+/* Stripes */
+.striped-table tbody tr:nth-child(odd) {
+  background: #fcfdff;
+}
+
+/* Compact cell paddings */
+.marks-table :deep(td), .marks-table :deep(th) {
+  padding: 10px 12px !important;
+}
+
+/* Right/center helpers */
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+/* Input appearance inside cells */
+.cell-input :deep(.v-field__input) {
+  padding: 0 !important;
+}
+
+/* Validity backgrounds (keep blue text) */
+.score-error input {
+  background-color: #fff6f6;
+  box-shadow: inset 0 0 0 1px rgba(211,47,47,0.25);
+  border-radius: 6px;
+}
+.score-ok input {
+  background-color: #f6fff6;
+  box-shadow: inset 0 0 0 1px rgba(67,160,71,0.25);
+  border-radius: 6px;
+}
+
 .opacity-80 { opacity: 0.8; }
 .text-no-wrap { white-space: nowrap; }
+.text-disabled { color: rgba(0,0,0,0.45); }
 </style>
