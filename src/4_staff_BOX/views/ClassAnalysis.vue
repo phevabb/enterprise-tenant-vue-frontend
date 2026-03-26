@@ -22,11 +22,11 @@
           </div>
 
           <div class="d-flex gap-2">
-            <CFormSelect v-model="selectedYear" class="premium-select">
+            <CFormSelect v-model="selectedYear" @change="fetchData" class="premium-select">
               <option v-for="y in years" :key="y">{{ y }}</option>
             </CFormSelect>
 
-            <CFormSelect v-model="selectedTerm" class="premium-select">
+            <CFormSelect v-model="selectedTerm" @change="fetchData" class="premium-select">
               <option v-for="t in terms" :key="t">{{ t }}</option>
             </CFormSelect>
           </div>
@@ -34,6 +34,7 @@
         </div>
       </CCardBody>
     </CCard>
+
 
 
     <!-- ✅ KPI SECTION -->
@@ -47,22 +48,19 @@
     </CRow>
 
 
-    <!-- ✅ SUBJECT ANALYTICS (CLASS LEVEL) -->
+
+    <!-- ✅ SUBJECT ANALYTICS -->
     <CCard class="premium-card shadow mb-4">
       <CCardBody>
         <h5 class="fw-bold mb-3">Subject Analytics</h5>
 
         <CRow>
-          <CCol md="3" v-for="s in subjects" :key="s.name">
+          <CCol md="3" v-for="s in subjects" :key="s.subject">
             <CCard class="subject-card shadow-sm mb-3 border-0">
               <CCardBody>
-                <h6 class="fw-bold">{{ s.name }}</h6>
-                <div class="text-muted small">
-                  Class Average: <b>{{ s.average }}%</b>
-                </div>
-                <div class="small mt-1">
-                  Best Student: <b>{{ s.best }}</b>
-                </div>
+                <h6 class="fw-bold">{{ s.subject }}</h6>
+
+                <div class="small mt-1">Best Student: <b>{{ s.best_student || '---' }}</b></div>
               </CCardBody>
             </CCard>
           </CCol>
@@ -72,7 +70,8 @@
     </CCard>
 
 
-    <!-- ✅ SUBJECT ANALYTICS — PER STUDENT -->
+
+    <!-- ✅ SUBJECT ANALYTICS PER STUDENT -->
     <CCard class="premium-card shadow mb-4">
       <CCardBody>
         <h5 class="fw-bold mb-3">Subject Analytics — Per Student</h5>
@@ -82,28 +81,32 @@
             <thead>
               <tr>
                 <th>Student</th>
-                <th v-for="sub in perStudentSubjects" :key="sub.subject" class="text-center">
-                  {{ sub.subject }}
+                <th v-for="sub in subjectHeaders" :key="sub" class="text-center">
+                  {{ sub }}
                 </th>
               </tr>
             </thead>
 
             <tbody>
-              <tr v-for="stu in students" :key="stu.id">
-                <td class="fw-bold">{{ stu.name }}</td>
+              <tr v-for="stu in perStudentFlat" :key="stu.student">
+                <td class="fw-bold">{{ stu.student }}</td>
 
-                <td class="text-center" v-for="sub in perStudentSubjects" :key="sub.subject">
-                  <div class="fw-bold">{{ sub.scores[stu.id] }}%</div>
-                  <div class="text-muted small">Pos: #{{ sub.positions[stu.id] }}</div>
-                  <span class="badge bg-info">{{ sub.grades[stu.id] }}</span>
+                <td v-for="s in subjectHeaders" :key="s">
+                  <div class="fw-bold text-center">{{ stu.subjects[s]?.score ?? '--' }}%</div>
+                  <div class="text-muted small text-center">Pos: #{{ stu.subjects[s]?.position ?? '--' }}</div>
+                  <span class="badge bg-info small d-block text-center">
+                    {{ stu.subjects[s]?.grade ?? '-' }}
+                  </span>
                 </td>
               </tr>
             </tbody>
+
           </table>
         </div>
 
       </CCardBody>
     </CCard>
+
 
 
     <!-- ✅ STUDENT RANKING -->
@@ -121,7 +124,7 @@
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Average</th>
+                <th>Raw Score</th>
                 <th>Rank</th>
                 <th>Comment Status</th>
                 <th class="text-center">Actions</th>
@@ -129,20 +132,14 @@
             </thead>
 
             <tbody>
-              <tr v-for="stu in filteredStudents" :key="stu.id">
-                <td>{{ stu.name }}</td>
-                <td>{{ stu.average }}%</td>
+              <tr v-for="stu in filteredStudents" :key="stu.student_id">
+                <td>{{ stu.student }}</td>
+                <td>{{ stu.average }}</td>
                 <td>#{{ stu.rank }}</td>
 
-                <!-- ✅ STATUS BADGE -->
                 <td>
-                  <span v-if="studentNotes[stu.id].remarks || studentNotes[stu.id].attitude || studentNotes[stu.id].interest"
-                        class="badge bg-success">
-                    Comment Added
-                  </span>
-                  <span v-else class="badge bg-secondary">
-                    No Comment
-                  </span>
+                  <span v-if="stu.comment_status" class="badge bg-success">Comment Added</span>
+                  <span v-else class="badge bg-secondary">No Comment</span>
                 </td>
 
                 <td class="text-center">
@@ -152,6 +149,7 @@
                 </td>
               </tr>
             </tbody>
+
           </table>
         </div>
 
@@ -160,199 +158,165 @@
 
 
 
+    <!-- ✅ OFFCANVAS FOR COMMENTS -->
+    <COffcanvas placement="end" :visible="drawer" @hide="drawer = false" class="premium-offcanvas shadow-lg">
 
-    <!-- ✅ PREMIUM OFFCANVAS -->
-    <COffcanvas
-      placement="end"
-      :visible="drawer"
-      @hide="drawer = false"
-      class="premium-offcanvas shadow-lg"
-    >
-
-      <!-- Prevent rendering until data is ready -->
       <CCardBody v-if="ready" class="p-4">
 
-        <!-- ✅ HEADER WITH CLOSE BUTTON -->
-        <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex justify-content-between mb-3">
+          <h4 class="fw-bold">{{ activeStudent.student }}</h4>
 
-          <div class="d-flex align-items-center">
-            <CAvatar color="primary" size="lg" class="me-3 text-white fw-bold">
-              {{ initials(activeStudent.name) }}
-            </CAvatar>
-
-            <div>
-              <h4 class="fw-bold mb-0">{{ activeStudent.name }}</h4>
-              <div class="text-muted small">Academic Performance Summary</div>
-            </div>
-          </div>
-
-          <!-- ✅ X CLOSE BUTTON -->
-          <CButton color="light" class="rounded-circle shadow-sm" @click="drawer = false"
-                   style="width:40px; height:40px; display:flex; align-items:center; justify-content:center;">
-            <i class="cil-x fs-3"></i>
+          <CButton color="light" class="rounded-circle" @click="drawer=false">
+            <i class="cil-x fs-4"></i>
           </CButton>
-
         </div>
 
-        <hr />
+        <CFormTextarea v-model="studentNotes[activeStudent.student_id].attitude" rows="2" class="mb-3"
+          placeholder="Attitude..."></CFormTextarea>
 
+        <CFormTextarea v-model="studentNotes[activeStudent.student_id].interest" rows="2" class="mb-3"
+          placeholder="Interest..."></CFormTextarea>
 
-        <!-- ✅ CHARACTER ASSESSMENT -->
-        <h6 class="fw-bold text-primary mb-3">Character Assessment</h6>
-
-        <CFormTextarea
-          v-model="studentNotes[activeStudent.id].attitude"
-          rows="2"
-          class="mb-3"
-          placeholder="Enter attitude..."
-        />
-
-        <CFormTextarea
-          v-model="studentNotes[activeStudent.id].interest"
-          rows="2"
-          class="mb-3"
-          placeholder="Enter interest..."
-        />
-
-        <hr />
-
-
-        <!-- ✅ TEACHER REMARKS -->
-        <h6 class="fw-bold text-primary mb-2">Teacher’s Remarks</h6>
-
-        <CFormTextarea
-          v-model="studentNotes[activeStudent.id].remarks"
-          rows="4"
-          class="mb-3"
-          placeholder="Enter your remarks..."
-        />
+        <CFormTextarea v-model="studentNotes[activeStudent.student_id].remarks" rows="3" class="mb-3"
+          placeholder="Teacher Remarks..."></CFormTextarea>
 
         <CButton color="success" class="w-100" @click="saveRemark">
-          <i class="cil-check me-2"></i> Save Remark
+          Save Remark
         </CButton>
 
       </CCardBody>
+
     </COffcanvas>
 
   </CContainer>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { getClassAnalysis } from "@/services/api";
 
-/* ✅ Year/Term selects */
+/* ✅ State */
 const years = ["2024/2025", "2025/2026"];
 const terms = ["1st Term", "2nd Term", "3rd Term"];
 
-const selectedYear = ref("2025/2026");
-const selectedTerm = ref("1st Term");
+const selectedYear = ref("");
+const selectedTerm = ref("");
 
-/* ✅ KPI counters */
-const kpis = ref([
-  { label: "Total Students", value: 32, bg: "bg-success" },
-  { label: "Class Average", value: "72%", bg: "bg-primary" },
-  { label: "Best Student", value: "Kwame Aidoo", bg: "bg-info" },
-  { label: "Lowest Student", value: "Ama Serwaa", bg: "bg-danger" },
-]);
+/* ✅ Extract from localStorage */
+const storage = JSON.parse(localStorage.getItem("acad_records_demo_v1"));
+const staff = JSON.parse(localStorage.getItem("staff"));
 
-/* ✅ Class-wide subject analytics */
-const subjects = ref([
-  { name: "Math", average: 82, best: "Kwame" },
-  { name: "English", average: 76, best: "Kojo" },
-  { name: "Science", average: 69, best: "Akua" },
-  { name: "ICT", average: 91, best: "Yaw" },
-  { name: "RME", average: 73, best: "Kojo" },
-  { name: "History", average: 79, best: "Aidoo" },
-  { name: "Fante", average: 85, best: "Kwesi" },
-]);
+const gradeclass_id = staff?.assigned_class
+selectedYear.value = storage?.cbx?.year ?? "2024/2025";
+selectedTerm.value = storage?.cbx?.term ?? "1st Term";
 
-/* ✅ Students */
-const students = ref([
-  { id: 1, name: "Kwame Aidoo", average: 90, rank: 1 },
-  { id: 2, name: "Kojo Mensah", average: 84, rank: 2 },
-  { id: 3, name: "Ama Serwaa", average: 62, rank: 24 },
-]);
+/* ✅ API Data */
+const kpis = ref([]);
+const subjects = ref([]);
+const perStudentFlat = ref([]);
+const studentsRanking = ref([]);
 
-const search = ref("");
-
-const filteredStudents = computed(() => {
-  if (!search.value) return students.value;
-  return students.value.filter((s) =>
-    s.name.toLowerCase().includes(search.value.toLowerCase())
-  );
-});
-
-/* ✅ Per-Student Subject Analytics */
-const perStudentSubjects = ref([
-  {
-    subject: "Math",
-    scores: { 1: 88, 2: 67, 3: 55 },
-    positions: { 1: 2, 2: 14, 3: 21 },
-    grades: { 1: "A", 2: "C", 3: "D" }
-  },
-  {
-    subject: "English",
-    scores: { 1: 80, 2: 74, 3: 50 },
-    positions: { 1: 4, 2: 8, 3: 18 },
-    grades: { 1: "B", 2: "B", 3: "D" }
-  },
-  {
-    subject: "Science",
-    scores: { 1: 92, 2: 70, 3: 40 },
-    positions: { 1: 1, 2: 11, 3: 30 },
-    grades: { 1: "A", 2: "C", 3: "E" }
-  },
-  {
-    subject: "ICT",
-    scores: { 1: 95, 2: 82, 3: 55 },
-    positions: { 1: 1, 2: 5, 3: 20 },
-    grades: { 1: "A", 2: "B", 3: "D" }
-  }
-]);
-
-/* ✅ Offcanvas logic */
+/* ✅ Notes */
+const studentNotes = ref({});
 const drawer = ref(false);
 const activeStudent = ref(null);
 
-/* ✅ Per-student editable notes (Attitude, Interest, Remarks) */
-const studentNotes = ref({});
+const search = ref("");
 
-students.value.forEach(stu => {
-  studentNotes.value[stu.id] = {
-    attitude: "",
-    interest: "",
-    remarks: ""
-  };
+const subjectHeaders = ref([]);
+
+/* ✅ FETCH DATA */
+async function fetchData() {
+  try {
+    const res = await getClassAnalysis(
+      selectedYear.value,
+      selectedTerm.value,
+      staff.assigned_class        // ✅ ALWAYS USE CLASS NAME
+    );
+
+    const data = res.data;
+
+    // ✅ KPIs
+    kpis.value = [
+      { label: "Total Students", value: data.summary.total_students, bg: "bg-success" },
+      { label: "Class Average", value: data.summary.class_average, bg: "bg-primary" },
+      { label: "Best Student", value: data.summary.best_student, bg: "bg-info" },
+      { label: "Lowest Student", value: data.summary.lowest_student, bg: "bg-danger" },
+    ];
+
+    // ✅ Subject Analytics
+    subjects.value = data.subject_analytics;
+
+    // ✅ PER STUDENT SUBJECT TABLE FIX
+    perStudentFlat.value = data.per_student_subjects.map(stu => {
+      const normalizedSubjects = {};
+
+      // Convert lowercase → Capitalized labels
+      Object.keys(stu.subjects).forEach(sub => {
+        const niceName = sub.charAt(0).toUpperCase() + sub.slice(1);
+        normalizedSubjects[niceName] = stu.subjects[sub];
+      });
+
+      return {
+        ...stu,
+        subjects: normalizedSubjects
+      };
+    });
+
+    // ✅ Build subject headers dynamically
+    subjectHeaders.value = Object.keys(perStudentFlat.value[0].subjects);
+
+    // ✅ Ranking table
+    studentsRanking.value = data.students_ranking;
+
+    // ✅ Initialize notes for each student
+    data.students_ranking.forEach(s => {
+      if (!studentNotes.value[s.student_id]) {
+        studentNotes.value[s.student_id] = {
+          attitude: "",
+          interest: "",
+          remarks: ""
+        };
+      }
+    });
+
+  } catch (err) {
+
+  }
+}
+
+onMounted(fetchData);
+
+/* ✅ Filters */
+const filteredStudents = computed(() => {
+  if (!search.value) return studentsRanking.value;
+  return studentsRanking.value.filter(s =>
+    s.student.toLowerCase().includes(search.value.toLowerCase())
+  );
 });
 
-/* ✅ Safe rendering guard */
-const ready = computed(() => {
-  return activeStudent.value && studentNotes.value[activeStudent.value.id];
-});
-
-/* ✅ Open */
+/* ✅ Offcanvas */
 function openStudent(stu) {
   activeStudent.value = stu;
   drawer.value = true;
 }
 
-/* ✅ Save remark + auto-close drawer */
+const ready = computed(() =>
+  activeStudent.value && studentNotes.value[activeStudent.value.student_id]
+);
+
+/* ✅ Save remarks */
 function saveRemark() {
-  const s = studentNotes.value[activeStudent.value.id];
-  alert(`✅ Saved for ${activeStudent.value.name}`);
-
-  drawer.value = false;  // ✅ Auto-close
-}
-
-/* ✅ Avatar initials helper */
-function initials(name = "") {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .map(n => n[0].toUpperCase())
-    .join("");
+  alert("✅ Saved!");
+  drawer.value = false;
 }
 </script>
+
+
+
+
+
+
 
 <style scoped>
 .premium-bg {

@@ -8,10 +8,10 @@ import axios from 'axios'
 
 
 const api = axios.create({
- // baseURL: 'http://127.0.0.1:8000/api/',
+ baseURL: 'http://127.0.0.1:8000/api/',
 
 
-      baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
+    //  baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
 
 
   headers: {
@@ -219,6 +219,15 @@ export const delete_deactivated_family = (id) => api.delete(`family-fees/deactiv
 
 
 
+//  academic summary for students
+export const getClassAnalysis = (year, term, gradeclass) =>
+  api.get("academic-records/teacher/analysis/class/", {
+    params: {
+      year,
+      term,
+      gradeclass,   // ✅ correct and defined
+    },
+  });
 
 export const academic_records = (payload) =>  api.post("academic-records/student-academic-records/submit-subject/", payload);
 

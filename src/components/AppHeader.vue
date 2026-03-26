@@ -16,9 +16,15 @@ onMounted(() => {
 })
 
 const roleLabel = computed(() => {
-  return role.value === 'administrator' ? 'ADMINISTRATOR' : 'PRINCIPAL'
-})
+  const roles = {
+    student: "STUDENT",
+    staff: "STAFF",
+    principal: "PRINCIPAL",
+    administrator: "ADMINISTRATOR"
+  }
 
+  return roles[role.value] || "UNKNOWN"
+})
 import AppBreadcrumb from '@/components/AppBreadcrumb.vue'
 import AppHeaderDropdownAccnt from '@/components/AppHeaderDropdownAccnt.vue'
 import { useSidebarStore } from '@/stores/sidebar.js'
@@ -45,8 +51,8 @@ onMounted(() => {
         <CIcon icon="cil-menu" size="lg" />
       </CHeaderToggler>
       <CHeaderNav class="d-none d-md-flex">
-        
-        
+
+
       </CHeaderNav>
       <CHeaderNav class="ms-auto">
         <CNavItem>
@@ -54,17 +60,17 @@ onMounted(() => {
           </div>
 
          <p class="text-2xl font-extrabold tracking-wide text-center select-none mt-3">
-  {{ role === 'administrator' ? 'ADMINISTRATOR' : 'PRINCIPAL' }}
+  {{ roleLabel }}
 </p>
 
 
-     
+
         </CNavItem>
         <CNavItem>
-          
+
         </CNavItem>
         <CNavItem>
-          
+
         </CNavItem>
       </CHeaderNav>
       <CHeaderNav>
