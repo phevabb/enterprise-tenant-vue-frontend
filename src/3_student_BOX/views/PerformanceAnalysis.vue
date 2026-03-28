@@ -58,7 +58,7 @@
         <CCard class="shadow-sm info-card">
           <CCardBody>
             <div class="small text-muted">Class Average</div>
-            <div class="fs-4 fw-bold">{{ classAvg }}%</div>
+            <div class="fs-4 fw-bold">{{ classAvg }}</div>
           </CCardBody>
         </CCard>
       </CCol>
@@ -78,41 +78,7 @@
 
 
     <!-- ✅ SUBJECT TABLE -->
-    <CCard class="shadow parent-card mb-4">
-      <CCardBody>
 
-        <h4 class="fw-bold mb-4">Subject Performance Breakdown</h4>
-
-        <div class="table-responsive">
-          <table class="table table-striped performance-table align-middle">
-            <thead>
-              <tr>
-                <th>Subject</th>
-                <th>Score</th>
-                <th>Position</th>
-                <th>Teacher Remark</th>
-                <th class="text-center">More</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              <tr v-for="sub in subjects" :key="sub.name">
-                <td class="fw-bold">{{ sub.name }}</td>
-                <td>{{ sub.score }}%</td>
-                <td>#{{ sub.position }}</td>
-                <td>{{ sub.remark }}</td>
-                <td class="text-center">
-                  <CButton size="sm" color="primary" variant="outline" @click="openSubject(sub)">
-                    View
-                  </CButton>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-      </CCardBody>
-    </CCard>
 
 
     <!-- ✅ SUBJECT DETAILS DRAWER -->
@@ -141,51 +107,90 @@
   </CContainer>
 </template>
 
-
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import Chart from "chart.js/auto";
+import { getPerformanceChart } from "@/services/api";
 
-/* ✅ Student Info */
+/* ✅ Student Info (empty until API loads) */
 const student = ref({
-  name: "Kwame Aidoo",
-  class: "Class 6",
-  position: "5th / 32",
+  name: "",
+  class: "",
+  position: "",
 });
 
 /* ✅ Filters */
 const years = ["2024/2025", "2025/2026"];
 const terms = ["1st Term", "2nd Term", "3rd Term"];
 
-const selectedYear = ref("2025/2026");
+const selectedYear = ref("2024/2025");
 const selectedTerm = ref("1st Term");
 
-/* ✅ FULL 8‑SUBJECT BREAKDOWN */
-const subjects = ref([
-  { name: "English", score: 82, best: 95, average: 76, worst: 40, position: 4, remark: "Good", description: "Language skills and comprehension." },
-  { name: "Maths", score: 78, best: 97, average: 72, worst: 34, position: 6, remark: "Improving", description: "Algebra, geometry, numeracy." },
-  { name: "Science", score: 74, best: 89, average: 70, worst: 32, position: 8, remark: "Try harder", description: "Physics, Biology, Chemistry." },
-  { name: "History", score: 69, best: 92, average: 63, worst: 29, position: 10, remark: "Fair", description: "Ancient and modern history." },
-  { name: "RME", score: 85, best: 96, average: 78, worst: 50, position: 3, remark: "Very Good", description: "Religious and moral education." },
-  { name: "Fante", score: 90, best: 98, average: 84, worst: 45, position: 2, remark: "Excellent", description: "Local language studies." },
-  { name: "Creative Arts", score: 71, best: 88, average: 66, worst: 30, position: 9, remark: "Good effort", description: "Drawing, crafts, drama, music." },
-  { name: "ICT", score: 88, best: 100, average: 81, worst: 54, position: 2, remark: "Excellent", description: "Computing essentials." },
-]);
+/* ✅ Subject list from API */
+const subjects = ref([]);
 
-/* ✅ Class Average */
-const classAvg = ref(75);
+/* ✅ Class average from API */
+const classAvg = ref(0);
 
 /* ✅ Chart reference */
 const chartCanvas = ref(null);
-let chartInstance;
+let chartInstance = null;
 
-onMounted(() => {
-  const labels = subjects.value.map(s => s.name);
+/* ✅ Load actual data from API */
+async function loadChartData() {
+  try {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
 
-  const studentScores = subjects.value.map(s => s.score);
-  const bestScores = subjects.value.map(s => s.best);
-  const avgScores = subjects.value.map(s => s.average);
-  const worstScores = subjects.value.map(s => s.worst);
+
+    // ✅ Your user object has:
+    // id: 335
+    // user_id: "32991532" (this is NOT the student id)
+    // role: "student"
+
+    const studentId = storedUser.id; // ✅ correct
+
+
+
+    const res = await getPerformanceChart(
+      studentId,
+      selectedYear.value,
+      selectedTerm.value
+    );
+
+
+
+    const record = res.data[0];
+    if (!record) {
+
+      return;
+    }
+
+    student.value = {
+      name: record.student,
+      class: record.class,
+      position: record.position,
+    };
+
+    classAvg.value = record.classAvg;
+    subjects.value = record.subjects;
+
+    renderChart();
+  } catch (err) {
+
+  }
+}
+
+/* ✅ Render chart with API data */
+function renderChart() {
+  if (!chartCanvas.value) return;
+
+  if (chartInstance) chartInstance.destroy();
+
+  const labels = subjects.value.map((s) => s.name);
+  const studentScores = subjects.value.map((s) => s.score);
+  const bestScores = subjects.value.map((s) => s.best);
+  const avgScores = subjects.value.map((s) => s.average);
+  const worstScores = subjects.value.map((s) => s.worst);
 
   chartInstance = new Chart(chartCanvas.value, {
     type: "line",
@@ -231,7 +236,7 @@ onMounted(() => {
           pointStyle: "cross",
           pointRadius: 7,
         },
-      ]
+      ],
     },
     options: {
       responsive: true,
@@ -239,16 +244,26 @@ onMounted(() => {
         legend: {
           position: "bottom",
           labels: { font: { size: 14, weight: "600" } },
-        }
+        },
       },
       scales: {
-        y: { suggestedMin: 0, suggestedMax: 100, ticks: { stepSize: 10 } }
-      }
-    }
+        y: { suggestedMin: 0, suggestedMax: 100, ticks: { stepSize: 10 } },
+      },
+    },
   });
+}
+
+/* ✅ Reload chart when year or term changes */
+watch([selectedYear, selectedTerm], () => {
+  loadChartData();
 });
 
-/* ✅ Offcanvas Logic */
+/* ✅ Initial load */
+onMounted(() => {
+  loadChartData();
+});
+
+/* ✅ Drawer logic (unchanged) */
 const drawer = ref(false);
 const activeSubject = ref(null);
 
@@ -257,8 +272,6 @@ function openSubject(sub) {
   drawer.value = true;
 }
 </script>
-
-
 <style scoped>
 .parent-bg {
   background: #eef2f8;

@@ -71,11 +71,11 @@
                 :disabled="booting"
               />
 
-              <v-btn size="x-small" variant="tonal" color="primary"
+              <!-- <v-btn size="x-small" variant="tonal" color="primary"
                      @click="schemeDialog = true"
                      :disabled="booting">
                 Edit Scheme
-              </v-btn>
+              </v-btn> -->
             </div>
           </div>
 
@@ -135,17 +135,17 @@
             </div>
 
             <div class="d-flex flex-wrap">
-              <v-btn size="x-small" class="mr-1 mb-1" variant="tonal"
+              <!-- <v-btn size="x-small" class="mr-1 mb-1" variant="tonal"
                      @click="fillBlanks(subject, 40, 50)" :disabled="booting">
                 Fill
-              </v-btn>
+              </v-btn> -->
 
               <v-btn size="x-small" class="mr-1 mb-1" variant="tonal" color="error"
                      @click="clearSubject(subject)" :disabled="booting">
                 Clear
               </v-btn>
 
-              <v-btn size="x-small" class="mr-1 mb-1" variant="tonal"
+              <!-- <v-btn size="x-small" class="mr-1 mb-1" variant="tonal"
                      @click="importDialog = true" :disabled="booting">
                 Import
               </v-btn>
@@ -153,7 +153,7 @@
               <v-btn size="x-small" class="mb-1" variant="tonal"
                      @click="exportCSV" :disabled="booting">
                 Export
-              </v-btn>
+              </v-btn> -->
             </div>
           </div>
 
@@ -168,9 +168,9 @@
               <tr>
                 <th style="width: 48px;">#</th>
                 <th>Student</th>
-                <th class="text-left">Class</th>
-                <th class="text-left">Exam</th>
-                <th class="text-right">Total</th>
+                <th class="text-left">Class (50)</th>
+                <th class="text-left">Exam (50)</th>
+                <th class="text-right">Total(100)</th>
                 <th class="text-center">Grade</th>
                 <th class="text-center">Status</th>
               </tr>
@@ -271,11 +271,11 @@
                 Save
               </v-btn>
 
-              <v-btn size="small" class="mr-1" variant="tonal"
+              <!-- <v-btn size="small" class="mr-1" variant="tonal"
                      @click="rankAndPreview"
                      :disabled="booting">
                 Rank
-              </v-btn>
+              </v-btn> -->
 
 
 

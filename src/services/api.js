@@ -8,7 +8,7 @@ import axios from 'axios'
 
 
 const api = axios.create({
- // baseURL: 'http://127.0.0.1:8000/api/',
+ //  baseURL: 'http://127.0.0.1:8000/api/',
 
 
       baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
@@ -234,8 +234,25 @@ export const academic_records = (payload) =>  api.post("academic-records/student
 // Report card: all terms for one student
 export const getReportCardByStudent = (studentId) =>  api.get(`academic-records/report/report-card/student/${studentId}/`); // → /api/report-card/student/<id>/
 
-// Report card: single record by id
+
+// line chart on parent dashbord
+export const getPerformanceChart = (studentId, year, term) =>
+  api.get(
+    `academic-records/chart/performance-chart/`,
+    {
+      params: {
+        student: studentId,
+        year: year,
+        term: term
+      }
+    }
+  );
+
+
+  // Report card: single record by id
 export const getReportRecord = (recordId) =>  api.get(`academic-records/report/report-card/record/${recordId}/`); // → /api/report-card/record/<id>/
+
+
 
 
 export const getReportCardByUser = (userId) =>  api.get(`academic-records/report/report-card/user/${userId}/`);  // → /api/report-card/user/<id>/
