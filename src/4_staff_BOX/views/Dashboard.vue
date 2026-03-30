@@ -135,10 +135,10 @@
             </div>
 
             <div class="d-flex flex-wrap">
-              <!-- <v-btn size="x-small" class="mr-1 mb-1" variant="tonal"
+            <v-btn size="x-small" class="mr-1 mb-1" variant="tonal"
                      @click="fillBlanks(subject, 40, 50)" :disabled="booting">
                 Fill
-              </v-btn> -->
+              </v-btn>
 
               <v-btn size="x-small" class="mr-1 mb-1" variant="tonal" color="error"
                      @click="clearSubject(subject)" :disabled="booting">
@@ -265,11 +265,11 @@
             </div>
 
             <div class="d-flex">
-              <v-btn size="small" class="mr-1" variant="tonal"
+              <!-- <v-btn size="small" class="mr-1" variant="tonal"
                      @click="saveDraft" :loading="saving"
                      :disabled="booting">
                 Save
-              </v-btn>
+              </v-btn> -->
 
               <!-- <v-btn size="small" class="mr-1" variant="tonal"
                      @click="rankAndPreview"

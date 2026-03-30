@@ -5,9 +5,26 @@
       <v-col cols="12" md="4">
         <v-card class="pa-4" elevation="3">
           <div class="d-flex flex-column align-center">
-            <v-avatar size="100" color="primary" class="mb-3">
-              <span class="text-h5">{{ initials }}</span>
-            </v-avatar>
+
+
+
+
+
+
+<v-avatar size="100" class="mb-3">
+  <img
+    v-if="!imgError && student.profile_picture"
+    :src="student.profile_picture"
+    :alt="student.full_name"
+    @error="imgError = true"
+  />
+
+  <img
+    v-else
+    :src="dummyAvatar"
+    alt="Default Avatar"
+  />
+</v-avatar>
 
             <h2 class="text-h6 font-weight-bold mb-1">{{ student.full_name || '—' }}</h2>
             <v-chip :color="student.is_active ? 'success' : 'grey'" size="small" class="mb-3">
@@ -250,93 +267,85 @@
   </v-container>
 </template>
 
+
+
 <script setup>
-import { ref, computed, onMounted } from "vue"
-import { student_profile, get_student_payment_list_per_term, get_family_payment_list_per_term } from "@/services/api"
+import { ref, computed, onMounted } from "vue";
+import {
+  student_profile,
+  get_profile_picture,
+  get_student_payment_list_per_term,
+  get_family_payment_list_per_term
+} from "@/services/api";
 
-const loading = ref(false)
-const errorMsg = ref("")
+// ✅ Base URL so images load correctly (adjust to your backend)
+const API_BASE = import.meta.env.VITE_API_URL || "https://your-backend.com";
 
-const isFamily = ref(false)
-
-const familyString = localStorage.getItem("family")
-if (familyString) {
-  isFamily.value = true
-}
-
+const loading = ref(false);
+const errorMsg = ref("");
 
 const student = ref({
+  profile_picture: "",
   full_name: "",
   gender: "",
   nationality: "",
   date_of_birth: "",
   current_class: "",
   current_class_display: "",
-  class_seeking_admission_to: "",
-  name_of_father: "",
-  contact_of_father: "",
-  name_of_mother: "",
-  contact_of_mother: "",
-  is_immunized: false,
-  has_allergies: false,
-  allergic_foods: "",
-  last_school_attended: "",
-  other_related_info: "",
   is_active: false,
-})
+});
 
-const payments = ref([])               // family payments
-const payments_individual = ref([])    // individual payments
-const family = ref(null)
-const family_name = ref("")
+// ✅ Compute initials
+const initials = computed(() => {
+  if (!student.value.full_name) return "S";
+  return student.value.full_name
+    .split(" ")
+    .map((n) => n[0])
+    .join("");
+});
 
-const stats = ref({
-  total_payments: 0,
-  balance: 0,
-  is_fully_cleared: false,
-})
-
-const scopeFilter = ref('all') // 'all' | 'family' | 'individual'
-
-// Format to GHS (Ghana)
-const formatGHS = (value) => {
-  const num = Number(value ?? 0)
-  return new Intl.NumberFormat('en-GH', {
-    style: 'currency',
-    currency: 'GHS',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(num)
+// ✅ Helper: Add host if picture is relative
+function normalizePictureUrl(path) {
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  return API_BASE + path;
 }
+
+const payments = ref([]);
+const payments_individual = ref([]);
+
+const formatGHS = (value) => {
+  const num = Number(value ?? 0);
+  return new Intl.NumberFormat("en-GH", {
+    style: "currency",
+    currency: "GHS",
+    minimumFractionDigits: 2,
+  }).format(num);
+};
+
+const filteredPayments = computed(() => [
+  ...payments.value,
+  ...payments_individual.value,
+]);
 
 const sumAmounts = computed(() =>
-  filteredPayments.value.reduce((acc, p) => acc + Number(p.amount ?? 0), 0)
-)
+  filteredPayments.value.reduce((acc, p) => acc + Number(p.amount), 0)
+);
+
+
+const dummyAvatar =
+  "data:image/svg+xml;base64," +
+  btoa(`<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'>
+    <rect width='140' height='140' fill='#d1d5db'/>
+    <circle cx='70' cy='56' r='26' fill='white'/>
+    <rect x='22' y='90' width='96' height='34' rx='17' fill='white'/>
+  </svg>`)
+
+
+
 const sumBalances = computed(() =>
-  filteredPayments.value.reduce((acc, p) => acc + Number(p.balance ?? 0), 0)
-)
-
-// Merge & filter payments according to scope
-const filteredPayments = computed(() => {
-  return [
-    ...payments.value,
-    ...payments_individual.value
-  ]
-})
-
-
-
-
-const initials = computed(() => {
-  if (!student.value.full_name) return "S"
-  return student.value.full_name.split(" ").map(n => n[0]).join("")
-})
-
-// Helpers for robustness
-const safeParse = (raw) => {
-  if (!raw) return null
-  try { return JSON.parse(raw) } catch { return null }
-}
+  filteredPayments.value.reduce((acc, p) => acc + Number(p.balance), 0)
+);
 
 const classMap = {
   1: "Creche",
@@ -353,132 +362,67 @@ const classMap = {
   12: "JHS 1",
   13: "JHS 2",
   14: "JHS 3",
-}
+};
 
 onMounted(async () => {
-  loading.value = true
+  loading.value = true;
+
   try {
-    // 1) Read local user
-    const userLocal = safeParse(localStorage.getItem("user"))
-    if (!userLocal || userLocal.user_id == null) {
-      throw new Error("User not found or invalid in localStorage.")
-    }
+    const userLocal = JSON.parse(localStorage.getItem("user"));
+    if (!userLocal?.user_id) throw new Error("Invalid user");
 
-    // 2) Read family (optional)
-    const familyData = safeParse(localStorage.getItem("family"))
-    if (familyData) {
-      family_name.value = familyData.name || ""
-      if (Array.isArray(familyData.members) && familyData.members.length > 0) {
-        family.value = familyData
-      }
-    }
+    const uid = userLocal.user_id;
+    const id = userLocal.id;
 
-    // 3) Resolve UID
-    let uid = userLocal.user_id
-    if (Array.isArray(familyData?.members)) {
-      const firstWithId = familyData.members.find(m => m && m.user_id != null)
-      if (firstWithId && firstWithId.user_id != null) uid = firstWithId.user_id
-    }
+    // ✅ 1. Fetch profile picture FIRST
+    const pic = await get_profile_picture(id);
+    student.value.profile_picture = normalizePictureUrl(
+      pic.data?.profile_picture
+    );
 
-    // 4) Fetch in parallel
-    const familyPaymentsPromise = (async () => {
-      if (!familyData || familyData.id == null) return []
-      try {
-        const famRes = await get_family_payment_list_per_term(familyData.id)
+    // ✅ 2. Fetch student profile
+    const profileRes = await student_profile(uid);
 
-        const records = Array.isArray(famRes?.data?.records) ? famRes.data.records : []
-        return records.map(item => ({
-          term: item.term_name,
-          academicyear: item.academic_year_name,
-          balance: Number(item.balance ?? 0),
-          gradeclass: "-", // no class at family level
-          fullypaid: !!item.is_fully_paid,
-          date: item.date_created ? new Date(item.date_created).toLocaleDateString() : "",
-          amount: Number(item.amount_paid ?? 0)
-        }))
-      } catch (err) {
+    const user = profileRes.data.user || {};
+    const profile = profileRes.data.profile || {};
 
-        return []
-      }
-    })()
+    const currentClass = profile.current_class;
 
-    const profilePromise = student_profile(uid)
-    const individualPayments = await get_student_payment_list_per_term(uid)
+    // ✅ DO NOT OVERWRITE profile_picture — keep it
+    student.value = {
+      ...student.value, // ✅ KEEP EXISTING PICTURE
+      full_name: user.full_name || "",
+      gender: user.gender || "",
+      nationality: user.nationality || "",
+      date_of_birth: user.date_of_birth || "",
+      is_active: !!user.is_active,
+      current_class: currentClass ?? "",
+      current_class_display:
+        classMap[currentClass] ||
+        profile.current_class_display ||
+        "",
+    };
 
-
-
-payments_individual.value = individualPayments.data.map(item => ({
-  id: item.id,
-  amount: Number(item.amount_paid),
-  balance: Number(item.balance),
-  fullypaid: item.is_fully_paid,
-  date: new Date(item.date_created).toLocaleDateString(),
-  term: item.fee_structure?.term.name,
-  academicyear: item.fee_structure.academic_year?.name,
-  gradeclass:item.fee_structure.grade_class.name
-}))
-
-    const [famPayments, profileRes, paymentsRes] = await Promise.all([
-      familyPaymentsPromise,
-      profilePromise,
-
-    ])
-
-    // Save payments
-    payments.value = famPayments
-
-
-    // Stats + profile
-    if (profileRes?.data) {
-      stats.value.total_payments = Number(profileRes.data.total_amount_paid ?? 0)
-      stats.value.balance = Number(profileRes.data.total_balance ?? 0)
-      stats.value.is_fully_cleared = !!profileRes.data.is_fully_cleared
-
-      const user = profileRes.data.user || {}
-      const profile = profileRes.data.profile || {}
-      const currentClass = profile.current_class
-
-      student.value = {
-        full_name: user.full_name || "",
-        gender: user.gender || "",
-        nationality: user.nationality || "",
-        date_of_birth: user.date_of_birth || "",
-        current_class: currentClass ?? "",
-        current_class_display:
-          (typeof currentClass === "number" ? classMap[currentClass] : "") ||
-          profile.current_class_display ||
-          "",
-        class_seeking_admission_to: profile.class_seeking_admission_to || "",
-        name_of_father: profile.name_of_father || "",
-        contact_of_father: profile.contact_of_father || "",
-        name_of_mother: profile.name_of_mother || "",
-        contact_of_mother: profile.contact_of_mother || "",
-        is_immunized: !!profile.is_immunized,
-        has_allergies: !!profile.has_allergies,
-        allergic_foods: profile.allergic_foods || "",
-        last_school_attended: profile.last_school_attended || "",
-        other_related_info: profile.other_related_info || "",
-        is_active: !!user.is_active,
-      }
-    } else {
-
-    }
+    // ✅ 3. Load individual payments
+    const paymentsRes = await get_student_payment_list_per_term(uid);
+    payments_individual.value = paymentsRes.data.map((item) => ({
+      amount: Number(item.amount_paid),
+      balance: Number(item.balance),
+      fullypaid: item.is_fully_paid,
+      date: new Date(item.date_created).toLocaleDateString(),
+      term: item.fee_structure.term.name,
+      academicyear: item.fee_structure.academic_year.name,
+      gradeclass: item.fee_structure.grade_class.name,
+    }));
   } catch (err) {
+    errorMsg.value = "Failed to load student profile.";
 
-    errorMsg.value = "Failed to load student profile."
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-})
-
-// (Kept your helpers in case you use them elsewhere)
-function shouldShow(label) {
-  return !['id', 'user_id', 'full_name'].includes(label)
-}
-function formatLabel(label) {
-  return label.replace(/_/g, ' ').toUpperCase()
-}
+});
 </script>
+
 <style scoped>
 .text-grey { color: #6c757d; }
 </style>

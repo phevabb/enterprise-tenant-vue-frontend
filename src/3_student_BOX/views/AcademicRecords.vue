@@ -57,14 +57,34 @@
 
       <!-- Right: Student block with Avatar -->
       <div class="d-flex align-items-center gap-3">
-        <div class="avatar-ring">
-          <img
-            class="avatar-img"
-            :src="avatarSrc(rec)"
-            :alt="rec.student?.full_name || 'Student'"
-            @error="onImgError"
-          />
-        </div>
+
+
+
+<div class="avatar-ring">
+  <!-- Real profile picture -->
+  <img
+    v-if="profilpic.profile_picture"
+    :src="profilpic.profile_picture"
+    alt="Profile Picture"
+    class="avatar-img"
+    @error="onImgError"
+  />
+
+  <!-- Fallback avatar -->
+  <img
+    v-else
+    class="avatar-img"
+    :src="avatarSrc(rec)"
+    :alt="rec.student?.full_name || 'Student'"
+    @error="onImgError"
+  />
+</div>
+
+
+
+
+
+
         <div class="text-end">
           <div class="fw-bold fs-5">{{ rec.student?.full_name || '—' }}</div>
           <div class="text-muted small">
@@ -211,7 +231,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getReportCardByStudent, getReportCardByUser } from '@/services/api'
+import { getReportCardByStudent, getReportCardByUser , get_profile_picture,} from '@/services/api'
 
 /* ----------------------------------------------------
    PROPS (school branding only)
@@ -255,12 +275,27 @@ function loadStudent() {
   try {
     const stored = localStorage.getItem('user')
 
+
+    const res = get_profile_picture(JSON.parse(stored)?.id)
+    res.then(response => {
+      if (response?.data?.profile_picture) {
+        profilpic.value.profile_picture = response.data.profile_picture
+      }
+    }).catch(err => {
+
+    })
+
     if (!stored) return null
     return JSON.parse(stored)
   } catch {
     return null
   }
 }
+
+const profilpic = ref({
+  profile_picture: "",
+
+});
 
 /* ----------------------------------------------------
    FETCH REPORT CARD USING BACKEND API

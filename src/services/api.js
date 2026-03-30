@@ -258,7 +258,10 @@ export const getReportRecord = (recordId) =>  api.get(`academic-records/report/r
 export const getReportCardByUser = (userId) =>  api.get(`academic-records/report/report-card/user/${userId}/`);  // → /api/report-card/user/<id>/
 
 
+// profile picture
 
+
+export const get_profile_picture = (userId) => api.get(`student/profile-picture/${userId}`);
 
 
 
