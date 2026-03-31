@@ -228,6 +228,10 @@ const subjectHeaders = ref([]);
 /* ✅ FETCH DATA */
 async function fetchData() {
   try {
+
+
+
+
     const res = await getClassAnalysis(
       selectedYear.value,
       selectedTerm.value,
@@ -282,6 +286,8 @@ async function fetchData() {
     });
 
   } catch (err) {
+    toast.error("Could not load class analysis data");
+
 
   }
 }

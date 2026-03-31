@@ -1,3 +1,5 @@
+
+
 <template>
   <CContainer fluid class="py-4 parent-bg">
 
@@ -33,7 +35,6 @@
       </CCardBody>
     </CCard>
 
-
     <!-- ✅ INFO CARDS -->
     <CRow class="mb-4">
       <CCol md="4">
@@ -64,7 +65,6 @@
       </CCol>
     </CRow>
 
-
     <!-- ✅ PERFORMANCE CHART -->
     <CCard class="shadow parent-card mb-4">
       <CCardBody>
@@ -75,11 +75,6 @@
         </div>
       </CCardBody>
     </CCard>
-
-
-    <!-- ✅ SUBJECT TABLE -->
-
-
 
     <!-- ✅ SUBJECT DETAILS DRAWER -->
     <COffcanvas placement="end" :visible="drawer" @hide="drawer=false" class="subject-offcanvas shadow-lg">
@@ -96,9 +91,20 @@
         <p class="text-muted">{{ activeSubject.description }}</p>
 
         <CCard class="shadow-sm border-0 p-3 mt-3 info-mini">
-          <div class="d-flex justify-content-between"><span>Score</span><b>{{ activeSubject.score }}%</b></div>
-          <div class="d-flex justify-content-between"><span>Position</span><b>#{{ activeSubject.position }}</b></div>
-          <div class="d-flex justify-content-between"><span>Teacher Remark</span><b>{{ activeSubject.remark }}</b></div>
+          <div class="d-flex justify-content-between">
+            <span>Score</span>
+            <b>{{ activeSubject.score }}%</b>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <span>Position</span>
+            <b>#{{ activeSubject.position }}</b>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <span>Teacher Remark</span>
+            <b>{{ activeSubject.remark }}</b>
+          </div>
         </CCard>
 
       </CCardBody>
@@ -110,9 +116,15 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import Chart from "chart.js/auto";
-import { getPerformanceChart } from "@/services/api";
 
-/* ✅ Student Info (empty until API loads) */
+import {
+  getPerformanceChart,
+  getCategories
+} from "@/services/api";
+import { useToast } from 'vue-toastification'
+const toast = useToast();
+
+/* ✅ Student Info */
 const student = ref({
   name: "",
   class: "",
@@ -126,30 +138,46 @@ const terms = ["1st Term", "2nd Term", "3rd Term"];
 const selectedYear = ref("2024/2025");
 const selectedTerm = ref("1st Term");
 
-/* ✅ Subject list from API */
+/* ✅ Subjects dynamically loaded based on CLASS CATEGORY */
 const subjects = ref([]);
 
-/* ✅ Class average from API */
+/* ✅ Class Average */
 const classAvg = ref(0);
 
-/* ✅ Chart reference */
+/* ✅ Chart Reference */
 const chartCanvas = ref(null);
 let chartInstance = null;
 
-/* ✅ Load actual data from API */
+/* ✅ Drawer */
+const activeSubject = ref(null);
+const drawer = ref(false);
+
+/* ✅ Find subjects based on class → category */
+async function resolveSubjectsForClass(gradeclassName) {
+  const cls = gradeclassName.toLowerCase().trim();
+
+  const { data: categories } = await getCategories();
+
+  for (const cat of categories) {
+    const match = cat.specific_classes.some(
+      c => c.name.toLowerCase() === cls
+    );
+
+    if (match) {
+      return cat.subject_groups.flatMap(g =>
+        g.subjects.map(s => s.name.toLowerCase())
+      );
+    }
+  }
+
+  return [];
+}
+
+/* ✅ Load Chart Data */
 async function loadChartData() {
   try {
     const storedUser = JSON.parse(localStorage.getItem("user"));
-
-
-    // ✅ Your user object has:
-    // id: 335
-    // user_id: "32991532" (this is NOT the student id)
-    // role: "student"
-
-    const studentId = storedUser.id; // ✅ correct
-
-
+    const studentId = storedUser.id;
 
     const res = await getPerformanceChart(
       studentId,
@@ -157,40 +185,44 @@ async function loadChartData() {
       selectedTerm.value
     );
 
-
-
     const record = res.data[0];
-    if (!record) {
+    if (!record) return;
 
-      return;
-    }
-
+    /* ✅ Populate student info */
     student.value = {
       name: record.student,
       class: record.class,
-      position: record.position,
+      position: record.position
     };
 
     classAvg.value = record.classAvg;
-    subjects.value = record.subjects;
+
+    /* ✅ Get which subjects belong to this class */
+    const allowedSubjects = await resolveSubjectsForClass(record.class);
+
+    /* ✅ Filter chart subjects */
+    subjects.value = record.subjects.filter(s =>
+      allowedSubjects.includes(s.name.toLowerCase())
+    );
 
     renderChart();
   } catch (err) {
+    toast.error("Could not load performance data");
 
   }
 }
 
-/* ✅ Render chart with API data */
+/* ✅ Render Chart */
 function renderChart() {
   if (!chartCanvas.value) return;
 
   if (chartInstance) chartInstance.destroy();
 
-  const labels = subjects.value.map((s) => s.name);
-  const studentScores = subjects.value.map((s) => s.score);
-  const bestScores = subjects.value.map((s) => s.best);
-  const avgScores = subjects.value.map((s) => s.average);
-  const worstScores = subjects.value.map((s) => s.worst);
+  const labels = subjects.value.map(s => s.name);
+  const studentScores = subjects.value.map(s => s.score);
+  const bestScores = subjects.value.map(s => s.best);
+  const avgScores = subjects.value.map(s => s.average);
+  const worstScores = subjects.value.map(s => s.worst);
 
   chartInstance = new Chart(chartCanvas.value, {
     type: "line",
@@ -204,27 +236,24 @@ function renderChart() {
           backgroundColor: "#FFD000",
           borderWidth: 4,
           tension: 0.25,
-          pointStyle: "star",
           pointRadius: 7,
         },
         {
           label: "Best Student",
           data: bestScores,
           borderColor: "#004CFF",
-          borderDash: [6, 4],
           borderWidth: 3,
+          borderDash: [6, 4],
           tension: 0.25,
-          pointStyle: "triangle",
           pointRadius: 7,
         },
         {
           label: "Class Average",
           data: avgScores,
           borderColor: "#8B4513",
-          borderDash: [2, 6],
           borderWidth: 3,
+          borderDash: [6, 4],
           tension: 0.25,
-          pointStyle: "rectRounded",
           pointRadius: 7,
         },
         {
@@ -233,45 +262,33 @@ function renderChart() {
           borderColor: "#FF1E1E",
           borderWidth: 3,
           tension: 0.25,
-          pointStyle: "cross",
           pointRadius: 7,
-        },
-      ],
+        }
+      ]
     },
     options: {
       responsive: true,
-      plugins: {
-        legend: {
-          position: "bottom",
-          labels: { font: { size: 14, weight: "600" } },
-        },
-      },
-      scales: {
-        y: { suggestedMin: 0, suggestedMax: 100, ticks: { stepSize: 10 } },
-      },
-    },
+      plugins: { legend: { position: "bottom" } },
+      scales: { y: { suggestedMin: 0, suggestedMax: 100 } }
+    }
   });
 }
 
-/* ✅ Reload chart when year or term changes */
-watch([selectedYear, selectedTerm], () => {
-  loadChartData();
-});
+/* ✅ Watchers */
+watch([selectedYear, selectedTerm], () => loadChartData());
 
-/* ✅ Initial load */
-onMounted(() => {
-  loadChartData();
-});
+/* ✅ On Mount */
+onMounted(() => loadChartData());
 
-/* ✅ Drawer logic (unchanged) */
-const drawer = ref(false);
-const activeSubject = ref(null);
-
+/* ✅ Drawer open */
 function openSubject(sub) {
   activeSubject.value = sub;
   drawer.value = true;
 }
 </script>
+
+
+
 <style scoped>
 .parent-bg {
   background: #eef2f8;
@@ -284,8 +301,7 @@ function openSubject(sub) {
 }
 
 .parent-avatar {
-  background: rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(4px);
+  background: rgba(255,255,255,0.28);
 }
 
 .info-card {
@@ -294,11 +310,6 @@ function openSubject(sub) {
 
 .parent-card {
   border-radius: 18px;
-}
-
-.performance-table thead {
-  background: #f4f6fa;
-  font-weight: bold;
 }
 
 .subject-offcanvas {

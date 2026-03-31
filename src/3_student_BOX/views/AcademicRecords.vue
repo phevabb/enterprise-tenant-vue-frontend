@@ -50,7 +50,7 @@
           <span class="me-2">•</span>
           <span>
             Class:
-            <strong>{{ rec.gradeclass?.name || rec.gradeclass || '—' }}</strong>
+            <strong>{{ rec.gradeclass?.name || rec.class_level || '—' }}</strong>
           </span>
         </div>
       </div>
@@ -92,7 +92,7 @@
           </div>
           <div class="text-muted small">
             Overall Position:
-            <strong>{{ rec.position ? ordinal(rec.position) : '—' }}</strong>
+            <strong>{{ rec.overall_position ? ordinal(rec.overall_position) : '—' }}</strong>
             <span v-if="rec.number_on_roll"> / {{ rec.number_on_roll }}</span>
           </div>
         </div>
@@ -109,6 +109,7 @@
       <CCard class="border-0 rounded-4 glass-card mt-3">
         <CCardHeader class="bg-light fw-bold">Academic Performance</CCardHeader>
         <CCardBody class="p-0">
+
           <CTable responsive hover class="mb-0 text-center align-middle rc-table">
             <CTableHead color="light">
               <CTableRow>
@@ -124,45 +125,50 @@
               </CTableRow>
             </CTableHead>
 
-            <CTableBody>
-              <CTableRow v-for="(s, i) in subjects" :key="s.key">
-                <CTableDataCell class="text-muted">{{ i + 1 }}</CTableDataCell>
-                <CTableDataCell class="fw-semibold text-start">
-                  {{ s.label }}
-                </CTableDataCell>
+              <CTableBody>
+                <CTableRow v-for="(s, i) in rec.subjects" :key="i">
+                  <CTableDataCell class="text-muted">{{ i + 1 }}</CTableDataCell>
 
-                <CTableDataCell>{{ show(rec[`${s.key}_class_score`]) }}</CTableDataCell>
-                <CTableDataCell>{{ show(rec[`${s.key}_exam_score`]) }}</CTableDataCell>
-                <CTableDataCell class="fw-bold">{{ show(rec[`${s.key}_total_score`]) }}</CTableDataCell>
+                  <CTableDataCell class="fw-semibold text-start">
+                    {{ s.subject_name }}
+                  </CTableDataCell>
 
-                <CTableDataCell>
-                  <strong>{{ rec[`${s.key}_grade`] || '-' }}</strong>
-                </CTableDataCell>
+                  <CTableDataCell>{{ show(s.class_score) }}</CTableDataCell>
+                  <CTableDataCell>{{ show(s.exam_score) }}</CTableDataCell>
+                  <CTableDataCell class="fw-bold">{{ show(s.total_score) }}</CTableDataCell>
 
-                <CTableDataCell>{{ rec[`${s.key}_interpretation`] || '-' }}</CTableDataCell>
-                <CTableDataCell>
-                  {{ rec[`${s.key}_position`] ? ordinal(rec[`${s.key}_position`]) : '-' }}
-                </CTableDataCell>
+                  <CTableDataCell>
+                    <strong>{{ s.grade || '-' }}</strong>
+                  </CTableDataCell>
 
+                  <CTableDataCell>{{ s.interpretation || '-' }}</CTableDataCell>
 
-              </CTableRow>
-            </CTableBody>
+                  <CTableDataCell>
+                    {{ s.position ? ordinal(s.position) : '-' }}
+                  </CTableDataCell>
+                </CTableRow>
+              </CTableBody>
 
-            <CTableFoot>
-              <CTableRow class="fw-bold">
-                <CTableDataCell></CTableDataCell>
-                <CTableDataCell class="text-start">Totals / Average</CTableDataCell>
-                <CTableDataCell>{{ sumClass(rec) }}</CTableDataCell>
-                <CTableDataCell>{{ sumExam(rec) }}</CTableDataCell>
-                <CTableDataCell>{{ sumTotal(rec) }}</CTableDataCell>
-                <CTableDataCell> — </CTableDataCell>
-                <CTableDataCell class="text-muted">Avg: {{ avgTotal(rec).toFixed(1) }}</CTableDataCell>
-                <CTableDataCell>—</CTableDataCell>
+<CTableFoot>
+  <CTableRow class="fw-bold">
+    <CTableDataCell></CTableDataCell>
+    <CTableDataCell class="text-start">Totals / Average</CTableDataCell>
 
-              </CTableRow>
-            </CTableFoot>
+    <CTableDataCell>{{ sumClass(rec.subjects) }}</CTableDataCell>
+    <CTableDataCell>{{ sumExam(rec.subjects) }}</CTableDataCell>
+    <CTableDataCell>{{ sumTotal(rec.subjects) }}</CTableDataCell>
+
+    <CTableDataCell>—</CTableDataCell>
+    <CTableDataCell class="text-muted">
+      Avg: {{ avgTotal(rec.subjects).toFixed(1) }}
+    </CTableDataCell>
+    <CTableDataCell>—</CTableDataCell>
+  </CTableRow>
+</CTableFoot>
 
           </CTable>
+
+
         </CCardBody>
       </CCard>
 
@@ -315,6 +321,7 @@ async function fetchReportCard() {
   try {
     const response = await getReportCardByUser(stu.id)
 
+
   displayRecords.value = (Array.isArray(response.data) ? response.data : [response.data])
   .map(record => ({
     ...record,
@@ -350,20 +357,26 @@ function gradeColor(g) {
   return { A: 'success', B: 'info', C: 'primary', D: 'warning', E: 'danger' }[g] || 'secondary'
 }
 
-function sumClass(rec) {
-  return SUBJECTS.reduce((acc, s) => acc + (Number(rec[`${s.key}_class_score`]) || 0), 0)
+function sumClass(subjects) {
+  if (!Array.isArray(subjects)) return 0;
+  return subjects.reduce((acc, s) => acc + (s.class_score || 0), 0);
 }
-function sumExam(rec) {
-  return SUBJECTS.reduce((acc, s) => acc + (Number(rec[`${s.key}_exam_score`]) || 0), 0)
+
+function sumExam(subjects) {
+  if (!Array.isArray(subjects)) return 0;
+  return subjects.reduce((acc, s) => acc + (s.exam_score || 0), 0);
 }
-function sumTotal(rec) {
-  return SUBJECTS.reduce((acc, s) => acc + (Number(rec[`${s.key}_total_score`]) || 0), 0)
+
+function sumTotal(subjects) {
+  if (!Array.isArray(subjects)) return 0;
+  return subjects.reduce((acc, s) => acc + (s.total_score || 0), 0);
 }
-function avgTotal(rec) {
-  const vals = SUBJECTS.map(s => rec[`${s.key}_total_score`]).filter(v => typeof v === 'number')
-  if (!vals.length) return 0
-  return vals.reduce((a,b) => a + b, 0) / vals.length
+
+function avgTotal(subjects) {
+  if (!Array.isArray(subjects) || subjects.length === 0) return 0;
+  return sumTotal(subjects) / subjects.length;
 }
+
 function avgGrade(rec) {
   const t = avgTotal(rec)
   if (t >= 85) return 'A'

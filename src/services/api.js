@@ -8,10 +8,10 @@ import axios from 'axios'
 
 
 const api = axios.create({
-// baseURL: 'http://127.0.0.1:8000/api/',
+ //baseURL: 'http://127.0.0.1:8000/api/',
 
 
-     baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
+  baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
 
 
   headers: {
@@ -282,7 +282,13 @@ export const publish_subject = (payload) =>
 export const publish_overall = (payload) =>
   api.post("academic-records/new-subject-scores/subject-scores/publish-overall/", payload);
 
+// ✅ Fetch all categories (category → classes)
+export const getCategories = () =>  api.get("academic-records/new-categories/categories");
 
+
+export const getCategoriesSubject = () =>  api.get("academic-records/new-subject-categories/subject-categories");
+
+// ✅ Fetch single category
 
 export default api;
 
