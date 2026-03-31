@@ -1,3 +1,5 @@
+
+
 <template>
   <v-container fluid class="pa-4 premium-bg">
     <!-- Header -->
@@ -16,10 +18,15 @@
         </div>
 
         <div class="d-flex align-center mt-3 mt-sm-0">
-          <v-chip color="white" text-color="white" class="mr-2" size="small" prepend-icon="mdi-cloud-check-outline">
+          <v-chip
+            color="white"
+            text-color="white"
+            class="mr-2"
+            size="small"
+            prepend-icon="mdi-cloud-check-outline"
+          >
             Auto‑save: {{ autoSave ? 'On' : 'Off' }}
           </v-chip>
-
         </div>
       </div>
     </v-card>
@@ -30,7 +37,6 @@
 
           <!-- TOP BAR: Context + Controls -->
           <div class="d-flex flex-wrap align-center justify-space-between mb-2">
-            <!-- Context -->
             <div class="d-flex flex-wrap align-center">
               <v-chip size="x-small" color="primary" class="mr-1 mb-1">
                 {{ ctx.year || '—' }}
@@ -47,7 +53,6 @@
               </v-chip>
             </div>
 
-            <!-- Controls -->
             <div class="d-flex flex-wrap align-center">
               <v-select
                 v-model="subject"
@@ -70,23 +75,13 @@
                 class="mr-2 mb-1"
                 :disabled="booting"
               />
-
-              <!-- <v-btn size="x-small" variant="tonal" color="primary"
-                     @click="schemeDialog = true"
-                     :disabled="booting">
-                Edit Scheme
-              </v-btn> -->
             </div>
           </div>
 
           <!-- Scheme Info -->
           <div class="d-flex flex-wrap align-center mb-2">
-            <v-chip size="x-small" class="mr-1">
-              C: {{ scheme[subject].classMax }}
-            </v-chip>
-            <v-chip size="x-small" class="mr-1">
-              E: {{ scheme[subject].examMax }}
-            </v-chip>
+            <v-chip size="x-small" class="mr-1">C: {{ scheme[subject].classMax }}</v-chip>
+            <v-chip size="x-small" class="mr-1">E: {{ scheme[subject].examMax }}</v-chip>
             <v-chip size="x-small" color="info">
               Total: {{ scheme[subject].classMax + scheme[subject].examMax }}
             </v-chip>
@@ -130,34 +125,33 @@
 
           <!-- TABLE HEADER ACTIONS -->
           <div class="d-flex flex-wrap justify-space-between align-center mb-2">
-            <div class="text-subtitle-2 font-weight-bold">
-              Marks Entry
-            </div>
+            <div class="text-subtitle-2 font-weight-bold">Marks Entry</div>
 
             <div class="d-flex flex-wrap">
-            <v-btn size="x-small" class="mr-1 mb-1" variant="tonal"
-                     @click="fillBlanks(subject, 40, 50)" :disabled="booting">
+              <v-btn
+                size="x-small"
+                class="mr-1 mb-1"
+                variant="tonal"
+                @click="fillBlanks(subject, 40, 50)"
+                :disabled="booting"
+              >
                 Fill
               </v-btn>
 
-              <v-btn size="x-small" class="mr-1 mb-1" variant="tonal" color="error"
-                     @click="clearSubject(subject)" :disabled="booting">
+              <v-btn
+                size="x-small"
+                class="mr-1 mb-1"
+                variant="tonal"
+                color="error"
+                @click="clearSubject(subject)"
+                :disabled="booting"
+              >
                 Clear
               </v-btn>
-
-              <!-- <v-btn size="x-small" class="mr-1 mb-1" variant="tonal"
-                     @click="importDialog = true" :disabled="booting">
-                Import
-              </v-btn>
-
-              <v-btn size="x-small" class="mb-1" variant="tonal"
-                     @click="exportCSV" :disabled="booting">
-                Export
-              </v-btn> -->
             </div>
           </div>
 
-          <!-- TABLE (striped, sticky header, beautiful) -->
+          <!-- MAIN TABLE -->
           <v-table
             fixed-header
             height="60vh"
@@ -205,10 +199,6 @@
                     @change="recalc(stu.id, subject)"
                     @blur="autoSaveDraft"
                     :disabled="booting"
-                    :style="{
-                      '--v-theme-on-background': '#1976d2',
-                      color: '#1976d2'
-                    }"
                     class="cell-input"
                   />
                 </td>
@@ -226,10 +216,6 @@
                     @change="recalc(stu.id, subject)"
                     @blur="autoSaveDraft"
                     :disabled="booting"
-                    :style="{
-                      '--v-theme-on-background': '#1976d2',
-                      color: '#1976d2'
-                    }"
                     class="cell-input"
                   />
                 </td>
@@ -247,8 +233,10 @@
                 </td>
 
                 <td class="text-center">
-                  <v-chip size="x-small"
-                    :color="isComplete(stu.id, subject) ? 'success' : 'grey'">
+                  <v-chip
+                    size="x-small"
+                    :color="isComplete(stu.id, subject) ? 'success' : 'grey'"
+                  >
                     {{ isComplete(stu.id, subject) ? 'Done' : 'Pending' }}
                   </v-chip>
                 </td>
@@ -265,23 +253,12 @@
             </div>
 
             <div class="d-flex">
-              <!-- <v-btn size="small" class="mr-1" variant="tonal"
-                     @click="saveDraft" :loading="saving"
-                     :disabled="booting">
-                Save
-              </v-btn> -->
-
-              <!-- <v-btn size="small" class="mr-1" variant="tonal"
-                     @click="rankAndPreview"
-                     :disabled="booting">
-                Rank
-              </v-btn> -->
-
-
-
-              <v-btn size="small" color="success"
-                     @click="publishDialog = true"
-                     :disabled="completionRate < 60 || booting">
+              <v-btn
+                size="small"
+                color="success"
+                @click="publishDialog = true"
+                :disabled="completionRate < 60 || booting"
+              >
                 Publish ({{ subjectLabel(subject) }})
               </v-btn>
             </div>
@@ -291,34 +268,7 @@
       </v-col>
     </v-row>
 
-    <!-- Dialog: Edit Scheme -->
-    <v-dialog v-model="schemeDialog" max-width="520">
-      <v-card>
-        <v-card-title class="font-weight-bold">Edit Scoring Scheme — {{ subjectLabel(subject) }}</v-card-title>
-        <v-divider />
-        <v-card-text>
-          <v-row dense>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model.number="schemeWorking.classMax" type="number" label="Class Max" />
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field v-model.number="schemeWorking.examMax" type="number" label="Exam Max" />
-            </v-col>
-          </v-row>
-          <v-alert type="info" variant="tonal" border="start" class="mt-2">
-            Recommended total is <strong>100</strong>.
-          </v-alert>
-        </v-card-text>
-        <v-divider />
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="tonal" @click="schemeDialog = false">Cancel</v-btn>
-          <v-btn color="primary" @click="saveScheme">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Dialog: Publish -->
+    <!-- Publish Dialog -->
     <v-dialog v-model="publishDialog" max-width="540">
       <v-card>
         <v-card-title class="font-weight-bold">Publish Results?</v-card-title>
@@ -329,49 +279,23 @@
             but entries remain editable.
           </v-alert>
           <ul class="mt-2">
-            <li>{{ completedCount }}/{{ filteredStudents.length }} students complete (for {{ subjectLabel(subject) }})</li>
+            <li>{{ completedCount }}/{{ filteredStudents.length }} complete</li>
             <li>Subject average: {{ subjectAverage.toFixed(1) }}</li>
-            <li>Year/Term: {{ ctx.year }} / {{ ctx.term }} • Class: {{ ctx.gradeclassName || ctx.gradeclassId }}</li>
+            <li>Class: {{ ctx.gradeclassName }}</li>
           </ul>
         </v-card-text>
         <v-divider />
         <v-card-actions>
           <v-spacer />
           <v-btn variant="tonal" @click="publishDialog = false">Cancel</v-btn>
-          <v-btn color="success" :loading="sending" :disabled="sending" @click="confirmPublishAndSend">
-            <v-icon start>mdi-check-decagram</v-icon>Publish ({{ subjectLabel(subject) }})
+          <v-btn
+            color="success"
+            :loading="sending"
+            :disabled="sending"
+            @click="confirmPublishAndSend"
+          >
+            <v-icon start>mdi-check-decagram</v-icon>Publish
           </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Dialog: Import CSV -->
-    <v-dialog v-model="importDialog" max-width="820">
-      <v-card>
-        <v-card-title class="font-weight-bold">Import Scores from CSV (Paste)</v-card-title>
-        <v-divider />
-        <v-card-text>
-          <p class="text-body-2 mb-2">
-            Paste CSV with headers:
-            <code>indexNo, class, exam</code>
-          </p>
-          <v-textarea
-            v-model="csvText"
-            rows="10"
-            variant="outlined"
-            placeholder="indexNo, class, exam
-            S-001, 32, 52
-            S-002, 28, 45"
-          />
-          <v-alert type="info" variant="tonal" class="mt-3" border="start">
-            Index numbers must match the class list. Values must respect the class/exam maxima.
-          </v-alert>
-        </v-card-text>
-        <v-divider />
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="tonal" @click="importDialog = false">Close</v-btn>
-          <v-btn color="primary" @click="applyCSVImport">Apply</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -383,195 +307,235 @@
   </v-container>
 </template>
 
+
+
+
 <script setup>
+import { useToast } from "vue-toastification"
 
-import { useToast } from 'vue-toastification'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { get_terms_with_year, get_teacher_student, academic_records } from '@/services/api'
+import {  computed, onMounted, reactive, ref, watch } from "vue"
+import { publish_subject, publish_overall, get_terms_with_year, get_teacher_student, create_subject_score } from "@/services/api"
 
-/* ---------------------------
+/* ---------------------------------------
    CONSTANTS
---------------------------- */
-
+--------------------------------------- */
 const toast = useToast()
 
-
 const SUBJECTS = [
-  'english', 'maths', 'science', 'rme', 'ict', 'history', 'fante', 'creativearts'
+  "english", "maths", "science", "rme",
+  "ict", "history", "fante", "creativearts"
 ]
-const GRADE_TO_TEXT = { A: 'Excellent', B: 'Very Good', C: 'Good', D: 'Credit', E: 'Pass' }
 
-/* ---------------------------
+const GRADE_TO_TEXT = {
+  A: "Excellent",
+  B: "Very Good",
+  C: "Good",
+  D: "Credit",
+  E: "Pass"
+}
+
+/* ---------------------------------------
    STATE
---------------------------- */
-const ctx = reactive({ year: '', yearId: null, term: '', termId: null, gradeclassId: '', gradeclassName: '' })
-const subject = ref('english')
-const search = ref('')
-const staff = ref(null)
-const selectedStudentId = ref(null)
+--------------------------------------- */
+const ctx = reactive({
+  year: "",
+  yearId: null,
+  term: "",
+  termId: null,
+  gradeclassId: "",
+  gradeclassName: "",
+})
 
-const scheme = reactive(Object.fromEntries(SUBJECTS.map(s => [s, { classMax: 50, examMax: 50 }])))
-const schemeWorking = ref({ classMax: 50, examMax: 50 })
-const schemeDialog = ref(false)
+const subject = ref("english")
+const search = ref("")
+const staff = ref(null)
+const ass_class = ref(null)
+
+const scheme = reactive(
+  Object.fromEntries(SUBJECTS.map(s => [s, { classMax: 50, examMax: 50 }]))
+)
 
 const published = ref(false)
 const autoSave = ref(true)
 const saving = ref(false)
 const sending = ref(false)
+const booting = ref(false)
 
-/* ✅ Context-scoped records (fix for wrong-term/class bleed) */
-const recordsByCtx = reactive({}) // { "<yearId>|<termId>|<gradeclassId>": { [studentId]: record } }
+const schemeDialog = ref(false)
+const schemeWorking = ref({ classMax: 50, examMax: 50 })
 
-const classMeta = reactive({ attendance: 0, number_on_roll: 0, teacher_remarks: '', head_teacher_remarks: '', next_term_begins: '' })
-const snack = reactive({ show: false, text: '', color: 'success' })
+const recordsByCtx = reactive({})
+const classMeta = reactive({
+  attendance: 0,
+  number_on_roll: 0,
+  teacher_remarks: "",
+  head_teacher_remarks: "",
+  next_term_begins: "",
+})
 
 const publishDialog = ref(false)
-const importDialog = ref(false)
-const csvText = ref('')
+const snack = reactive({ show: false, text: "", color: "success" })
 
-const booting = ref(false)
+const importDialog = ref(false)
+const csvText = ref("")
+
 const studentsFromApi = ref([])
 
-/* ---------------------------
-   COMPUTEDS
---------------------------- */
+/* ---------------------------------------
+   COMPUTED
+--------------------------------------- */
 const students = computed(() => studentsFromApi.value || [])
 
-/* ✅ a key that changes with Year/Term/Class */
-const ctxKey = computed(() =>
-  `${ctx.yearId || ctx.year}|${ctx.termId || ctx.term}|${ctx.gradeclassId || ctx.gradeclassName || ''}`
+const ctxKey = computed(
+  () => `${ctx.yearId}|${ctx.termId}|${ctx.gradeclassId}`
 )
 
 function currentRecordsBucket() {
-  const key = ctxKey.value
-  if (!recordsByCtx[key]) recordsByCtx[key] = {}
-  return recordsByCtx[key]
+  if (!recordsByCtx[ctxKey.value]) recordsByCtx[ctxKey.value] = {}
+  return recordsByCtx[ctxKey.value]
 }
 
 const filteredStudents = computed(() => {
-  const list = students.value
-  if (!search.value) return list
-  const q = (search.value || '').toLowerCase()
-  return list.filter(s => (s.full_name || '').toLowerCase().includes(q) || (s.indexNo || '').toLowerCase().includes(q))
+  if (!search.value) return students.value
+  const q = search.value.toLowerCase()
+  return students.value.filter(s =>
+    s.full_name.toLowerCase().includes(q) ||
+    s.indexNo.toLowerCase().includes(q)
+  )
 })
 
-const completedCount = computed(() => filteredStudents.value.filter(s => isComplete(s.id, subject.value)).length)
-const completionRate = computed(() => filteredStudents.value.length ? Math.round((completedCount.value / filteredStudents.value.length) * 100) : 0)
+/* KPIs */
+const completedCount = computed(() =>
+  filteredStudents.value.filter(s => isComplete(s.id, subject.value)).length
+)
+
+const completionRate = computed(() =>
+  filteredStudents.value.length
+    ? Math.round((completedCount.value / filteredStudents.value.length) * 100)
+    : 0
+)
 
 const subjectAverage = computed(() => {
   const vals = filteredStudents.value
     .map(s => rec(s.id)[`${subject.value}_total_score`] ?? NaN)
     .filter(v => !isNaN(v))
-  if (!vals.length) return 0
-  return vals.reduce((a, b) => a + b, 0) / vals.length
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0
 })
+
 const subjectMax = computed(() => {
-  const list = filteredStudents.value
-  if (!list.length) return { score: 0, holder: '—' }
-  let best = { score: -1, holder: '—' }
-  for (const s of list) {
+  let best = { score: -1, holder: "—" }
+  filteredStudents.value.forEach(s => {
     const sc = rec(s.id)[`${subject.value}_total_score`] ?? 0
     if (sc > best.score) best = { score: sc, holder: s.full_name }
-  }
+  })
   return best
 })
+
 const subjectMin = computed(() => {
-  const list = filteredStudents.value
-  if (!list.length) return { score: 0, holder: '—' }
-  let worst = { score: 101, holder: '—' }
-  for (const s of list) {
+  let worst = { score: 101, holder: "—" }
+  filteredStudents.value.forEach(s => {
     const sc = rec(s.id)[`${subject.value}_total_score`] ?? 0
     if (sc < worst.score) worst = { score: sc, holder: s.full_name }
-  }
+  })
   return worst
 })
 
-const samplePayload = computed(() => {
-  const st = filteredStudents.value[0]
-  return st ? buildPayload(st.id) : {}
-})
-
-/* ---------------------------
+/* ---------------------------------------
    HELPERS
---------------------------- */
+--------------------------------------- */
 function subjectLabel(key) {
-  const map = { english: 'English', maths: 'Maths', science: 'Science', rme: 'RME', ict: 'ICT', history: 'History', fante: 'Fante', creativearts: 'Creative Arts' }
+  const map = {
+    english: "English", maths: "Maths", science: "Science",
+    rme: "RME", ict: "ICT", history: "History",
+    fante: "Fante", creativearts: "Creative Arts"
+  }
   return map[key] || key
 }
-function initials(name = '') {
-  return name.split(' ').filter(Boolean).map(n => n[0]).join('').toUpperCase()
+
+function initials(name = "") {
+  return name.split(" ").map(n => n[0]).join("").toUpperCase()
 }
+
 function rec(studentId) {
-  const bucket = currentRecordsBucket()   // ✅ context-scoped
+  const bucket = currentRecordsBucket()
   bucket[studentId] ||= {
     student: studentId,
-    term: ctx.termId ?? ctx.term,
-    academic_year: ctx.yearId ?? ctx.year,
+    academic_record_id: null,
+
+    term: ctx.termId,
+    academic_year: ctx.yearId,
     gradeclass: ctx.gradeclassId,
-    promoted_to: null,
-    attendance: 0, number_on_roll: 0,
-    attitude: '', interest: '', teacher_remarks: '', head_teacher_remarks: '',
-    next_term_begins: '', position: '', conduct: '', interpretation: '',
-    ...Object.fromEntries(SUBJECTS.flatMap(s => ([
-      [`${s}_class_score`, null],
-      [`${s}_exam_score`, null],
-      [`${s}_total_score`, null],
-      [`${s}_grade`, null],
-      [`${s}_interpretation`, null],
-    ]))),
+
+    attendance: 0,
+    number_on_roll: 0,
+    attitude: "",
+    interest: "",
+    teacher_remarks: "",
+    head_teacher_remarks: "",
+    next_term_begins: "",
+    position: "",
+    conduct: "",
+    interpretation: "",
+
+    ...Object.fromEntries(
+      SUBJECTS.flatMap(s => ([
+        [`${s}_class_score`, null],
+        [`${s}_exam_score`, null],
+        [`${s}_total_score`, null],
+        [`${s}_grade`, null],
+        [`${s}_interpretation`, null],
+      ]))
+    ),
   }
   return bucket[studentId]
 }
+
 function isValidRange(v, min, max) {
-  if (v === null || v === '' || v === undefined) return true
+  if (v === null || v === "") return true
   const n = Number(v)
   return !isNaN(n) && n >= min && n <= max
 }
-function scoreClass(v, min, max) {
-  if (v === null || v === '' || v === undefined) return ''
-  return isValidRange(v, min, max) ? 'score-ok' : 'score-error'
-}
-function colorForScore(sc) {
-  if (sc >= 85) return 'green'
-  if (sc >= 70) return 'teal'
-  if (sc >= 50) return 'light-blue'
-  if (sc >= 30) return 'amber'
-  return 'red'
-}
-function colorForGrade(g) {
-  return { A: 'green', B: 'teal', C: 'light-blue', D: 'amber', E: 'red' }[g] || 'grey'
-}
+
 function computeGrade(total) {
-  if (total >= 85) return 'A'
-  if (total >= 70) return 'B'
-  if (total >= 50) return 'C'
-  if (total >= 30) return 'D'
-  return 'E'
+  if (total >= 85) return "A"
+  if (total >= 70) return "B"
+  if (total >= 50) return "C"
+  if (total >= 30) return "D"
+  return "E"
 }
-function isComplete(studentId, subj) {
-  const r = rec(studentId)
+
+function isComplete(id, subj) {
+  const r = rec(id)
   const c = r[`${subj}_class_score`]
   const e = r[`${subj}_exam_score`]
-  return c !== null && e !== null && isValidRange(c, 0, scheme[subj].classMax) && isValidRange(e, 0, scheme[subj].examMax)
+  return (
+    c !== null &&
+    e !== null &&
+    isValidRange(c, 0, scheme[subj].classMax) &&
+    isValidRange(e, 0, scheme[subj].examMax)
+  )
 }
-function recalc(studentId, subj) {
-  const r = rec(studentId)
+
+function recalc(id, subj) {
+  const r = rec(id)
   const c = Number(r[`${subj}_class_score`] || 0)
   const e = Number(r[`${subj}_exam_score`] || 0)
-  if ((r[`${subj}_class_score`] ?? null) === null && (r[`${subj}_exam_score`] ?? null) === null) {
+
+  if (r[`${subj}_class_score`] == null && r[`${subj}_exam_score`] == null) {
     r[`${subj}_total_score`] = null
     r[`${subj}_grade`] = null
     r[`${subj}_interpretation`] = null
     return
   }
+
   const total = c + e
   r[`${subj}_total_score`] = total
   const g = computeGrade(total)
   r[`${subj}_grade`] = g
   r[`${subj}_interpretation`] = GRADE_TO_TEXT[g]
 }
+
 function clearSubject(subj) {
-  const bucket = currentRecordsBucket() // ✅ scope
   filteredStudents.value.forEach(s => {
     const r = rec(s.id)
     r[`${subj}_class_score`] = null
@@ -580,291 +544,225 @@ function clearSubject(subj) {
     r[`${subj}_grade`] = null
     r[`${subj}_interpretation`] = null
   })
-  toast('Cleared scores for subject', 'warning')
+  toast("Cleared", "warning")
   autoSaveDraft()
 }
+
 function fillBlanks(subj, classDefault = 20, examDefault = 40) {
-  const clsMax = scheme[subj].classMax
-  const exmMax = scheme[subj].examMax
   filteredStudents.value.forEach(s => {
     const r = rec(s.id)
-    if (r[`${subj}_class_score`] == null) r[`${subj}_class_score`] = Math.min(classDefault, clsMax)
-    if (r[`${subj}_exam_score`] == null) r[`${subj}_exam_score`] = Math.min(examDefault, exmMax)
+    if (r[`${subj}_class_score`] == null)
+      r[`${subj}_class_score`] = classDefault
+    if (r[`${subj}_exam_score`] == null)
+      r[`${subj}_exam_score`] = examDefault
     recalc(s.id, subj)
   })
-  toast('Filled blanks', 'success')
-  autoSaveDraft()
-}
-function rankAndPreview() {
-  const list = filteredStudents.value.map(s => {
-    const r = rec(s.id)
-    const totals = SUBJECTS.map(subj => r[`${subj}_total_score`]).filter(v => typeof v === 'number')
-    const avg = totals.length ? totals.reduce((a, b) => a + b, 0) / totals.length : 0
-    return { id: s.id, avg }
-  })
-  const sorted = [...list].sort((a, b) => b.avg - a.avg)
-  const N = filteredStudents.value.length || 0
-  sorted.forEach((row, idx) => { rec(row.id).position = `${idx + 1}/${N}` })
-  toast('Positions computed', 'success')
+  toast("Filled blanks", "success")
   autoSaveDraft()
 }
 
-/* ---------------------------
-   CAPTURE & SEND
---------------------------- */
-function collectSubjectRows() {
-  const subj = subject.value
-  return filteredStudents.value.map(stu => {
-    const r = rec(stu.id)
-    return {
-      student_id: stu.id,
-      index_no: stu.indexNo,
-      class_score: r[`${subj}_class_score`],
-      exam_score: r[`${subj}_exam_score`],
-      total_score: r[`${subj}_total_score`],
-      grade: r[`${subj}_grade`],
-      interpretation: r[`${subj}_interpretation`],
-    }
-  })
-}
-
-function buildSubjectPayload() {
-  return {
-    context: {
-      academic_year: ctx.year,
-      academic_year_id: ctx.yearId,
-      term: ctx.term,
-      term_id: ctx.termId,
-      gradeclass_id: ctx.gradeclassId,
-      gradeclass_name: ctx.gradeclassName,
-    },
-    subject: subject.value,
-    scheme: { ...scheme[subject.value] },
-    rows: collectSubjectRows(),
-  }
-}
-
+/* ---------------------------------------
+   SAVE TO BACKEND
+--------------------------------------- */
 async function submitScores() {
-  const payload = buildSubjectPayload()
-
   sending.value = true
+
   try {
-    const res = await academic_records(payload) // axios instance call
+    let saved = 0
+    const subj = subject.value
 
-    return res.data
-  } catch (e) {
-    if (e.response) {
+    for (const stu of filteredStudents.value) {
+      const r = rec(stu.id)
 
-      toast(`Failed to send: ${e.response.status}`, 'error')
-    } else {
+      if (
+        r[`${subj}_class_score`] == null &&
+        r[`${subj}_exam_score`] == null
+      ) continue
 
-      toast(`Failed to send: ${e.message}`, 'error')
+      const payload = {
+        student: stu.id,
+        subject: subj,
+        class_score: r[`${subj}_class_score`],
+        exam_score: r[`${subj}_exam_score`],
+      }
+
+      await create_subject_score(payload)
+      saved++
     }
-    return null
+
+
+    return true
+
+  } catch (err) {
+    toast.error("❌ Failed to submit scores")
+
+    return false
+
   } finally {
     sending.value = false
   }
 }
 
-/* Publish flow that also sends */
 async function confirmPublishAndSend() {
-  const result = await submitScores()
-  if (result !== null) {
-    published.value = true
-    publishDialog.value = false
+  sending.value = true;
+
+  try {
+    // 1. Save Scores
+    const ok = await submitScores();
+    if (!ok) {
+      toast.error("❌ Failed saving student scores");
+      return;
+    }
 
 
-    toast.success('Results Published ')
+
+
+
+    // ✅ DEBUG CHECK
+
+
+    // 2. Publish subject ranking
+    await publish_subject({
+      class_level: ass_class.value,  // ← USE ASSIGNED CLASS
+      academic_year: ctx.yearId,
+      subject: subject.value,
+    });
+
+    // ✅ DEBUG CHECK
+
+
+    // 3. Publish overall ranking
+    await publish_overall({
+      class_level: ass_class.value,
+      academic_year: ctx.yearId,
+      term: ctx.termId,
+    });
+
+    // 4. Update UI
+    toast.success("✅ Subject & Overall Rankings Published!");
+    publishDialog.value = false;
+    published.value = true;
+
+  } catch (err) {
+
+    toast.error("❌ Failed to publish rankings");
+  } finally {
+    sending.value = false;
   }
 }
-
-/* ---------------------------
-   PERSISTENCE (scoped per context)
---------------------------- */
-const LS_KEY = 'acad_records_demo_v1'
+/* ---------------------------------------
+   LOCAL STORAGE
+--------------------------------------- */
+const LS_KEY = "acad_records_demo_v1"
 
 function saveDraft() {
   saving.value = true
-  const payload = {
-    ctx,
-    recordsByCtx,           // ✅ save all context buckets
-    scheme,
-    classMeta,
-    published: published.value
-  }
-  localStorage.setItem(LS_KEY, JSON.stringify(payload))
-  setTimeout(() => { saving.value = false;  }, 300)
+  localStorage.setItem(
+    LS_KEY,
+    JSON.stringify({
+      ctx,
+      recordsByCtx,
+      scheme,
+      classMeta,
+      published: published.value,
+    })
+  )
+  setTimeout(() => (saving.value = false), 300)
 }
 
-/* keep autosave even when published */
-function autoSaveDraft() { if (autoSave.value) saveDraft() }
+function autoSaveDraft() {
+  if (autoSave.value) saveDraft()
+}
 
 function restoreDraft() {
   const raw = localStorage.getItem(LS_KEY)
   if (!raw) return
   try {
     const parsed = JSON.parse(raw)
-    Object.assign(classMeta, parsed.classMeta || {})
-    published.value = !!parsed.published
-    if (parsed.scheme) for (const s of SUBJECTS) { if (parsed.scheme[s]) scheme[s] = parsed.scheme[s] }
-    if (parsed.recordsByCtx && typeof parsed.recordsByCtx === 'object') {
-      for (const k of Object.keys(parsed.recordsByCtx)) {
-        recordsByCtx[k] = parsed.recordsByCtx[k] || {}
-      }
-    }
+    published.value = parsed.published
+    Object.assign(classMeta, parsed.classMeta)
+    for (const s of SUBJECTS)
+      if (parsed.scheme[s]) scheme[s] = parsed.scheme[s]
+    Object.assign(recordsByCtx, parsed.recordsByCtx)
   } catch {}
 }
 
-/* ---------------------------
-   IMPORT / EXPORT
---------------------------- */
-function exportCSV() {
-  const headers = ['indexNo', 'class', 'exam', 'total', 'grade']
-  const rows = filteredStudents.value.map(stu => {
-    const r = rec(stu.id)
-    return [
-      stu.indexNo,
-      r[`${subject.value}_class_score`] ?? '',
-      r[`${subject.value}_exam_score`] ?? '',
-      r[`${subject.value}_total_score`] ?? '',
-      r[`${subject.value}_grade`] ?? '',
-    ]
-  })
-  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  link.setAttribute('href', url)
-  link.setAttribute('download', `${ctx.gradeclassId}_${subject.value}_${ctx.term}_${ctx.year}.csv`)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  toast('CSV exported', 'success')
-}
-function parseCSVText(text) {
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
-  if (!lines.length) return { headers: [], rows: [] }
-  const headers = lines[0].split(',').map(h => h.trim())
-  const rows = lines.slice(1).map(l => l.split(',').map(v => v.trim()))
-  return { headers, rows }
-}
-function applyCSVImport() {
-  if (!csvText.value) return
-  const { headers, rows } = parseCSVText(csvText.value)
-  const expected = ['indexNo', 'class', 'exam']
-  const ok = headers.length >= expected.length && expected.every((h, i) => headers[i].toLowerCase() === h.toLowerCase())
-  if (!ok) { toast('CSV headers mismatch', 'error'); return }
-  const map = Object.fromEntries(filteredStudents.value.map(s => [String(s.indexNo || '').toLowerCase(), s]))
-  let applied = 0
-  for (const row of rows) {
-    const idNo = (row[0] || '').toLowerCase()
-    const stu = map[idNo]
-    if (!stu) continue
-    const c = Number(row[1]); const e = Number(row[2])
-    const clsMax = scheme[subject.value].classMax
-    const exmMax = scheme[subject.value].examMax
-    const r = rec(stu.id)
-    if (!isNaN(c) && c >= 0 && c <= clsMax) r[`${subject.value}_class_score`] = c
-    if (!isNaN(e) && e >= 0 && e <= exmMax) r[`${subject.value}_exam_score`] = e
-    recalc(stu.id, subject.value)
-    applied++
-  }
-  toast(`Imported ${applied} record(s)`, 'success')
-  importDialog.value = false
-  autoSaveDraft()
-}
-
-/* ---------------------------
-   SCHEME DIALOG
---------------------------- */
-watch(subject, () => { schemeWorking.value = { ...scheme[subject.value] } })
-function saveScheme() {
-  scheme[subject.value] = { ...schemeWorking.value }
-  schemeDialog.value = false
-  toast('Scheme updated', 'success')
-  autoSaveDraft()
-}
-
-/* ---------------------------
-   PAYLOAD (FULL per student if you need it)
---------------------------- */
-function buildPayload(studentId) {
-  const r = rec(studentId)
-  return {
-    student: studentId,
-    term: ctx.termId ?? ctx.term,
-    academic_year: ctx.yearId ?? ctx.year,
-    gradeclass: ctx.gradeclassId,
-    promoted_to: r.promoted_to,
-    attendance: classMeta.attendance,
-    number_on_roll: classMeta.number_on_roll,
-    interpretation: r.interpretation,
-    ...Object.fromEntries(SUBJECTS.flatMap(s => ([
-      [`${s}_class_score`, r[`${s}_class_score`]],
-      [`${s}_exam_score`, r[`${s}_exam_score`]],
-      [`${s}_total_score`, r[`${s}_total_score`]],
-      [`${s}_grade`, r[`${s}_grade`]],
-      [`${s}_interpretation`, r[`${s}_interpretation`]],
-    ]))),
-  }
-}
-
-/* ---------------------------
-   API BOOT + STUDENTS LOAD
---------------------------- */
-function normalizeStudent(raw = {}) {
+/* ---------------------------------------
+   STUDENTS / CTX LOAD
+--------------------------------------- */
+function normalizeStudent(raw) {
   return {
     id: raw.id,
-    indexNo: String(raw.indexNo ?? raw.indexno ?? raw.index_no ?? ''),
-    full_name: raw.full_name ?? `${raw.first_name ?? ''} ${raw.last_name ?? ''}`.trim(),
-  }
-}
-
-function pruneStaleRecords() {
-  const bucket = currentRecordsBucket() // ✅ scoped
-  const valid = new Set(students.value.map(s => String(s.id)))
-  for (const k of Object.keys(bucket)) { if (!valid.has(String(k))) delete bucket[k] }
-}
-
-/* Ensure each student has an initialized record (for THIS context) */
-function initStudentsState() {
-  const bucket = currentRecordsBucket() // ✅ scoped
-  for (const s of studentsFromApi.value) {
-    if (!bucket[s.id]) rec(s.id)
+    indexNo: String(raw.indexNo ?? ""),
+    full_name: raw.full_name,
   }
 }
 
 async function hydrateCtxFromApi() {
-  // staff from localStorage for read-only display
+  // ✅ Fetch class from staff local storage
   const staffString = localStorage.getItem('staff')
   if (staffString) {
-    staff.value = JSON.parse(staffString)
-    ctx.gradeclassId   = staff.value.assigned_class_id ?? staff.value.assigned_class ?? ''
-    ctx.gradeclassName = staff.value.assigned_class_name ?? staff.value.assigned_class ?? ''
+    const s = JSON.parse(staffString)
+    staff.value = s
+
+    // ✅ Correct: use staff assigned class
+    ctx.gradeclassId = s.assigned_class_id
+    ctx.gradeclassName = s.assigned_class
+
+
+  } else {
+
   }
-  // Get latest term + academic year from API
+
+  // ✅ Load current term + year
   const trm = await get_terms_with_year()
   const t = trm?.data ?? trm
-  ctx.termId = t?.id ?? null
-  ctx.term   = t?.name ?? ''
-  ctx.year   = t?.academic_year ?? ''
-  ctx.yearId = t?.academic_year_id ?? null
+
+  ctx.termId = t.id
+  ctx.term = t.name
+  ctx.yearId = t.academic_year_id
+  ctx.year = t.academic_year
 }
+
+
 async function loadTeacherStudents() {
   const ans = await get_teacher_student()
-  const list = Array.isArray(ans?.data) ? ans.data : (Array.isArray(ans) ? ans : [])
-  studentsFromApi.value = list.map(normalizeStudent)
+  const list = ans.data.map(normalizeStudent)
+  studentsFromApi.value = list
+
+  // ✅ Detect the class from first student
+  if (list.length > 0) {
+    ctx.gradeclassId = list[0].class_level_id   // ← ADD THIS
+    ctx.gradeclassName = list[0].class_level_name
+  }
 }
 
-/* ---------------------------
+function initStudentsState() {
+  studentsFromApi.value.forEach(s => rec(s.id))
+}
+
+function pruneStaleRecords() {
+  const ids = new Set(studentsFromApi.value.map(s => String(s.id)))
+  const buck = currentRecordsBucket()
+  for (const k of Object.keys(buck))
+    if (!ids.has(String(k))) delete buck[k]
+}
+
+/* ---------------------------------------
    LIFECYCLE
---------------------------- */
-
-function confirmPublish() { published.value = true; publishDialog.value = false; toast('Published', 'success') }
-function selectStudent(id) { selectedStudentId.value = id }
-
+--------------------------------------- */
 onMounted(async () => {
+
+
+const staffString = localStorage.getItem('staff')
+
+const staff = JSON.parse(staffString)
+
+
+ass_class.value = staff.assigned_class
+
+
+
   booting.value = true
   try {
     await hydrateCtxFromApi()
@@ -872,25 +770,27 @@ onMounted(async () => {
     initStudentsState()
     pruneStaleRecords()
     restoreDraft()
-    // After restore, ensure current context bucket exists
     currentRecordsBucket()
-  } catch (e) {
-
-    toast('Could not load students', 'error')
+  } catch {
+    toast.error("Could not load students")
   } finally {
     booting.value = false
   }
 })
 
-/* ✅ when Year/Term/Class context changes, reset/init THIS context */
 watch(ctxKey, () => {
   initStudentsState()
   pruneStaleRecords()
 })
 
-/* Also re-init if student list refreshes later */
-watch(studentsFromApi, () => { initStudentsState(); pruneStaleRecords() })
+watch(studentsFromApi, () => {
+  initStudentsState()
+  pruneStaleRecords()
+})
+
 </script>
+
+
 
 <style scoped>
 /* Premium theming similar to enterprise dashboards */

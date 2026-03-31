@@ -218,6 +218,14 @@ export const delete_deactivated_family = (id) => api.delete(`family-fees/deactiv
 // academic records
 
 
+// new
+export const subject_scores = () => api.get("academic-records/new-subject-scores/subject-scores/");
+
+export const create_subject_score = (payload) =>
+    api.post("academic-records/new-subject-scores/subject-scores/", payload);
+
+
+
 
 //  academic summary for students
 export const getClassAnalysis = (year, term, gradeclass) =>
@@ -264,5 +272,17 @@ export const getReportCardByUser = (userId) =>  api.get(`academic-records/report
 export const get_profile_picture = (userId) => api.get(`student/profile-picture/${userId}`);
 
 
+// news
+
+// --- Subject Ranking APIs ---
+// --- Ranking APIs ---
+export const publish_subject = (payload) =>
+  api.post("academic-records/new-subject-scores/subject-scores/publish-subject/", payload);
+
+export const publish_overall = (payload) =>
+  api.post("academic-records/new-subject-scores/subject-scores/publish-overall/", payload);
+
+
 
 export default api;
+
