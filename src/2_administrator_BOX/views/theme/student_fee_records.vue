@@ -430,6 +430,7 @@ async function loadLookups() {
   } catch (err) {
 
 
+
     toast.error(err)
   }
 }
@@ -461,6 +462,7 @@ async function loadRecords(page = 1, force = false) {
   try {
     const params = buildParams(page, pageSize)
     const res = await get_student_fee_record(params)
+
     const data = res.data || {}
 
     pageCache.value.set(cacheKey, { results: data.results || [], count: data.count || 0 })

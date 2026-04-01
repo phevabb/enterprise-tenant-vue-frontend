@@ -16,20 +16,12 @@
             <div>
               <h2 class="fw-bold text-white mb-0">{{ student.name }}</h2>
               <div class="text-white-50">
-                Performance Overview • {{ selectedYear }} — {{ selectedTerm }}
+                Performance Overview For Immediate Past Term
               </div>
             </div>
           </div>
 
-          <div class="d-flex gap-2 mt-3 mt-sm-0">
-            <CFormSelect v-model="selectedYear" class="parent-select">
-              <option v-for="y in years" :key="y">{{ y }}</option>
-            </CFormSelect>
 
-            <CFormSelect v-model="selectedTerm" class="parent-select">
-              <option v-for="t in terms" :key="t">{{ t }}</option>
-            </CFormSelect>
-          </div>
 
         </div>
       </CCardBody>
@@ -37,7 +29,7 @@
 
     <!-- ✅ INFO CARDS -->
     <CRow class="mb-4">
-      <CCol md="4">
+      <CCol md="6">
         <CCard class="shadow-sm info-card">
           <CCardBody>
             <div class="small text-muted">Class</div>
@@ -46,7 +38,7 @@
         </CCard>
       </CCol>
 
-      <CCol md="4">
+      <CCol md="6">
         <CCard class="shadow-sm info-card">
           <CCardBody>
             <div class="small text-muted">Overall Position</div>
@@ -55,14 +47,7 @@
         </CCard>
       </CCol>
 
-      <CCol md="4">
-        <CCard class="shadow-sm info-card">
-          <CCardBody>
-            <div class="small text-muted">Class Average</div>
-            <div class="fs-4 fw-bold">{{ classAvg }}</div>
-          </CCardBody>
-        </CCard>
-      </CCol>
+
     </CRow>
 
     <!-- ✅ PERFORMANCE CHART -->

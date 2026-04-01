@@ -15,21 +15,21 @@ export default [
 
 
 
-  { component: 'CNavTitle', name: 'Student Fees' },
+  // { component: 'CNavTitle', name: 'Student Fees' },
 
-  {
-    component: 'CNavItem',
-    name: 'Payment History',
-    to: { name: 'StudentPaymentHistory' },
-    icon: cilList,
-  },
+  // {
+  //   component: 'CNavItem',
+  //   name: 'Payment History',
+  //   to: { name: 'StudentPaymentHistory' },
+  //   icon: cilList,
+  // },
 
-  {
-    component: 'CNavItem',
-    name: 'Online Payment',
-    to: { name: 'StudentOnlinePayment' },
-    icon: cilSpreadsheet,
-  },
+  // {
+  //   component: 'CNavItem',
+  //   name: 'Online Payment',
+  //   to: { name: 'StudentOnlinePayment' },
+  //   icon: cilSpreadsheet,
+  // },
 
   { component: 'CNavTitle', name: 'Academic Records' },
 
@@ -47,20 +47,20 @@ export default [
   },
 
 
-  { component: 'CNavTitle', name: 'Bills / Book lists' },
+  // { component: 'CNavTitle', name: 'Bills / Book lists' },
 
-  {
-    component: 'CNavItem',
-    name: 'Bills',
-    to: { name: 'Bills' },
-    icon: cilAddressBook,
-  },
-  {
-    component: 'CNavItem',
-    name: 'Book List',
-    to: { name: 'Booklist' },
-    icon: 'cil-user',
-  },
+  // {
+  //   component: 'CNavItem',
+  //   name: 'Bills',
+  //   to: { name: 'Bills' },
+  //   icon: cilAddressBook,
+  // },
+  // {
+  //   component: 'CNavItem',
+  //   name: 'Book List',
+  //   to: { name: 'Booklist' },
+  //   icon: 'cil-user',
+  // },
 
 
 

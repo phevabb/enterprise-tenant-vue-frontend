@@ -331,6 +331,7 @@ onMounted(async () => {
     // Load categories + subjects
     const { data: categories } = await getCategories()
 
+
     staff.value = JSON.parse(localStorage.getItem("staff"))
     ass_class.value = staff.value?.assigned_class
 
