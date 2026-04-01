@@ -5,12 +5,12 @@ import { cilCreditCard, cilLibrary, cilSchool, cilCalendar, cilAddressBook, cilP
 
 export default [
 
-  {
-    component: 'CNavItem',
-    name: 'Dashboard',
-    to: { name: 'StudentDashboard' },
-    icon: cilPeople,
-  },
+  // {
+  //   component: 'CNavItem',
+  //   name: 'Dashboard',
+  //   to: { name: 'StudentDashboard' },
+  //   icon: cilPeople,
+  // },
 
 
 

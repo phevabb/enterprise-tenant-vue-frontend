@@ -166,7 +166,7 @@ function nextTarget() {
 
 
   if (user && user.role === 'student') {
-    return { name: 'StudentDashboard' }
+    return { name: 'AcademicRecords' }   // StudentDashboard
   }
 
   if (user && user.role === 'staff') {
@@ -205,7 +205,7 @@ async function onSubmit() {
   const roleRoutes = {
     principal: { name: 'PrincipalDashboard' },
     administrator: { name: 'student_fee_records_admin' },
-    student: { name: 'StudentDashboard' }
+    student: { name: ' AcademicRecords' }   // StudentDashboard
   }
 
   await router.replace(
