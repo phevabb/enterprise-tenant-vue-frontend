@@ -217,7 +217,7 @@
           <CCard class="shadow-sm border-0 rounded-4 h-100">
             <CCardHeader class="bg-light fw-bold">Promotion / Next Term</CCardHeader>
             <CCardBody>
-              <p class="mb-2"><strong>Promoted To:</strong> {{ rec.promoted_to?.name || '-' }}</p>
+              <p class="mb-2"><strong>Promoted To:</strong> {{ rec.promoted_to || '-' }}</p>
               <p class="mb-0"><strong>Next Term Begins:</strong> {{ rec.next_term_begins || '-' }}</p>
             </CCardBody>
           </CCard>
@@ -320,6 +320,7 @@ async function fetchReportCard() {
 
   try {
     const response = await getReportCardByUser(stu.id)
+
 
 
   displayRecords.value = (Array.isArray(response.data) ? response.data : [response.data])

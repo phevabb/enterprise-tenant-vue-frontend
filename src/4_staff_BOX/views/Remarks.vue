@@ -90,10 +90,41 @@
 
               </CRow>
 
+
+              <!-- Class Information -->
+<h6 class="fw-bold text-primary mt-4 mb-3">
+  Class Information
+</h6>
+
+<CRow class="mb-3">
+  <CCol md="6">
+    <label class="form-label">Number on Roll</label>
+    <CFormInput
+      type="number"
+      min="1"
+      v-model="selectedRecord.number_on_roll"
+      placeholder="e.g. 32"
+    />
+  </CCol>
+
+  <CCol md="6">
+    <label class="form-label">Promoted To</label>
+    <CFormInput
+      v-model="selectedRecord.promoted_to"
+      placeholder="e.g. Class 6 / Repeated"
+    />
+  </CCol>
+</CRow>
+
+
+
               <!-- Remarks -->
               <h6 class="fw-bold text-primary mt-4 mb-2">
                Class Teacher's Remarks
               </h6>
+
+
+
               <CFormTextarea
                 v-model="selectedRecord.teacher_remarks"
                 rows="2"
@@ -116,6 +147,26 @@
                   />
                 </CCol>
               </CRow>
+
+
+              <CCol md="6">
+  <label class="form-label">
+    Attendance
+    <small class="text-muted">(present/total)</small>
+  </label>
+
+  <CFormInput
+    v-model="selectedRecord.attendance"
+    placeholder="e.g. 23/45"
+    @input="sanitizeAttendance"
+  />
+
+  <!-- Validation error -->
+  <div v-if="fieldErrors.attendance" class="text-danger small mt-1">
+    {{ fieldErrors.attendance }}
+  </div>
+</CCol>
+
 
               <!-- Actions -->
               <div class="d-flex justify-content-end mt-4">
@@ -205,18 +256,36 @@ const selectStudent = (record) => {
   saved.value = false
 }
 
+
+const fieldErrors = ref({})
+
+const sanitizeAttendance = () => {
+  if (!selectedRecord.value?.attendance) return
+
+  // Allow only digits and slash
+  selectedRecord.value.attendance =
+    selectedRecord.value.attendance.replace(/[^\d/]/g, '')
+}
+
+
 /* Save remarks (PATCH can plug in here later) */
 const saveRemarks = async () => {
   if (!selectedRecord.value) return
 
-  saved.value = false
   loading.value = true
+  saved.value = false
+  fieldErrors.value = {}   // ✅ clear old errors
 
   try {
     const payload = {
+      attendance: selectedRecord.value.attendance,
+      number_on_roll: selectedRecord.value.number_on_roll,
+      promoted_to: selectedRecord.value.promoted_to,
+
       conduct: selectedRecord.value.conduct,
       interest: selectedRecord.value.interest,
       attitude: selectedRecord.value.attitude,
+
       teacher_remarks: selectedRecord.value.teacher_remarks,
       head_teacher_remarks: selectedRecord.value.head_teacher_remarks,
       next_term_begins: selectedRecord.value.next_term_begins,
@@ -226,13 +295,15 @@ const saveRemarks = async () => {
 
     saved.value = true
   } catch (error) {
-
-
+    if (error.response && error.response.data) {
+      fieldErrors.value = error.response.data
+    }
   } finally {
     loading.value = false
     setTimeout(() => (saved.value = false), 2000)
   }
 }
+
 if (academicRecords.value.length > 0) {
   selectStudent(academicRecords.value[0])
 }
