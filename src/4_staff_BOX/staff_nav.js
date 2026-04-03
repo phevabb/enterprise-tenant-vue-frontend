@@ -37,6 +37,17 @@ export default [
   },
 
 
+  { component: 'CNavTitle', name: 'Remarks' },
+
+
+  {
+    component: 'CNavItem',
+    name: 'Class Remarks',
+    to: { name: 'Remarks' },
+    icon: cilCalculator,
+  },
+
+
 
 
 ]

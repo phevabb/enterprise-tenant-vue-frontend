@@ -31,5 +31,13 @@ export const staffRoutes = {
       meta: { roles: ['staff'] },
     },
 
+    {
+      path: 'remarks',
+      name: 'Remarks',
+      component: () =>
+        import('@/4_staff_BOX/views/Remarks.vue'),
+      meta: { roles: ['staff'] },
+    },
+
   ],
 }

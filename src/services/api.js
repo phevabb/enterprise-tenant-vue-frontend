@@ -11,7 +11,7 @@ const api = axios.create({
  // baseURL: 'http://127.0.0.1:8000/api/',
 
 
-  baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
+baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/',
 
 
   headers: {
@@ -220,6 +220,16 @@ export const delete_deactivated_family = (id) => api.delete(`family-fees/deactiv
 
 // new
 export const subject_scores = () => api.get("academic-records/new-subject-scores/subject-scores/");
+
+
+// academic comments
+export const get_academic_comments = (className) =>  api.get(`academic-records/report-comments/report-comments/?class_name=${encodeURIComponent(className)}`
+  )
+
+
+// services/api.js
+
+export const create_academic_comment = (id, payload) =>api.patch(`academic-records/report-comments/report-comments/${id}/`,   payload  )
 
 export const create_subject_score = (payload) =>
     api.post("academic-records/new-subject-scores/subject-scores/", payload);

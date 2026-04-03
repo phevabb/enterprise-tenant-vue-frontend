@@ -64,5 +64,7 @@ export const studentRoutes = {
 
 
 
+
+
   ],
 }
