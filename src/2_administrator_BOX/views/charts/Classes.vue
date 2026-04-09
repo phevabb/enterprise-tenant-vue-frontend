@@ -27,7 +27,7 @@
       <CTableRow>
         <CTableHeaderCell>#</CTableHeaderCell>
         <CTableHeaderCell>Class Name</CTableHeaderCell>
-         <CTableHeaderCell>Staff</CTableHeaderCell>
+
         <CTableHeaderCell class="text-end">Actions</CTableHeaderCell>
       </CTableRow>
     </CTableHead>
@@ -51,7 +51,7 @@
       <CTableRow v-else v-for="(cls, idx) in filteredClasses" :key="cls.id">
         <CTableHeaderCell>{{ idx + 1 }}</CTableHeaderCell>
         <CTableDataCell>{{ cls.name }}</CTableDataCell>
-       <CTableDataCell>{{ cls.staff.user?.full_name || '—' }}</CTableDataCell>
+
         <CTableDataCell class="text-end">
           <CButtonGroup size="sm">
             <CButton color="secondary" variant="outline" @click="openEditModal(cls)">Edit</CButton>
@@ -82,42 +82,39 @@
 
 
   <!-- Modal -->
-  <CModal :visible="showFormModal" @close="closeFormModal">
-    <CModalHeader>
-      <CModalTitle>{{ isEdit ? 'Edit Class' : 'Add Class' }}</CModalTitle>
-    </CModalHeader>
-    <CModalBody>
-      <CFormLabel>Class Name</CFormLabel>
-      <CFormSelect v-model="form.name">
-        <option disabled value="">Select Class</option>
-        <option v-for="cls in classOptions" :key="cls" :value="cls">{{ cls }}</option>
-      </CFormSelect>
+<CModal :visible="showFormModal" @close="closeFormModal">
+  <CModalHeader>
+    <CModalTitle>
+      {{ isEdit ? 'Edit Class' : 'Add Class' }}
+    </CModalTitle>
+  </CModalHeader>
 
-      <CFormLabel class="mt-3">Staff</CFormLabel>
-  <CFormSelect v-model="form.staff">
-    <option value="">No Staff Assigned</option>
-    <option v-for="staff in staff" :key="staff.id" :value="staff.id">
-            {{ staff.full_name }}
-    </option>
-  </CFormSelect>
+  <CModalBody>
 
-      <div class="text-end mt-4">
+    <!-- ✅ CLASS NAME ONLY -->
+    <CFormLabel>Class Name</CFormLabel>
+    <CFormInput
+      v-model="form.name"
+      placeholder="Enter class name e.g Class 1A"
+    />
 
-        <CButton
+    <div class="text-end mt-4">
+      <CButton
         color="primary"
-        class="px-4"
+        class="px-4 text-white"
         :disabled="loading"
         @click="submitForm"
       >
-        <CIcon icon="cil-save" class="me-2" />
+        <CIcon icon="cil-save" class="me-2 text-white" />
         <span v-if="loading">Processing...</span>
         <span v-else>{{ isEdit ? 'Update' : 'Create' }}</span>
       </CButton>
+    </div>
+
+  </CModalBody>
+</CModal>
 
 
-      </div>
-    </CModalBody>
-  </CModal>
 </template>
 
 <script setup>
@@ -138,7 +135,6 @@ async function fetchClasses() {
   loading.value = true;
   try {
     const response = await get_classes();
-
 
     const response_for_staff = await get_staff();
 
@@ -197,7 +193,7 @@ const showFormModal = ref(false)
 const isEdit = ref(false)
 const currentClass = ref(null)
 
-const form = ref({ name: '', staff: '' })
+const form = ref({ name: '' })
 
 const filteredClasses = computed(() => {
   const term = searchTerm.value.trim().toLowerCase()
@@ -219,7 +215,7 @@ const openEditModal = (cls) => {
   currentClass.value = cls
   form.value = {
     name: cls.name,
-    staff: cls.staff.user.id || ' '
+
   }
   showFormModal.value = true
 }
@@ -232,93 +228,56 @@ const closeFormModal = () => {
 const submitForm = async () => {
   loading.value = true;
 
-  form.value.name = form.value.name || 'creche';
-
   try {
-    // ✅ Validate required field: Class Name
+    // ✅ Validate class name only
     if (!form.value.name || form.value.name.trim() === '') {
       toast.error('Class Name is required', { position: 'top-right' });
-      loading.value = false;
       return;
     }
 
-    // ✅ Validate class name against allowed options
-    const validClasses = [
-  'Creche',
-  'Nursery 1',
-  'Nursery 2',
-  'KG 1',
-  'KG 2',
-  'class 1',
-  'class 2',
-  'class 3',
-  'class 4',
-  'class 5',
-  'class 6',
-  'jhs 1',
-  'jhs 2',
-  'jhs 3'
-  ];
-    if (!validClasses.includes(form.value.name)) {
-      toast.error('Invalid class name selected', { position: 'top-right' });
-      loading.value = false;
-      return;
+    const cleanedForm = {
+      name: form.value.name.trim()
+    };
+
+    let response;
+
+    // ✅ EDIT MODE
+    if (isEdit.value && currentClass.value?.id) {
+
+      const idToEdit = currentClass.value.id;
+      const className = currentClass.value.name;
+
+      response = await update_class(idToEdit, cleanedForm);
+
+      const index = gradeClasses.value.findIndex(c => c.id === idToEdit);
+      if (index !== -1) {
+        gradeClasses.value[index] = response.data;
+      }
+
+      toast.success(`${className} updated successfully!`, { position: 'top-right' });
+
+    } else {
+
+      // ✅ CREATE MODE
+      response = await create_class(cleanedForm);
+      gradeClasses.value.push(response.data);
+      toast.success('Class created successfully!', { position: 'top-right' });
+
     }
-
-
-
-    const cleanedForm2 = {
-  name: form.value.name.trim(),
-  user_id: Number(form.value.staff)
-
-};
-
-let response;
-
-// ✅ Do not touch currentClass.value.id unless you know you're in edit mode
-if (isEdit.value && currentClass.value?.id) {
-
-  const idtoedit = currentClass.value.id;
-  const thename = currentClass.value.name;
-
-  response = await update_class(currentClass.value.id, cleanedForm2);
-
-
-  const index = gradeClasses.value.findIndex(c => c.id === idtoedit);
-  if (index !== -1) {
-    const updatedClass = response.data;
-
-    if (updatedClass.staff?.id) {
-      const matchedStaff = staff.value.find(s => s.id === updatedClass.staff.id);
-      if (matchedStaff) updatedClass.staff = matchedStaff;
-    }
-
-    gradeClasses.value[index] = updatedClass;
-  }
-
-
-  toast.success(`${thename} updated successfully!`, { position: 'top-right' })
-} else {
-
-  response = await create_class(cleanedForm2);
-
-  gradeClasses.value.push(response.data);
-  toast.success('Class created successfully!', { position: 'top-right' });
-}
 
     closeFormModal();
 
   } catch (err) {
 
-
-
     const backendMessage = err.response?.data?.message || 'Failed to submit form.';
     toast.error(backendMessage, { position: 'top-right' });
+
   } finally {
+
     loading.value = false;
+
   }
 };
-
 
 const deleteClass = (cs) => {
   classToDelete.value = cs

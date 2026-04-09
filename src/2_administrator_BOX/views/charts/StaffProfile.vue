@@ -49,7 +49,7 @@
               >
                 <CTableHeaderCell>{{ idx + 1 }}</CTableHeaderCell>
                 <CTableDataCell>{{ row.user.full_name }}</CTableDataCell>
-                <CTableDataCell>{{ row.assignedClass }}</CTableDataCell>
+                <CTableDataCell>{{ row.assignedClass?.name || '—' }}</CTableDataCell>
                 <CTableDataCell>{{ row.user.user_id }}</CTableDataCell>
                 <CTableDataCell>{{ row.user.pin }}</CTableDataCell>
                 <CTableDataCell>{{ row.user.gender }}</CTableDataCell>
@@ -128,23 +128,27 @@
         <CFormLabel>Class</CFormLabel>
         <CFormSelect v-model="form.assignedClass">
           <option disabled value="" >Select Class</option>
-          <option v-for="c in classes" :key="c" :value="c">
-            {{ c }}
+          <option v-for="c in classes" :key="c.id" :value="c.id">
+            {{ c.name }}
           </option>
         </CFormSelect>
       </div>
 
-      <CButton color="primary" @click="submitForm">
+      <CButton color="primary" class="text-white" style="color: white !important;" @click="submitForm">
         {{ isEdit ? 'Update' : 'Create' }}
       </CButton>
+
     </CModalBody>
   </CModal>
+
+
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useToast } from "vue-toastification";
 import {
+  get_classes,
   get_staff,
   create_staff,
   update_staff,
@@ -158,6 +162,7 @@ const toast = useToast();
 // =========================
 const loading = ref(false);
 const staff = ref([]);
+const classes = ref([]);
 const searchTerm = ref("");
 
 const showDeleteModal = ref(false);
@@ -166,6 +171,17 @@ const staffToDelete = ref(null);
 const showFormModal = ref(false);
 const isEdit = ref(false);
 const currentStaff = ref(null);
+
+
+async function fetchClasses() {
+  try {
+    const response = await get_classes();
+    classes.value = response.data;
+
+  } catch (err) {
+    toast.error("Failed to load classes.");
+  }
+}
 
 // Form State
 const form = ref({
@@ -180,22 +196,7 @@ const form = ref({
 });
 
 // CLASS OPTIONS
-const classes = [
-  "creche",
-  "nursery 1",
-  "nursery 2",
-  "kg 1",
-  "kg 2",
-  "class 1",
-  "class 2",
-  "class 3",
-  "class 4",
-  "class 5",
-  "class 6",
-  "jhs 1",
-  "jhs 2",
-  "jhs 3",
-];
+
 
 // =========================
 // LOAD STAFF
@@ -205,16 +206,20 @@ async function fetchStaff() {
 
   try {
     const response = await get_staff();
+
     staff.value = response.data;
   } catch (err) {
+
     toast.error("Failed to fetch staff.");
   } finally {
     loading.value = false;
   }
 }
 
-onMounted(fetchStaff);
-
+onMounted(() => {
+  fetchStaff()
+  fetchClasses()
+})
 // =========================
 // FILTERING
 // =========================
@@ -280,6 +285,7 @@ const openAddModal = () => {
 };
 
 const openEditModal = (row) => {
+
   isEdit.value = true;
   currentStaff.value = row;
 
@@ -290,13 +296,16 @@ const openEditModal = (row) => {
       date_of_birth: row.user.date_of_birth,
       role: row.user.role,
     },
-    assignedClass: row.assignedClass,
-    tell: row.tell,
+
+    // ✅ Normalize Contact
+    tell: row.tell ?? "",
+
+    // ✅ VERY IMPORTANT
+    assignedClass: row.assignedClass?.id || ''
   };
 
   showFormModal.value = true;
 };
-
 const closeFormModal = () => {
   showFormModal.value = false;
 };
@@ -305,6 +314,7 @@ const closeFormModal = () => {
 // SUBMIT FORM
 // =========================
 const submitForm = async () => {
+
   loading.value = true;
 
   const payload = JSON.parse(JSON.stringify(form.value));
@@ -315,29 +325,51 @@ const submitForm = async () => {
     return;
   }
 
-  if (!payload.assignedClass) {
-    payload.assignedClass="creche"
+  if (!payload.user.gender) {
+    payload.user.gender = "male";
   }
 
-  if (!payload.user.gender) {
-    payload.user.gender="male"
+  // ✅ Ensure assignedClass is never null BEFORE sending
+  if (!payload.assignedClass) {
+
+    const crecheClass = gradeClasses.value.find(
+      c => c.name.toLowerCase() === "creche"
+    );
+
+    if (!crecheClass) {
+      toast.error("Default class 'creche' not found.");
+      loading.value = false;
+      return;
+    }
+
+    payload.assignedClass_id = crecheClass.id;
+
+  } else {
+
+    payload.assignedClass_id = payload.assignedClass;
+
   }
+
+  // ❌ NEVER SEND assignedClass
+  delete payload.assignedClass;
 
   try {
+
     if (isEdit.value) {
       await update_staff(currentStaff.value.id, payload);
       toast.success("Staff updated!");
     } else {
-
       await create_staff(payload);
       toast.success("Staff created!");
     }
 
     closeFormModal();
     fetchStaff();
+
   } catch (error) {
 
     toast.error("Failed to save staff.");
+
   } finally {
     loading.value = false;
   }
