@@ -1,3 +1,4 @@
+
 <template>
   <CRow>
     <CCol :xs="12">
@@ -76,7 +77,11 @@
                   {{ (currentPage - 1) * pageSize + idx + 1 }}
                 </CTableHeaderCell>
                 <CTableDataCell>{{ student.user?.full_name || '—' }}</CTableDataCell>
-                <CTableDataCell>{{ classValueToLabel(student.current_class) }}</CTableDataCell>
+                <CTableDataCell>
+  {{ student.current_new_grade_class?.name ?? '—' }}
+</CTableDataCell>
+
+
                 <CTableDataCell>{{ student.contact_of_father || '—' }}</CTableDataCell>
                 <CTableDataCell>{{ student.contact_of_mother || '—' }}</CTableDataCell>
                 <CTableDataCell>
@@ -116,6 +121,7 @@
             </div>
           </div>
         </CCardBody>
+
       </CCard>
     </CCol>
   </CRow>
@@ -188,22 +194,18 @@
               </div>
               <div class="col-md-6">
                 <CFormLabel>Current Class <span class="text-danger">*</span></CFormLabel>
-                <CFormSelect v-model="form.current_class" :invalid="!form.current_class">
+                <CFormSelect v-model="form.current_new_grade_class">
                   <option value="">Select class</option>
-                  <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
+                  <option
+                    v-for="cls in classOptions"
+                    :key="cls.value"
+                    :value="cls.value"
+                  >
                     {{ cls.label }}
                   </option>
                 </CFormSelect>
               </div>
-              <div class="col-md-6">
-                <CFormLabel>Class Seeking Admission</CFormLabel>
-                <CFormSelect v-model="form.class_seeking_admission_to">
-                  <option value="">Select class</option>
-                  <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
-                    {{ cls.label }}
-                  </option>
-                </CFormSelect>
-              </div>
+
               <div class="col-md-6">
                 <CFormLabel>Date of Birth</CFormLabel>
                 <CFormInput type="date" v-model="form.date_of_birth" />
@@ -324,14 +326,18 @@
     </CModalBody>
 
     <CModalFooter class="footer-premium">
-      <CButton color="light" class="me-3" @click="closeFormModal" :disabled="loading">Cancel</CButton>
-      <CButton color="primary" @click="submitForm" :disabled="loading">
-        <CIcon icon="cil-save" class="me-2" />
-        {{ isEdit ? 'Update Student' : 'Create Student' }}
-      </CButton>
+      <CButton color="light" class="me-3 " @click="closeFormModal" :disabled="loading">Cancel</CButton>
+      <CButton color="primary" class="text-white" @click="submitForm" :disabled="loading">
+  <CIcon icon="cil-save" class="me-2 text-white" />
+  {{ isEdit ? 'Update Student' : 'Create Student' }}
+</CButton>
     </CModalFooter>
   </CModal>
+
+
 </template>
+
+
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
@@ -340,34 +346,71 @@ import { useToast } from 'vue-toastification'
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import autoTable from 'jspdf-autotable'
+const classOptions = ref([]);
+
 
 import Pagination from '@/Pagination.vue'
-import { st, create_student, update_student, delete_student } from '@/services/api'
+import { st, create_student, update_student, delete_student, get_classes } from '@/services/api'
 
 const toast = useToast()
+
+
+async function fetchClasses() {
+  try {
+    const response = await get_classes();
+
+    classOptions.value = response.data.map(c => ({
+      label: c.name,
+      value: c.id
+    }));
+
+
+  } catch (error) {
+    toast.error("Failed to fetch classes");
+  }
+}
+
+
 
 // ── UI and API page sizes ─────────────────────────────────
 const pageSize = 10                 // UI page size (client pagination)
 const API_PAGE_SIZE = 100           // API fetch size (bigger = fewer requests)
 
 
-function normalizeCurrentClass(val) {
-  // Convert label or numeric-string to number value for consistency
-  if (val == null || val === '') return ''
-  if (typeof val === 'number') return val
-  const s = String(val).trim()
-  if (/^\d+$/.test(s)) return Number(s)
-  const match = classOptions.find(c => c.label.toLowerCase() === s.toLowerCase())
-  return match ? match.value : '' // fallback to '' if unknown
+function normalizeCurrentNewGradeClass(value) {
+  if (!value) return null
+
+  // Already correct shape
+  if (typeof value === 'object' && value !== null) {
+    if ('id' in value && 'name' in value) return value
+  }
+
+  // If backend returns id (number or numeric string)
+  if (typeof value === 'number' || (typeof value === 'string' && /^\d+$/.test(value.trim()))) {
+    const id = Number(value)
+    const match = classOptions.value.find(c => c.value === id)
+    return match ? { id: match.value, name: match.label } : { id, name: String(value) }
+  }
+
+  // If backend returns plain string like "nursery 1"
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    const match = classOptions.value.find(c => c.label.toLowerCase() === normalized)
+    return match
+      ? { id: match.value, name: match.label }
+      : { id: null, name: value }
+  }
+
+  return null
 }
 
 function normalizeStudent(student) {
   if (!student) return student
-  const normalized = { ...student }
-  normalized.current_class = normalizeCurrentClass(student.current_class)
-  normalized.class_seeking_admission_to = normalizeCurrentClass(student.class_seeking_admission_to)
-  // You can normalize other fields here if backend returns varied shapes
-  return normalized
+
+  return {
+    ...student,
+    current_new_grade_class: normalizeCurrentNewGradeClass(student.current_new_grade_class),
+  }
 }
 
 
@@ -396,7 +439,7 @@ const form = ref({
   gender: '',
   nationality: '',
   date_of_birth: '',
-  current_class: '',
+  current_new_grade_class: '',
   class_seeking_admission_to: '',
   is_discounted_student: false,
   deactivation_reason: '',
@@ -417,28 +460,7 @@ const form = ref({
   active: true,
 })
 
-// ── Helpers ──────────────────────────────────────────────
-const classOptions = [
-  { label: 'Creche', value: 1 },
-  { label: 'Nursery 1', value: 2 },
-  { label: 'Nursery 2', value: 3 },
-  { label: 'KG 1', value: 4 },
-  { label: 'KG 2', value: 5 },
-  { label: 'Class 1', value: 6 },
-  { label: 'Class 2', value: 7 },
-  { label: 'Class 3', value: 8 },
-  { label: 'Class 4', value: 9 },
-  { label: 'Class 5', value: 10 },
-  { label: 'Class 6', value: 11 },
-  { label: 'JHS 1', value: 12 },
-  { label: 'JHS 2', value: 13 },
-  { label: 'JHS 3', value: 14 },
-]
 
-const classValueToLabel = (val) => {
-  const match = classOptions.find(c => c.value === Number(val))
-  return match?.label || '—'
-}
 
 const mapClassStringToValue = (input) => {
   if (!input) return ''
@@ -447,7 +469,7 @@ const mapClassStringToValue = (input) => {
     return Number(input.trim())
   }
   const normalized = input.trim().toLowerCase()
-  const match = classOptions.find(cls => cls.label.toLowerCase() === normalized)
+  const match = classOptions.value.find(cls => cls.label.toLowerCase() === normalized)
   return match ? match.value : ''
 }
 
@@ -458,9 +480,10 @@ const filteredStudents = computed(() => {
 
   return allStudents.value.filter(s => {
     const name = (s.user?.full_name || '').toLowerCase()
-    const classLabel = classValueToLabel(s.current_class).toLowerCase()
+    const classLabel = (s.current_new_grade_class?.name || '').toLowerCase()
     const dad = (s.contact_of_father || '').toLowerCase()
     const mom = (s.contact_of_mother || '').toLowerCase()
+
     return (
       name.includes(q) ||
       classLabel.includes(q) ||
@@ -510,7 +533,6 @@ async function loadAllStudents() {
   errorMessage.value = ''
 
   try {
-    // 1) First page
     const first = await st({ page: 1, page_size: API_PAGE_SIZE })
     const data = first.data || {}
     const firstResults = data.results || []
@@ -519,13 +541,12 @@ async function loadAllStudents() {
 
     const all = [...firstResults]
 
-    // 2) Remaining pages (sequential to avoid hammering)
     for (let p = 2; p <= pages; p++) {
       const res = await st({ page: p, page_size: API_PAGE_SIZE })
       all.push(...(res.data?.results || []))
     }
 
-    allStudents.value = all
+    allStudents.value = all.map(normalizeStudent)
     ensureValidPage()
   } catch (err) {
     errorMessage.value = err?.response?.data?.detail || 'Failed to load students'
@@ -534,6 +555,10 @@ async function loadAllStudents() {
     loading.value = false
   }
 }
+
+
+
+
 
 function changePage(page) {
   currentPage.value = page
@@ -547,7 +572,7 @@ function exportToCSV() {
   const rows = filteredStudents.value.map((s, i) => [
     i + 1,
     s.user?.full_name || '',
-    classValueToLabel(s.current_class),
+    (s.current_new_grade_class?.name || '').toLowerCase(),
     s.contact_of_father || '',
     s.contact_of_mother || '',
     s.is_discounted_student ? 'Yes' : 'No',
@@ -584,7 +609,7 @@ async function exportToPDF() {
     const rows = filteredStudents.value.map((s, i) => [
       i + 1,
       s.user?.full_name || '',
-      classValueToLabel(s.current_class),
+      (s.current_new_grade_class?.name || '').toLowerCase(),
       s.contact_of_father || '',
       s.contact_of_mother || '',
       s.is_discounted_student ? 'Yes' : 'No',
@@ -654,7 +679,7 @@ function openAddModal() {
     gender: '',
     nationality: 'Ghanaian',
     date_of_birth: '',
-    current_class: '',
+    current_new_grade_class: '',
     class_seeking_admission_to: '',
     is_discounted_student: false,
     is_immunized: false,
@@ -687,7 +712,7 @@ function openEditModal(student) {
     gender: student.user?.gender || '',
     nationality: student.user?.nationality || 'Ghanaian',
     date_of_birth: student.user?.date_of_birth || '',
-    current_class: mapClassStringToValue(student.current_class),
+    current_new_grade_class:  student.current_new_grade_class?.id || '',
     class_seeking_admission_to: mapClassStringToValue(student.class_seeking_admission_to),
     is_discounted_student: !!student.is_discounted_student,
     is_immunized: !!student.is_immunized,
@@ -728,10 +753,9 @@ async function submitForm() {
       toast.error('Gender is required')
       return
     }
-    if (!form.value.current_class) {
-      toast.error('Current Class is required')
-      return
-    }
+
+
+
     if (!form.value.contact_of_father?.trim() && !form.value.contact_of_mother?.trim()) {
       toast.error('At least one parent contact is required')
       return
@@ -748,9 +772,9 @@ async function submitForm() {
         role: 'student',
         is_staff: false,
       },
-      current_class: Number(form.value.current_class),
+      current_new_grade_class:  Number(form.value.current_new_grade_class),
       class_seeking_admission_to: form.value.class_seeking_admission_to
-        ? classOptions.find(c => c.value === Number(form.value.class_seeking_admission_to))?.label?.toLowerCase() || ''
+        ? classOptions.value.find(c => c.value === Number(form.value.class_seeking_admission_to))?.label?.toLowerCase() || ''
         : '',
       is_discounted_student: !!form.value.is_discounted_student,
       contact_of_father: form.value.contact_of_father?.trim() || null,
@@ -771,27 +795,27 @@ async function submitForm() {
     }
 
     let response
-    if (isEdit.value && currentStudent.value) {
-      response = await update_student(currentStudent.value.id, payload)
-      const idx = allStudents.value.findIndex(s => s.id === currentStudent.value.id)
-      if (idx !== -1) {
-        // Merge response into local dataset
-        const updated = { ...allStudents.value[idx], ...response.data }
-        if (response.data.user) {
-          updated.user = { ...allStudents.value[idx].user, ...response.data.user }
-        }
-        allStudents.value.splice(idx, 1, updated)
-      }
-      toast.success('Student updated successfully!')
-    } else {
-      response = await create_student(payload)
-      // Normalize what the backend returned so your UI stays consistent
-      const normalized = normalizeStudent(response.data)
-      allStudents.value.unshift(normalized)
-      toast.success('Student created successfully!')
-      currentPage.value = 1
-    }
 
+if (isEdit.value && currentStudent.value) {
+  response = await update_student(currentStudent.value.id, payload)
+
+  const normalized = normalizeStudent(response.data)
+
+  const idx = allStudents.value.findIndex(s => s.id === currentStudent.value.id)
+  if (idx !== -1) {
+    allStudents.value.splice(idx, 1, normalized)
+  }
+
+  toast.success('Student updated successfully!')
+} else {
+  response = await create_student(payload)
+
+  const normalized = normalizeStudent(response.data)
+
+  allStudents.value.unshift(normalized)
+  toast.success('Student created successfully!')
+  currentPage.value = 1
+}
     closeFormModal()
   } catch (err) {
     const serverMsg = err.response?.data
@@ -890,9 +914,11 @@ function formatBackendErrors(errData) {
 }
 
 onMounted(() => {
-  loadAllStudents()
+  loadAllStudents(),
+  fetchClasses()
 })
 </script>
+
 
 <style scoped>
 .bg-gradient-primary {

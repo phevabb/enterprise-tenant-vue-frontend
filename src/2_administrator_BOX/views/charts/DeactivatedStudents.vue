@@ -1,3 +1,5 @@
+
+
 <template>
   <CRow>
     <CCol :xs="12">
@@ -14,9 +16,6 @@
                 size="sm"
                 style="min-width: 260px;"
               />
-
-
-
             </div>
           </div>
         </CCardHeader>
@@ -29,13 +28,9 @@
           <CTable v-else hover responsive bordered class="shadow-sm">
             <CTableHead>
               <CTableRow>
-
                 <CTableHeaderCell>#</CTableHeaderCell>
                 <CTableHeaderCell>Name</CTableHeaderCell>
-
                 <CTableHeaderCell>Reason</CTableHeaderCell>
-
-
                 <CTableHeaderCell>Date</CTableHeaderCell>
                 <CTableHeaderCell class="text-end">Actions</CTableHeaderCell>
               </CTableRow>
@@ -43,28 +38,33 @@
 
             <CTableBody>
               <CTableRow v-for="(row, idx) in filteredStaff" :key="row.id">
-
                 <CTableHeaderCell>{{ idx + 1 }}</CTableHeaderCell>
-                <CTableDataCell>{{ row.user.full_name }}</CTableDataCell>
 
-                <CTableDataCell>{{ row.deactivation_reason }}</CTableDataCell>
+                <!-- ✅ SAFE USER DISPLAY -->
+                <CTableDataCell>{{ row.user?.full_name || '—' }}</CTableDataCell>
 
-
-                <CTableDataCell>{{ row.date_deactivated }}</CTableDataCell>
-
+                <CTableDataCell>{{ row.deactivation_reason || '—' }}</CTableDataCell>
+                <CTableDataCell>{{ row.date_deactivated || '—' }}</CTableDataCell>
 
                 <CTableDataCell class="text-end">
                   <CButtonGroup size="sm">
-                    <CButton color="primary" variant="outline" @click="activateStudent(row)">Activate</CButton>
+                    <CButton color="primary" variant="outline" @click="activateStudent(row)">
+                      Activate
+                    </CButton>
 
-                    <CButton color="secondary" variant="outline" @click="openEditModal(row)">Edit</CButton>
-                    <CButton color="danger" variant="outline" @click="deleteStaff(row)">Delete</CButton>
+                    <CButton color="secondary" variant="outline" @click="openEditModal(row)">
+                      Edit
+                    </CButton>
+
+                    <CButton color="danger" variant="outline" @click="deleteStaff(row)">
+                      Delete
+                    </CButton>
                   </CButtonGroup>
                 </CTableDataCell>
               </CTableRow>
 
-              <CTableRow v-if="!isLoading && filteredStaff.length === 0">
-                <CTableDataCell colspan="9" class="text-center text-body-secondary">
+              <CTableRow v-if="!loading && filteredStaff.length === 0">
+                <CTableDataCell colspan="5" class="text-center text-body-secondary">
                   No student found<span v-if="searchTerm"> for “{{ searchTerm }}”.</span>
                 </CTableDataCell>
               </CTableRow>
@@ -75,54 +75,48 @@
     </CCol>
   </CRow>
 
-   <CModal :visible="showDeleteModal" @close="cancelDelete" size="md">
-  <CModalHeader class="bg-danger text-white">
-    <CModalTitle>Confirm Deletion</CModalTitle>
-  </CModalHeader>
-  <CModalBody>
-    Are you sure you want to delete <strong>{{ staffToDelete?.user.full_name }}</strong>? This action cannot be reversed.
-  </CModalBody>
-  <CModalFooter>
-    <CButton color="secondary" variant="outline" @click="cancelDelete">Cancel</CButton>
-    <CButton color="danger" @click="confirmDelete">Delete</CButton>
-  </CModalFooter>
-</CModal>
+  <!-- Delete Modal -->
+  <CModal :visible="showDeleteModal" @close="cancelDelete" size="md">
+    <CModalHeader class="bg-danger text-white">
+      <CModalTitle>Confirm Deletion</CModalTitle>
+    </CModalHeader>
+    <CModalBody>
+      Are you sure you want to delete
+      <strong>{{ staffToDelete?.user?.full_name || 'this student' }}</strong>?
+      This action cannot be reversed.
+    </CModalBody>
+    <CModalFooter>
+      <CButton color="secondary" variant="outline" @click="cancelDelete">Cancel</CButton>
+      <CButton color="danger" @click="confirmDelete">Delete</CButton>
+    </CModalFooter>
+  </CModal>
 
+  <!-- Activate Modal -->
+  <CModal :visible="showActivateModal" @close="cancelActivate" size="md">
+    <CModalHeader class="bg-success text-white">
+      <CModalTitle>Confirm Activation</CModalTitle>
+    </CModalHeader>
+    <CModalBody>
+      Are you sure you want to activate
+      <strong>{{ studentToDelete?.user?.full_name || 'this student' }}</strong>?
+      This action will restore student history.
+    </CModalBody>
+    <CModalFooter>
+      <CButton color="secondary" variant="outline" @click="cancelActivate">Cancel</CButton>
+      <CButton color="success" @click="confirmActivate">Activate</CButton>
+    </CModalFooter>
+  </CModal>
 
-   <CModal :visible="showActivateModal" @close="cancelActivate" size="md">
-  <CModalHeader class="bg-success text-white">
-    <CModalTitle>Confirm Activation</CModalTitle>
-  </CModalHeader>
-  <CModalBody>
-    Are you sure you want to activate <strong>{{ studentToDelete?.user.full_name }}</strong>? This action will restore student's history.
-  </CModalBody>
-  <CModalFooter>
-    <CButton color="secondary" variant="outline" @click="cancelActivate">Cancel</CButton>
-    <CButton color="danger" @click="confirmActivate">Activate</CButton>
-  </CModalFooter>
-</CModal>
-
-
-
-  <!-- Modal -->
+  <!-- Edit Reason Modal -->
   <CModal :visible="showFormModal" @close="closeFormModal">
     <CModalHeader>
-      <CModalTitle> Edit Reason </CModalTitle>
+      <CModalTitle>Edit Reason</CModalTitle>
     </CModalHeader>
     <CModalBody>
       <div class="mb-3">
         <CFormLabel>Edit Reason</CFormLabel>
         <CFormInput v-model="form.deactivation_reason" />
       </div>
-
-      <div class="mb-3">
-
-
-    </div>
-
-
-
-
 
       <CButton color="primary" @click="submitForm">
         {{ isEdit ? 'Update' : 'Create' }}
@@ -136,76 +130,167 @@ import { ref, computed, onMounted } from 'vue'
 import {
   get_deactivated_students,
   activate_deactivated_student,
-  get_staff,
-  create_staff,
   update_deactivated_student,
   delete_deactivated_student,
 } from '@/services/api'
+import { useToast } from 'vue-toastification'
+
+const toast = useToast()
 
 const loading = ref(false)
 const errorMessage = ref('')
 const staff = ref([])
 
-import { useToast } from 'vue-toastification'
-import { useRouter } from 'vue-router'
-
-
-
-const router = useRouter()
 const showDeleteModal = ref(false)
 const showActivateModal = ref(false)
+const showFormModal = ref(false)
 
 const staffToDelete = ref(null)
 const studentToDelete = ref(null)
 
-const toast = useToast()
+const searchTerm = ref('')
+const selectedIds = ref([])
+const isEdit = ref(false)
+const currentStaff = ref(null)
+const idToActivate = ref(null)
+
+const form = ref({
+  user: {
+    full_name: '',
+    id: '',
+    role: 'staff'
+  },
+  deactivation_reason: ''
+})
+
+async function fetchStaff() {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await get_deactivated_students()
+
+    staff.value = response.data
+  } catch (err) {
 
 
-const confirmDelete = async () => {
+    if (err.code === 'ERR_NETWORK') {
+      toast.error('Network error. Please check your internet connection.', {
+        position: 'top-right'
+      })
+    } else if (err.response) {
+      toast.error(
+        err.response.data?.message || 'Failed to fetch deactivated students.',
+        { position: 'top-right' }
+      )
+    } else {
+      toast.error(
+        'An unexpected error occurred while fetching deactivated students.',
+        { position: 'top-right' }
+      )
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchStaff()
+})
+
+const filteredStaff = computed(() => {
+  const term = searchTerm.value.trim().toLowerCase()
+
+  const result = !term
+    ? staff.value
+    : staff.value.filter(s =>
+        s.user?.full_name?.toLowerCase().includes(term)
+      )
+
+  return result
+})
+
+const allSelected = computed(() =>
+  selectedIds.value.length === filteredStaff.value.length &&
+  filteredStaff.value.length > 0
+)
+
+const someSelected = computed(() =>
+  selectedIds.value.length > 0 &&
+  selectedIds.value.length < filteredStaff.value.length
+)
+
+function toggleSelectAll() {
+  if (allSelected.value) {
+    selectedIds.value = []
+  } else {
+    selectedIds.value = filteredStaff.value.map(s => s.id)
+  }
+}
+
+function deleteStaff(item) {
+  staffToDelete.value = item
+  showDeleteModal.value = true
+}
+
+function activateStudent(item) {
+  studentToDelete.value = item
+  idToActivate.value = item.user?.id || null
+  showActivateModal.value = true
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false
+  staffToDelete.value = null
+}
+
+function cancelActivate() {
+  showActivateModal.value = false
+  studentToDelete.value = null
+}
+
+async function confirmDelete() {
   if (!staffToDelete.value) return
+
   loading.value = true
   showDeleteModal.value = false
 
   try {
+    const idToDelete = staffToDelete.value.id
+    const theName = staffToDelete.value.user?.full_name || 'Student'
 
-    const idtodelete = staffToDelete.value.id
-    const thename = staffToDelete.value.user.full_name
+    await delete_deactivated_student(idToDelete)
 
-    await delete_deactivated_student(staffToDelete.value.id)
-    staff.value = staff.value.filter(s => s.id !== idtodelete)
+    staff.value = staff.value.filter(s => s.id !== idToDelete)
 
-
-
-    toast.success(`${thename} deleted successfully!`, { position: 'top-right' })
+    toast.success(`${theName} deleted successfully!`, {
+      position: 'top-right'
+    })
   } catch (error) {
-
-    toast.error('Failed to delete staff. Please try again.', { position: 'top-right' })
+    toast.error('Failed to delete student. Please try again.', {
+      position: 'top-right'
+    })
   } finally {
     loading.value = false
     staffToDelete.value = null
   }
 }
 
-
-const confirmActivate = async () => {
+async function confirmActivate() {
   if (!studentToDelete.value) return
+
   loading.value = true
   showActivateModal.value = false
 
   try {
-    const idtoactivate = studentToDelete.value.id
+    const idToActivateRow = studentToDelete.value.id
+    const theName = studentToDelete.value.user?.full_name || 'Student'
 
+    await activate_deactivated_student(idToActivateRow)
 
+    staff.value = staff.value.filter(s => s.id !== idToActivateRow)
 
-    const UserIdToActivate = idToAactivate.value
-
-    const thename = studentToDelete.value.user.full_name
-
-    await activate_deactivated_student(idtoactivate)
-
-    staff.value = staff.value.filter(s => s.id !== idtoactivate)
-
-    toast.success(`${thename} activated successfully!`, {
+    toast.success(`${theName} activated successfully!`, {
       position: 'top-right'
     })
   } catch (error) {
@@ -218,215 +303,59 @@ const confirmActivate = async () => {
   }
 }
 
+function openEditModal(staffMember) {
+  isEdit.value = true
+  currentStaff.value = staffMember
 
-async function fetchStaff() {
-  loading.value = true
-  errorMessage.value = ''
-  try {
-    const response = await get_deactivated_students()
-
-    staff.value = response.data
-  } catch (err) {
-
-    if(err.code === 'ERR_NETWORK'){
-      toast.error('Network error. Please check you internet connection.', {position: 'top-right'});
-
-    }else if (err.response) {
-      // API returned an error response
-      toast.error(err.response.data?.message || 'Failed to fetch staff.', { position: 'top-right' });
-    } else {
-      // Unknown error
-      toast.error('An unexpected error occurred while fetching staff.', { position: 'top-right' });
-    }
-  } finally {
-    loading.value = false
-  }
-
-}
-
-
-onMounted (()=>{
-  fetchStaff();
-})
-
-
-
-
-
-const bulkDeleteStaff = async (ids) => {
-  staffStore = staffStore.filter(s => !ids.includes(s.id))
-  return new Promise(resolve => setTimeout(() => resolve(true), 300))
-}
-
-// Component state
-
-const isLoading = ref(false)
-
-const searchTerm = ref('')
-const selectedIds = ref([])
-const showFormModal = ref(false)
-const idToAactivate = ref(null)
-const isEdit = ref(false)
-const currentStaff = ref(null)
-
-const form = ref({
-  user: {
-
-    gender: '',            // 'male' | 'female'
-
-    date_of_birth: '',     // 'YYYY-MM-DD' string for <input type="date">
-    role: "staff"
-  },
-  deactivation_reason: ''
-})
-
-
-const deleteStaff = (staff) => {
-  staffToDelete.value = staff
-  showDeleteModal.value = true
-}
-
-
-const activateStudent = (staff) => {
-  studentToDelete.value = staff
-  idToAactivate.value = staff.user.id
-  showActivateModal.value = true
-}
-
-
-
-const cancelDelete = () => {
-  showDeleteModal.value = false
-  staffToDelete.value = null
-}
-
-const cancelActivate = () => {
-  showActivateModal.value = false
-  studentToDelete.value = null
-}
-
-
-
-const filteredStaff = computed(() => {
-  const term = searchTerm.value.trim().toLowerCase()
-  if (!term) return staff.value
-  return staff.value.filter(s => s.user.full_name.toLowerCase().includes(term))
-})
-
-const allSelected = computed(() => selectedIds.value.length === filteredStaff.value.length && filteredStaff.value.length > 0)
-const someSelected = computed(() => selectedIds.value.length > 0 && selectedIds.value.length < filteredStaff.value.length)
-
-const toggleSelectAll = () => {
-  if (allSelected.value) {
-    selectedIds.value = []
-  } else {
-    selectedIds.value = filteredStaff.value.map(s => s.id)
-  }
-}
-
-
-
-
-const openEditModal = (staffMember) => {
-  isEdit.value = true;
-  currentStaff.value = staffMember;
-
-  const user = staffMember.user || {}; // safe check
+  const user = staffMember.user || {}
 
   form.value = {
     user: {
       full_name: user.full_name || '',
       id: user.id || '',
-
       role: user.role || 'staff'
     },
     deactivation_reason: staffMember.deactivation_reason || ''
-  };
+  }
 
-  showFormModal.value = true;
-};
+  showFormModal.value = true
+}
 
-
-
-const closeFormModal = () => {
+function closeFormModal() {
   showFormModal.value = false
   currentStaff.value = null
 }
 
-const submitForm = async () => {
-  loading.value = true;
+async function submitForm() {
+  loading.value = true
 
   try {
-
-    function deepClean(obj) {
-      return Object.fromEntries(
-        Object.entries(obj).map(([key, value]) => {
-          if (typeof value === "string") {
-            const trimmed = value.trim();
-            return [key, trimmed === "" ? null : trimmed];
-          } else if (value && typeof value === "object") {
-            return [key, deepClean(value)];
-          }
-          return [key, value];
-        })
-      );
+    const cleaned = {
+      user: {
+        full_name: form.value.user?.full_name?.trim() || null,
+        id: form.value.user?.id || null,
+        role: form.value.user?.role || 'staff'
+      },
+      deactivation_reason: form.value.deactivation_reason?.trim() || null
     }
-
-    const cleaned = deepClean(form.value);
-
-    // Ensure lowercase gender
-    if (cleaned.user.gender) {
-      cleaned.user.gender = cleaned.user.gender.toLowerCase();
-    }
-
-
 
     if (isEdit.value && currentStaff.value) {
-      const response = await update_deactivated_student(currentStaff.value.id, cleaned);
-
-      toast.success("Staff updated!");
-    } else {
-      let finalPayload = JSON.parse(JSON.stringify(cleaned));
-
-      // ensure gender exists
-      if (!finalPayload.user.gender) {
-        finalPayload.user.gender = "male";
-      }
-
-      // ensure date_of_birth exists
-      if (!finalPayload.user.date_of_birth) {
-        finalPayload.user.date_of_birth = "2002-02-02";
-      }
-
-
-
-const response = await create_staff(finalPayload);
-
-
-      toast.success("Staff created!");
+      await update_deactivated_student(currentStaff.value.id, cleaned)
+      toast.success("Reason updated!")
     }
 
-    closeFormModal();
-    fetchStaff();
-
+    closeFormModal()
+    fetchStaff()
   } catch (error) {
 
-    toast.error("Failed to save staff.");
+    toast.error("Failed to save changes.")
   } finally {
-    loading.value = false;
-  }
-};
-
-
-
-const openBulkDeleteConfirm = async () => {
-  if (confirm(`Delete ${selectedIds.value.length} selected staff members?`)) {
-    await bulkDeleteStaff(selectedIds.value)
-    selectedIds.value = []
-    await fetchStaff()
+    loading.value = false
   }
 }
 </script>
+
+
 
 <style scoped>
 /* Ensure header actions wrap well on smaller screens */

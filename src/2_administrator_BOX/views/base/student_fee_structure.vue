@@ -24,7 +24,7 @@
                 Delete Selected ({{ selectedIds.length }})
               </CButton>
 
-              <CButton  class="text-white" color="primary" size="sm" @click="openAddModal">
+              <CButton class="text-white" color="primary" size="sm" @click="openAddModal">
                 Add Fee Structure
               </CButton>
             </div>
@@ -43,106 +43,101 @@
             <span class="text-body-secondary small">Loading fee structures…</span>
           </div>
 
-
-          <DocsExample>
-            <div v-if="isLoading" class="text-center my-5">
+          <div v-if="isLoading" class="text-center my-5">
             <CSpinner color="primary" class="me-2" />
             <span class="text-primary fw-bold">Loading fee structures...</span>
           </div>
 
-            <CTable v-else hover responsive>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell scope="col" class="text-center" style="width: 48px">
-                    <CFormCheck
-                      :checked="allSelected"
-                      :indeterminate="someSelected"
-                      @change="toggleSelectAll"
-                      aria-label="Select all in current view"
-                    />
-                  </CTableHeaderCell>
+          <CTable v-else hover responsive>
+            <CTableHead>
+              <CTableRow>
+                <CTableHeaderCell scope="col" class="text-center" style="width: 48px">
+                  <CFormCheck
+                    :checked="allSelected"
+                    :indeterminate="someSelected"
+                    @change="toggleSelectAll"
+                    aria-label="Select all in current view"
+                  />
+                </CTableHeaderCell>
 
-                  <CTableHeaderCell scope="col" style="width: 60px">#</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Academic Year</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Class</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Term</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Has Discount</CTableHeaderCell>
-                  <CTableHeaderCell scope="col" class="text-end">Amount (GHS)</CTableHeaderCell>
-                  <CTableHeaderCell scope="col" class="text-end" style="width: 160px">
-                    Actions
-                  </CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
+                <CTableHeaderCell scope="col" style="width: 60px">#</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Academic Year</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Class</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Term</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Has Discount</CTableHeaderCell>
+                <CTableHeaderCell scope="col" class="text-end">Amount (GHS)</CTableHeaderCell>
+                <CTableHeaderCell scope="col" class="text-end" style="width: 160px">
+                  Actions
+                </CTableHeaderCell>
+              </CTableRow>
+            </CTableHead>
 
+            <CTableBody>
+              <CTableRow v-for="(row, idx) in rows" :key="row.id">
+                <CTableDataCell class="text-center">
+                  <CFormCheck v-model="selectedIds" :value="row.id" aria-label="Select row" />
+                </CTableDataCell>
 
+                <CTableHeaderCell scope="row">
+                  {{ rowNumber(idx) }}
+                </CTableHeaderCell>
 
-              <CTableBody>
-                <CTableRow v-for="(row, idx) in rows" :key="row.id">
-                  <CTableDataCell class="text-center">
-                    <CFormCheck v-model="selectedIds" :value="row.id" aria-label="Select row" />
-                  </CTableDataCell>
+                <CTableDataCell>{{ row.academic_year?.name || "—" }}</CTableDataCell>
+                <CTableDataCell>{{ row.grade_class?.name || "—" }}</CTableDataCell>
+                <CTableDataCell>{{ row.term?.name || "—" }}</CTableDataCell>
 
-                  <CTableHeaderCell scope="row">
-                    {{ rowNumber(idx) }}
-                  </CTableHeaderCell>
+                <CTableDataCell>
+                  <CBadge :color="row.is_discounted ? 'success' : 'secondary'">
+                    {{ row.is_discounted ? "Yes" : "No" }}
+                  </CBadge>
+                </CTableDataCell>
 
-                  <CTableDataCell>{{ row.academic_year?.name }}</CTableDataCell>
-                  <CTableDataCell>{{ row.grade_class?.name }}</CTableDataCell>
-                  <CTableDataCell>{{ row.term?.name }}</CTableDataCell>
+                <CTableDataCell class="text-end">
+                  {{ formatAmount(row.amount) }}
+                </CTableDataCell>
 
-                  <CTableDataCell>
-                    <CBadge :color="row.is_discounted ? 'success' : 'secondary'">
-                      {{ row.is_discounted ? 'Yes' : 'No' }}
-                    </CBadge>
-                  </CTableDataCell>
+                <CTableDataCell class="text-end">
+                  <CButtonGroup size="sm">
+                    <CButton
+                      color="secondary"
+                      variant="outline"
+                      @click="openEditModal(row)"
+                    >
+                      Edit
+                    </CButton>
+                    <CButton
+                      color="danger"
+                      variant="outline"
+                      @click="openSingleDeleteConfirm(row)"
+                    >
+                      Delete
+                    </CButton>
+                  </CButtonGroup>
+                </CTableDataCell>
+              </CTableRow>
 
-                  <CTableDataCell class="text-end">
-                    {{ formatAmount(row.amount) }}
-                  </CTableDataCell>
+              <CTableRow v-if="!isLoading && rows.length === 0">
+                <CTableDataCell colspan="8" class="text-center text-body-secondary">
+                  No fee structures found
+                  <span v-if="searchTerm"> for “{{ searchTerm }}” </span>
+                </CTableDataCell>
+              </CTableRow>
+            </CTableBody>
+          </CTable>
 
-                  <CTableDataCell class="text-end">
-                    <CButtonGroup size="sm">
-                      <CButton
-                        color="secondary"
-                        variant="outline"
-                        @click="openEditModal(row)"
-                      >
-                        Edit
-                      </CButton>
-                      <CButton
-                        color="danger"
-                        variant="outline"
-                        @click="openSingleDeleteConfirm(row)"
-                      >
-                        Delete
-                      </CButton>
-                    </CButtonGroup>
-                  </CTableDataCell>
-                </CTableRow>
-
-                <CTableRow v-if="!isLoading && rows.length === 0">
-                  <CTableDataCell colspan="7" class="text-center text-body-secondary">
-                    No fee structures found
-                    <span v-if="searchTerm"> for “{{ searchTerm }}” </span>
-                  </CTableDataCell>
-                </CTableRow>
-              </CTableBody>
-            </CTable>
-
-            <!-- Pagination + Range -->
-            <div
-              style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px"
-            >
-              <Pagination
-                :current-page="currentPage"
-                :total-pages="totalPages"
-                @page-changed="onPageChanged"
-              />
-              <div style="font-size: 14px; color: #7f8c8d">
-                {{ showingRange }}
-              </div>
+          <!-- Pagination + Range -->
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px"
+          >
+            <Pagination
+              :current-page="currentPage"
+              :total-pages="totalPages"
+              @page-changed="onPageChanged"
+            />
+            <div style="font-size: 14px; color: #7f8c8d">
+              {{ showingRange }}
             </div>
-          </DocsExample>
+          </div>
         </CCardBody>
       </CCard>
     </CCol>
@@ -159,19 +154,19 @@
       <div class="mb-3">
         <CFormLabel for="academic_year">Academic Year</CFormLabel>
         <CFormSelect id="academic_year" v-model="formFee.academicYearId">
-          <option value="" disabled selected >Select Academic Year</option>
-          <option v-for="ay in academicYears" :key="ay.id" :value="ay.id">
+          <option value="" disabled selected>Select Academic Year</option>
+          <option v-for="ay in academicYears" :key="ay.id" :value="Number(ay.id)">
             {{ ay.name }}
           </option>
         </CFormSelect>
       </div>
 
-      <!-- Grade/Class (only when NOT discounted) -->
+      <!-- Grade/Class -->
       <div v-if="!formFee.is_discount" class="mb-3">
-        <CFormLabel for="grade_class">Class (Grade)</CFormLabel>
+        <CFormLabel for="grade_class">Class</CFormLabel>
         <CFormSelect id="grade_class" v-model="formFee.gradeClassId">
           <option value="" disabled selected>Select Class</option>
-          <option v-for="gc in gradeClasses" :key="gc.id" :value="gc.id">
+          <option v-for="gc in gradeClasses" :key="gc.id" :value="Number(gc.id)">
             {{ gc.name }}
           </option>
         </CFormSelect>
@@ -181,8 +176,8 @@
       <div class="mb-3">
         <CFormLabel for="term">Term</CFormLabel>
         <CFormSelect id="term" v-model="formFee.termId">
-          <option value="" disabled selected >Select Term</option>
-          <option v-for="t in terms" :key="t.id" :value="t.id">
+          <option value="" disabled selected>Select Term</option>
+          <option v-for="t in terms" :key="t.id" :value="Number(t.id)">
             {{ t.name }}
           </option>
         </CFormSelect>
@@ -207,7 +202,7 @@
         <CFormSwitch v-model="formFee.is_discount" color="primary" label="Yes" />
       </div>
 
-      <!-- Discounted Students Selector -->
+      <!-- Discounted Students -->
       <div v-if="formFee.is_discount" class="mb-3">
         <CFormLabel>Select Students for Discount</CFormLabel>
         <v-select
@@ -235,14 +230,12 @@
         Cancel
       </CButton>
 
-      <CButton  class="text-white" color="primary" @click="submitForm" :disabled="isSubmitting">
-        <CSpinner size="sm" v-if="isSubmitting" class="me-2 "  />
+      <CButton class="text-white" color="primary" @click="submitForm" :disabled="isSubmitting">
+        <CSpinner size="sm" v-if="isSubmitting" class="me-2" />
         {{ isEdit ? "Update" : "Save" }}
       </CButton>
     </CModalFooter>
   </CModal>
-
-
 
   <!-- Confirm Delete (Single) -->
   <CModal :visible="showDeleteSingleModal" @close="closeDeleteSingleModal">
@@ -267,7 +260,11 @@
         Cancel
       </CButton>
 
-      <CButton color="danger" @click="() => { confirmDeleteSingle(); closeDeleteSingleModal(); }" :disabled="isDeleting">
+      <CButton
+        color="danger"
+        @click="() => { confirmDeleteSingle(); closeDeleteSingleModal(); }"
+        :disabled="isDeleting"
+      >
         <CSpinner size="sm" v-if="isDeleting" class="me-2" />Delete
       </CButton>
     </CModalFooter>
@@ -321,7 +318,7 @@ import {
    CONSTANTS
 ------------------------------------------------------- */
 const PAGE_SIZE = 10;
-const CRECHE_CLASS_ID = 1; // used when discounted fees should not require class selection
+const CRECHE_CLASS_ID = 7; // set this to your real NewGradeClass id for "creche"
 
 /* -------------------------------------------------------
    STATE
@@ -341,15 +338,13 @@ const academicYears = ref([]);
 const gradeClasses = ref([]);
 const terms = ref([]);
 
-const feeStructures = ref([]); // current page rows
+const feeStructures = ref([]);
 const selectedIds = ref([]);
 
-/* Search */
 const searchTerm = ref("");
 
 /* -------------------------------------------------------
-   HIGH-PERFORMANCE: In-memory pagination cache
-   Key = page + search term
+   CACHE
 ------------------------------------------------------- */
 const pageCache = reactive(new Map());
 const makeKey = (page, search) => `${page}__${search || ""}`;
@@ -358,7 +353,6 @@ function clearCache() {
   pageCache.clear();
 }
 
-/* Prevent out-of-order responses from overwriting newer data */
 let loadSeq = 0;
 
 /* -------------------------------------------------------
@@ -368,7 +362,6 @@ const rows = computed(() => feeStructures.value);
 
 const searchPlaceholder = computed(() => "Search Fee Structure");
 
-/* Select all / indeterminate applies to rows in current view (current page) */
 const allSelected = computed(() => {
   const ids = rows.value.map((r) => r.id);
   return ids.length > 0 && ids.every((id) => selectedIds.value.includes(id));
@@ -388,17 +381,16 @@ const showingRange = computed(() => {
   return `Showing ${start}–${end} of ${totalCount.value}`;
 });
 
-/* Format currency efficiently (reuse Intl formatter) */
 const moneyFmt = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+
 function formatAmount(v) {
   const n = Number(v);
   return Number.isFinite(n) ? moneyFmt.format(n) : v;
 }
 
-/* Row number */
 function rowNumber(idx) {
   return (currentPage.value - 1) * PAGE_SIZE + idx + 1;
 }
@@ -413,8 +405,6 @@ async function loadReferenceData() {
     get_terms(),
   ]);
 
-
-
   academicYears.value = years?.data || [];
   gradeClasses.value = classes?.data || [];
   terms.value = t?.data || [];
@@ -424,7 +414,6 @@ async function loadFeeStructures(page = 1) {
   const search = searchTerm.value.trim();
   const key = makeKey(page, search);
 
-  // Serve from cache instantly (no spinner to avoid UI jitter)
   if (pageCache.has(key)) {
     const cached = pageCache.get(key);
     feeStructures.value = cached.results;
@@ -445,7 +434,6 @@ async function loadFeeStructures(page = 1) {
       search: search || undefined,
     });
 
-    // Ignore outdated response
     if (mySeq !== loadSeq) return;
 
     const data = res?.data || { results: [], count: 0 };
@@ -455,13 +443,13 @@ async function loadFeeStructures(page = 1) {
     currentPage.value = page;
     totalPages.value = Math.max(1, Math.ceil((data.count || 0) / PAGE_SIZE));
 
-    // Cache the page
     pageCache.set(key, { results: feeStructures.value, count: totalCount.value });
   } catch (err) {
     if (mySeq !== loadSeq) return;
 
     errorMessage.value =
       err?.response?.data?.message ||
+      err?.response?.data?.detail ||
       err?.message ||
       "Failed to load fee structures.";
   } finally {
@@ -484,18 +472,16 @@ watch(searchTerm, () => {
 });
 
 /* -------------------------------------------------------
-   SELECT ALL (current view only)
+   SELECT ALL
 ------------------------------------------------------- */
 function toggleSelectAll() {
   const idsInView = rows.value.map((r) => r.id);
   if (idsInView.length === 0) return;
 
   if (allSelected.value) {
-    // Remove only IDs in current view
     const remove = new Set(idsInView);
     selectedIds.value = selectedIds.value.filter((id) => !remove.has(id));
   } else {
-    // Add IDs in current view
     const set = new Set(selectedIds.value);
     idsInView.forEach((id) => set.add(id));
     selectedIds.value = [...set];
@@ -519,17 +505,18 @@ const studentOptionsForSelect = computed(() =>
 async function fetchUsers() {
   try {
     const response = await rawst();
-    studentOptions.value = response?.data || [];
+    const raw = response?.data || [];
+    studentOptions.value = Array.isArray(raw) ? raw : raw.results || [];
   } catch (err) {
-
-    toast.error( err,
-      { position: "top-right" }
-    );
+    console.error("fetchUsers error:", err);
+    toast.error("Failed to load students for discount selector", {
+      position: "top-right",
+    });
   }
 }
 
 /* -------------------------------------------------------
-   FORM (Add/Edit)
+   FORM
 ------------------------------------------------------- */
 const showFormModal = ref(false);
 const isEdit = ref(false);
@@ -557,13 +544,21 @@ function resetForm() {
   editingId.value = null;
 }
 
+watch(
+  () => formFee.is_discount,
+  (val) => {
+    if (val) {
+      formFee.gradeClassId = CRECHE_CLASS_ID;
+    }
+  }
+);
+
 function validateForm() {
   if (!formFee.academicYearId || !formFee.termId) {
     formValidationMessage.value = "Academic Year and Term are required.";
     return false;
   }
 
-  // If discounted, class may be fixed (because class selector is hidden)
   if (formFee.is_discount && !formFee.gradeClassId) {
     formFee.gradeClassId = CRECHE_CLASS_ID;
   }
@@ -607,8 +602,6 @@ function openEditModal(row) {
   formFee.termId = row.term?.id ?? "";
   formFee.amount = row.amount ?? "";
   formFee.is_discount = !!row.is_discounted;
-
-  // Handle multiple possible backend shapes
   formFee.discounted_student_ids =
     row.discounted_student_ids ??
     row.discounted_students?.map((s) => s.id) ??
@@ -625,22 +618,43 @@ function closeFormModal() {
   }
 }
 
+/* -------------------------------------------------------
+   SUBMIT
+------------------------------------------------------- */
+function extractErrorMessage(err) {
+  const data = err?.response?.data;
+
+  if (!data) return err?.message || "Failed to save fee structure.";
+
+  if (typeof data === "string") {
+    if (data.includes("IntegrityError")) {
+      return "The selected class does not match the backend FK configuration. Check that FeeStructure.grade_class points to NewGradeClass and that migrations are up to date.";
+    }
+    return data.slice(0, 300);
+  }
+
+  return (
+    data.message ||
+    data.detail ||
+    JSON.stringify(data)
+  );
+}
+
 async function submitForm() {
   if (!validateForm()) return;
 
   isSubmitting.value = true;
 
   const payload = {
-    academic_year_id: formFee.academicYearId,
-    grade_class_id: formFee.gradeClassId,
-    term_id: formFee.termId,
+    academic_year_id: Number(formFee.academicYearId),
+    grade_class_id: Number(formFee.gradeClassId),
+    term_id: Number(formFee.termId),
     amount: formFee.amount,
-    discounted_student_ids: formFee.is_discount ? formFee.discounted_student_ids : [],
-    is_discounted: formFee.is_discount,
+    discounted_student_ids: formFee.is_discount
+      ? formFee.discounted_student_ids.map(Number)
+      : [],
+    is_discounted: !!formFee.is_discount,
   };
-
-
-
 
 
   try {
@@ -648,21 +662,24 @@ async function submitForm() {
       const res = await update_fee_structure(editingId.value, payload);
       const updated = res?.data;
 
-      // Update current view optimistically if present
       if (updated?.id != null) {
-        feeStructures.value = feeStructures.value.map((r) => (r.id === updated.id ? updated : r));
+        feeStructures.value = feeStructures.value.map((r) =>
+          r.id === updated.id ? updated : r
+        );
       }
 
-      toast.success("Fee structure updated successfully.", { position: "top-right" });
+      toast.success("Fee structure updated successfully.", {
+        position: "top-right",
+      });
     } else {
       await create_fee_structure(payload);
-      toast.success("Fee structure added successfully.", { position: "top-right" });
+      toast.success("Fee structure added successfully.", {
+        position: "top-right",
+      });
 
-      // New record likely belongs on page 1 (depends on backend ordering)
       currentPage.value = 1;
     }
 
-    // Invalidate cache to avoid stale pages, then reload
     clearCache();
     await loadFeeStructures(currentPage.value);
 
@@ -670,17 +687,14 @@ async function submitForm() {
     resetForm();
   } catch (err) {
 
-    formValidationMessage.value =
-      err?.response?.data?.message ||
-      err?.message ||
-      "Failed to save fee structure.";
+    formValidationMessage.value = extractErrorMessage(err);
   } finally {
     isSubmitting.value = false;
   }
 }
 
 /* -------------------------------------------------------
-   DELETE (Single & Bulk)
+   DELETE
 ------------------------------------------------------- */
 const showDeleteSingleModal = ref(false);
 const deleteTarget = ref(null);
@@ -735,21 +749,21 @@ async function confirmDeleteSingle() {
     const id = deleteTarget.value.id;
     await delete_fee_structure(id);
 
-    // Remove from current view
     feeStructures.value = feeStructures.value.filter((r) => r.id !== id);
-
-    // Remove from selection
     selectedIds.value = selectedIds.value.filter((x) => x !== id);
 
-    toast.success("Fee structure deleted successfully.", { position: "top-right" });
+    toast.success("Fee structure deleted successfully.", {
+      position: "top-right",
+    });
 
-    // Invalidate cache + reload current page to keep page counts accurate
     clearCache();
     await loadFeeStructures(currentPage.value);
 
     closeDeleteSingleModal();
   } catch (error) {
-    toast.error(friendlyDeleteError(error, deleteTarget.value.id), { position: "top-right" });
+    toast.error(friendlyDeleteError(error, deleteTarget.value.id), {
+      position: "top-right",
+    });
   } finally {
     isDeleting.value = false;
     closeDeleteSingleModal();
@@ -760,7 +774,6 @@ async function confirmDeleteBulk() {
   if (selectedIds.value.length === 0) return;
 
   isDeleting.value = true;
-
   const ids = [...selectedIds.value];
 
   try {
@@ -773,7 +786,9 @@ async function confirmDeleteBulk() {
       if (result.status === "fulfilled") {
         successCount++;
       } else {
-        toast.error(friendlyDeleteError(result.reason, id), { position: "top-right" });
+        toast.error(friendlyDeleteError(result.reason, id), {
+          position: "top-right",
+        });
       }
     });
 
@@ -783,11 +798,9 @@ async function confirmDeleteBulk() {
       });
     }
 
-    // Clear selection always after bulk attempt
     selectedIds.value = [];
     showDeleteBulkModal.value = false;
 
-    // Invalidate cache and reload current page
     clearCache();
     await loadFeeStructures(currentPage.value);
   } finally {

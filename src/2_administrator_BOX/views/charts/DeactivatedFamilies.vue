@@ -4,7 +4,7 @@
       <CCard class="mb-4">
         <CCardHeader>
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-            <strong>Deactivated Students</strong>
+            <strong>Deactivated Families</strong>
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <CFormInput
@@ -32,7 +32,7 @@
 
                 <CTableHeaderCell>#</CTableHeaderCell>
                 <CTableHeaderCell>Name</CTableHeaderCell>
-                <CTableHeaderCell>Members</CTableHeaderCell>
+                <!-- <CTableHeaderCell>Members</CTableHeaderCell> -->
 
                 <CTableHeaderCell>Reason</CTableHeaderCell>
 
@@ -47,14 +47,14 @@
 
                 <CTableHeaderCell>{{ idx + 1 }}</CTableHeaderCell>
                 <CTableDataCell>{{ row.family.name }}</CTableDataCell>
-                <CTableDataCell>
+                <!-- <CTableDataCell>
   <span
     v-for="(member, index) in row.family.members"
     :key="member.id"
   >
     {{ member.full_name }}<span v-if="index < row.family.members.length - 1">, </span>
   </span>
-</CTableDataCell>
+</CTableDataCell> -->
 
                 <CTableDataCell>{{ row.deactivation_reason }}</CTableDataCell>
 
@@ -233,6 +233,7 @@ async function fetchStaff() {
   errorMessage.value = ''
   try {
     const response = await get_deactivated_families()
+
 
 
     staff.value = response.data
