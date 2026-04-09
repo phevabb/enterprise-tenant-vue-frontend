@@ -127,7 +127,7 @@
       <div class="mb-3">
         <CFormLabel>Class</CFormLabel>
         <CFormSelect v-model="form.assignedClass">
-          <option disabled value="" >Select Class</option>
+          <option disabled value="" selected >Select Class</option>
           <option v-for="c in classes" :key="c.id" :value="c.id">
             {{ c.name }}
           </option>
