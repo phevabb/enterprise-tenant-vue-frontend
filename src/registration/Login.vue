@@ -205,7 +205,7 @@ async function onSubmit() {
   const roleRoutes = {
     principal: { name: 'PrincipalDashboard' },
     administrator: { name: 'student_fee_records_admin' },
-    student: { name: ' AcademicRecords' }   // StudentDashboard
+    student: { name: 'AcademicRecords' }   // StudentDashboard
   }
 
   await router.replace(
@@ -215,6 +215,7 @@ async function onSubmit() {
 
 
   } catch (e) {
+
 
 
     const backendError =
@@ -231,6 +232,9 @@ async function onSubmit() {
 }
 
 </script>
+
+
+
 
 <style scoped>
 /* PAGE */

@@ -194,6 +194,9 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { getClassAnalysis } from "@/services/api";
+import { useToast } from "vue-toastification"
+
+const toast = useToast()
 
 /* ✅ State */
 const years = ["2024/2025", "2025/2026"];

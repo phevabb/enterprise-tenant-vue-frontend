@@ -144,11 +144,11 @@
   </v-container>
 </template>
 
-
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue"
 import { useToast } from "vue-toastification"
 
+const toast = useToast()
 import {
   getCategories,
   get_teacher_student,
@@ -158,7 +158,6 @@ import {
   get_terms_with_year
 } from "@/services/api"
 
-const toast = useToast()
 
 /* ------------------------------------
    STATE
@@ -168,7 +167,7 @@ const subject = ref(null)
 
 const students = ref([])
 const staff = ref(null)
-const ass_class = ref(null)
+const ass_class = ref(null) // can be string OR object {id,name}
 
 const records = reactive({})
 
@@ -204,9 +203,11 @@ function computeGrade(total) {
 }
 
 function recalc(id, subj) {
+  if (!subj) return
+
   const r = rec(id)
-  const c = Number(r[`${subj}_class_score`] || 0)
-  const e = Number(r[`${subj}_exam_score`] || 0)
+  const c = Number(r[`${subj}_class_score`] ?? 0)
+  const e = Number(r[`${subj}_exam_score`] ?? 0)
 
   if (r[`${subj}_class_score`] == null && r[`${subj}_exam_score`] == null) {
     r[`${subj}_total_score`] = null
@@ -220,14 +221,49 @@ function recalc(id, subj) {
 }
 
 function isComplete(id, subj) {
+  if (!subj) return false
   const r = rec(id)
   return r[`${subj}_class_score`] != null && r[`${subj}_exam_score`] != null
+}
+
+/* ------------------------------------
+   SAFE STORAGE / CLASS NORMALIZATION
+------------------------------------ */
+function safeJSONParse(raw) {
+  try {
+    return raw ? JSON.parse(raw) : null
+  } catch (e) {
+    return null
+  }
+}
+
+/**
+ * Normalize assigned_class into:
+ *  - name: string
+ *  - id: number|null
+ * Works for:
+ *  - "class 2"
+ *  - { id: 7, name: "class 2" }
+ *  - null/undefined
+ */
+function normalizeAssignedClass(assigned) {
+  if (typeof assigned === "string") {
+    return { name: assigned, id: null }
+  }
+  if (assigned && typeof assigned === "object") {
+    const name = typeof assigned.name === "string" ? assigned.name : ""
+    const id = typeof assigned.id === "number" ? assigned.id : null
+    return { name, id }
+  }
+  return { name: "", id: null }
 }
 
 /* ------------------------------------
    FILL & CLEAR
 ------------------------------------ */
 function fillBlanks(subj, classMax = 40, examMax = 50) {
+  if (!subj) return
+
   students.value.forEach(s => {
     const r = rec(s.id)
 
@@ -244,6 +280,8 @@ function fillBlanks(subj, classMax = 40, examMax = 50) {
 }
 
 function clearSubject(subj) {
+  if (!subj) return
+
   students.value.forEach(s => {
     const r = rec(s.id)
     r[`${subj}_class_score`] = null
@@ -258,24 +296,44 @@ function clearSubject(subj) {
 /* ------------------------------------
    COMPUTED
 ------------------------------------ */
-const completedCount = computed(() =>
-  students.value.filter(s => isComplete(s.id, subject.value)).length
-)
+const completedCount = computed(() => {
+  if (!subject.value) return 0
+  return students.value.filter(s => isComplete(s.id, subject.value)).length
+})
 
 /* ------------------------------------
    SUBJECT RESOLUTION
 ------------------------------------ */
 function resolveSubjectsForClass(categories, className) {
-  const cls = className.toLowerCase().trim()
+  // Normalize className into a safe lowercase string
+  let cls = ""
+
+  if (typeof className === "string") {
+    cls = className.trim().toLowerCase()
+  } else if (className && typeof className === "object" && typeof className.name === "string") {
+    cls = className.name.trim().toLowerCase()
+  }
+
+  if (!cls) return []
+  if (!Array.isArray(categories)) return []
 
   for (const cat of categories) {
-    const match = cat.specific_classes.some(
-      c => c.name.toLowerCase() === cls
-    )
+    const specific = Array.isArray(cat?.specific_classes) ? cat.specific_classes : []
+    const groups = Array.isArray(cat?.subject_groups) ? cat.subject_groups : []
+
+    const match = specific.some(c => {
+      const cname = typeof c === "string"
+        ? c
+        : (c && typeof c === "object" ? c.name : "")
+
+      return typeof cname === "string" && cname.trim().toLowerCase() === cls
+    })
+
     if (match) {
-      return cat.subject_groups.flatMap(g =>
-        g.subjects.map(s => s.name)
-      )
+      return groups.flatMap(g => {
+        const subs = Array.isArray(g?.subjects) ? g.subjects : []
+        return subs.map(s => (typeof s === "string" ? s : s?.name)).filter(Boolean)
+      })
     }
   }
 
@@ -289,6 +347,19 @@ async function confirmPublishAndSend() {
   sending.value = true
   try {
     const subj = subject.value
+    if (!subj) {
+      toast.error("No subject selected")
+      return
+    }
+
+    // ✅ choose what to send to backend:
+    // If backend supports resolving by ID, prefer ID; otherwise use name.
+    const classLevelPayload = ctx.gradeclassId ?? ctx.gradeclassName
+
+    if (!classLevelPayload) {
+      toast.error("No class selected/assigned")
+      return
+    }
 
     for (const s of students.value) {
       const r = rec(s.id)
@@ -303,19 +374,20 @@ async function confirmPublishAndSend() {
     }
 
     await publish_subject({
-      class_level: ass_class.value,
+      class_level: classLevelPayload,
       academic_year: ctx.yearId,
-      subject: subject.value
+      subject: subj
     })
 
     await publish_overall({
-      class_level: ass_class.value,
+      class_level: classLevelPayload,
       academic_year: ctx.yearId,
       term: ctx.termId
     })
 
     toast.success("✅ Published successfully")
-  } catch {
+  } catch (err) {
+
     toast.error("❌ Failed to publish")
   } finally {
     sending.value = false
@@ -328,27 +400,41 @@ async function confirmPublishAndSend() {
 onMounted(async () => {
   booting.value = true
   try {
-    // Load categories + subjects
+    // 1) Load categories
     const { data: categories } = await getCategories()
 
+    // 2) Load staff safely
+    staff.value = safeJSONParse(localStorage.getItem("staff"))
 
-    staff.value = JSON.parse(localStorage.getItem("staff"))
-    ass_class.value = staff.value?.assigned_class
+    // 3) Normalize assigned class
+    ass_class.value = staff.value?.assignedClass ?? null
+    const normalized = normalizeAssignedClass(ass_class.value)
 
-    ctx.gradeclassName = ass_class.value
 
-    const subs = resolveSubjectsForClass(categories, ass_class.value)
+    // Save normalized values into ctx
+    ctx.gradeclassName = normalized.name
+    ctx.gradeclassId = normalized.id
+
+    if (!ctx.gradeclassName && !ctx.gradeclassId) {
+      toast.error("No assigned class found for this staff account")
+      SUBJECTS.splice(0, SUBJECTS.length)
+      subject.value = null
+      return
+    }
+
+    // 4) Resolve subjects using the class NAME (because categories match by name)
+    const subs = resolveSubjectsForClass(categories, ctx.gradeclassName)
     SUBJECTS.splice(0, SUBJECTS.length, ...subs)
-    subject.value = SUBJECTS[0]
+    subject.value = SUBJECTS[0] ?? null
 
-    // Load term + year
+    // 5) Load term + year
     const { data: t } = await get_terms_with_year()
-    ctx.termId = t.id
-    ctx.yearId = t.academic_year_id
+    ctx.termId = t?.id ?? null
+    ctx.yearId = t?.academic_year_id ?? null
 
-    // Load students
+    // 6) Load students
     const ans = await get_teacher_student()
-    students.value = ans.data
+    students.value = ans?.data ?? []
 
   } catch (err) {
 
@@ -358,6 +444,7 @@ onMounted(async () => {
   }
 })
 </script>
+
 
 <style scoped>
 /* Premium theming similar to enterprise dashboards */
