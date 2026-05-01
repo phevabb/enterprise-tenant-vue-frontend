@@ -6,3 +6,37 @@ apply the "Select Students for Discount" on the "add fee structure" on the add f
 
 
 active issues
+
+
+good
+Classes response: print
+0
+:
+{id: 1, name: 'class 1', is_active: true}
+1
+:
+{id: 2, name: 'class 2', is_active: true}
+2
+:
+{id: 3, name: 'class 3', is_active: true}
+3
+:
+{id: 15, name: 'class 3b', is_active: true}
+4
+:
+{id: 4, name: 'class 4', is_active: true}
+5
+:
+{id: 5, name: 'class 5', is_active: true}
+
+
+bad
+0
+:
+{id: 3, name: 'class 3', isActive: true}
+1
+:
+{id: 2, name: 'class 2', isActive: true}
+2
+:
+{id: 1, name: 'class 1', isActive: true}

@@ -128,18 +128,18 @@
                 <CTableHeaderCell scope="row">
                   {{ (currentPage - 1) * pageSize + idx + 1 }}
                 </CTableHeaderCell>
-                <CTableDataCell>{{ row.student?.user?.full_name || '—' }}</CTableDataCell>
-                <CTableDataCell>{{ row.fee_structure?.grade_class?.name || '—' }}</CTableDataCell>
-                <CTableDataCell>{{ row.fee_structure?.term?.name || '—' }}</CTableDataCell>
-                <CTableDataCell>{{ row.fee_structure?.academic_year?.name || '—' }}</CTableDataCell>
-                <CTableDataCell class="text-end">{{ formatAmount(row.amount_paid) }}</CTableDataCell>
+                <CTableDataCell>{{ row.student?.user?.fullName || '—' }}</CTableDataCell>
+                <CTableDataCell>{{ row.feeStructure?.grade_class?.name || '—' }}</CTableDataCell>
+                <CTableDataCell>{{ row.feeStructure?.term?.name || '—' }}</CTableDataCell>
+                <CTableDataCell>{{ row.feeStructure?.academic_year?.name || '—' }}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatAmount(row.amountPaid) }}</CTableDataCell>
                 <CTableDataCell class="text-end">{{ formatAmount(row.balance) }}</CTableDataCell>
                 <CTableDataCell>
                   <CBadge :color="Number(row.balance) === 0 ? 'success' : 'warning'">
                     {{ Number(row.balance) === 0 ? 'Yes' : 'No' }}
                   </CBadge>
                 </CTableDataCell>
-                <CTableDataCell>{{ formatDateTime(row.date_created) }}</CTableDataCell>
+                <CTableDataCell>{{ formatDateTime(row.dateCreated) }}</CTableDataCell>
                 <CTableDataCell class="text-end">
                   <CButtonGroup size="sm">
                     <CButton color="danger" variant="outline" @click="openSingleDeleteConfirm(row)">
@@ -199,7 +199,7 @@
             class="dropdown-item"
             @click="selectStudent(s)"
           >
-            {{ s.user?.full_name || '—' }}
+            {{ s.user?.fullName || '—' }}
           </button>
         </div>
       </div>
@@ -235,10 +235,10 @@
     <CModalHeader><CModalTitle>Delete Fee Record</CModalTitle></CModalHeader>
     <CModalBody>
       Delete record for
-      <strong>{{ deleteTarget?.student?.user?.full_name || '—' }}</strong> →
-      <strong>{{ deleteTarget?.fee_structure?.grade_class?.name || '—' }}</strong> /
-      {{ deleteTarget?.fee_structure?.term?.name || '—' }} /
-      {{ deleteTarget?.fee_structure?.academic_year?.name || '—' }} ?
+      <strong>{{ deleteTarget?.student?.user?.fullName || '—' }}</strong> →
+      <strong>{{ deleteTarget?.feeStructure?.grade_class?.name || '—' }}</strong> /
+      {{ deleteTarget?.feeStructure?.term?.name || '—' }} /
+      {{ deleteTarget?.feeStructure?.academic_year?.name || '—' }} ?
     </CModalBody>
     <CModalFooter>
       <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">
@@ -273,11 +273,11 @@ import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useToast } from 'vue-toastification'
 import Pagination from '@/Pagination.vue'
 import {
-  rawst,
-  get_student_fee_record,
-  create_student_fee_record,
-  delete_student_fee_record,
-  get_raw_fee_structures,
+  rawst_ktor,
+  get_student_fee_record_ktor,
+  create_student_fee_record_ktor,
+  delete_student_fee_record_ktor,
+  get_raw_fee_structures_ktor,
 } from '@/services/api'
 
 // 👉 NEW: imports for export
@@ -421,8 +421,8 @@ async function loadLookups() {
   try {
 
     const [studentsRes, fsRes] = await Promise.all([
-      rawst(),
-      get_raw_fee_structures(),
+      rawst_ktor(),
+      get_raw_fee_structures_ktor(),
     ])
 
     students.value = studentsRes.data || []
@@ -461,13 +461,14 @@ async function loadRecords(page = 1, force = false) {
 
   try {
     const params = buildParams(page, pageSize)
-    const res = await get_student_fee_record(params)
+    const res = await get_student_fee_record_ktor()
+
 
     const data = res.data || {}
 
     pageCache.value.set(cacheKey, { results: data.results || [], count: data.count || 0 })
 
-    records.value = data.results || []
+    records.value = data || []
     totalCount.value = data.count || 0
     totalPages.value = Math.ceil(totalCount.value / pageSize)
     currentPage.value = page
@@ -489,13 +490,13 @@ function filterStudents() {
     return
   }
   filteredStudents.value = students.value
-    .filter(s => s.user?.full_name?.toLowerCase().includes(q))
+    .filter(s => s.user?.fullName?.toLowerCase().includes(q))
     .slice(0, 20)
 }
 
 function selectStudent(student) {
   formRecord.studentId = student.id
-  studentSearch.value = student.user?.full_name || ''
+  studentSearch.value = student.user?.fullName || ''
   filteredStudents.value = []
 }
 
@@ -526,17 +527,18 @@ async function submitForm() {
   isSubmitting.value = true
 
   const payload = {
-    student_id: formRecord.studentId,
-    fee_structure_id: formRecord.feeStructureId,
+    studentId: formRecord.studentId,
+    feeStructureId: formRecord.feeStructureId,
   }
 
   try {
-    await create_student_fee_record(payload)
+    await create_student_fee_record_ktor(payload)
     toast.success('Fee record created.')
     showFormModal.value = false
     resetForm()
     loadRecords(currentPage.value, true)
   } catch (err) {
+
     formValidationMessage.value = err?.response?.data?.detail || 'Failed to create record.'
     toast.error(formValidationMessage.value)
   } finally {
@@ -554,7 +556,7 @@ async function confirmDeleteSingle() {
   isDeleting.value = true
 
   try {
-    await delete_student_fee_record(deleteTarget.value.id)
+    await delete_student_fee_record_ktor(deleteTarget.value.id)
     toast.success('Record deleted.')
     records.value = records.value.filter(r => r.id !== deleteTarget.value.id)
     selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
@@ -577,7 +579,7 @@ async function confirmDeleteBulk() {
   const ids = [...selectedIds.value]
 
   try {
-    await Promise.all(ids.map(id => delete_student_fee_record(id)))
+    await Promise.all(ids.map(id => delete_student_fee_record_ktor(id)))
     records.value = records.value.filter(r => !ids.includes(r.id))
     selectedIds.value = []
     toast.success(`Deleted ${ids.length} record(s).`)
@@ -599,14 +601,14 @@ async function fetchAllRecordsForExport() {
   // Choose a larger page size for fewer round trips
   const EXPORT_PAGE_SIZE = 500
   const firstParams = buildParams(1, EXPORT_PAGE_SIZE)
-  const firstRes = await get_student_fee_record(firstParams)
+  const firstRes = await get_student_fee_record_ktor(firstParams)
   const firstData = firstRes.data || {}
   const results = [...(firstData.results || [])]
   const count = Number(firstData.count || results.length)
   const totalPagesNeeded = Math.max(1, Math.ceil(count / EXPORT_PAGE_SIZE))
 
   for (let p = 2; p <= totalPagesNeeded; p++) {
-    const res = await get_student_fee_record(buildParams(p, EXPORT_PAGE_SIZE))
+    const res = await get_student_fee_record_ktor(buildParams(p, EXPORT_PAGE_SIZE))
     results.push(...(res.data?.results || []))
   }
 
@@ -621,7 +623,7 @@ function buildExportRows(rows) {
     const fullyPaid = Number(r.balance) === 0 ? 'Yes' : 'No'
     return [
       i + 1,
-      r.student?.user?.full_name || '',
+      r.student?.user?.fullName || '',
       r.fee_structure?.grade_class?.name || '',
       r.fee_structure?.term?.name || '',
       r.fee_structure?.academic_year?.name || '',
@@ -764,7 +766,7 @@ function onPageChanged(page) {
 onMounted(async () => {
   isLoading.value = true
   await loadLookups()
-  await loadRecords(1)
+  await loadRecords()
   isLoading.value = false
 })
 </script>

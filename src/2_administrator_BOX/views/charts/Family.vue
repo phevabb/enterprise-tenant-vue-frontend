@@ -127,15 +127,7 @@
       </div>
 
       <CFormLabel class="mt-3">Members (Students)</CFormLabel>
-      <v-select
-        v-model="form.memberIds"
-        :options="studentOptions"
-        multiple
-        :reduce="opt => opt.value"
-        label="label"
-        placeholder="Search and select students..."
-        :disabled="isSubmitting"
-      />
+
 
       <div class="mt-3">
         <CFormSwitch v-model="form.is_active" label="Active Family" :disabled="isSubmitting" />
@@ -213,7 +205,7 @@ import Pagination from '@/Pagination.vue'
 const editingId = ref(null)
 
 
-import { rawst, get_families, create_family, update_family, delete_family } from '@/services/api'
+import { rawst_ktor, get_families, get_raw_families_ktor, create_family_ktor, update_family, delete_family_ktor } from '@/services/api'
 
 const toast = useToast()
 const pageSize = 10
@@ -238,7 +230,7 @@ const showFormModal         = ref(false)
 const isEdit                = ref(false)
 const form                  = reactive({
   name: '',
-  memberIds: [],
+
   is_active: true,
   deactivation_reason: '',
 })
@@ -263,14 +255,14 @@ const showingRange = computed(() => {
 
 const studentOptions = computed(() =>
   students.value.map(s => ({
-    label: s.user?.full_name || 'Unnamed',
+    label: s.user?.fullName || 'Unnamed',
     value: String( s.user?.id),
   }))
 )
 
 const previewMembers = (members = []) => {
   if (!members.length) return ''
-  const names = members.slice(0, 3).map(m => m.full_name || m.user?.full_name || '—')
+  const names = members.slice(0, 3).map(m => m.name || m.user?.name || '—')
   return names.join(', ') + (members.length > 3 ? ` +${members.length - 3} more` : '')
 }
 
@@ -314,10 +306,11 @@ async function loadFamilies() {
     const params = { page, page_size: pageSize }
     if (search) params.search = search
 
-    const res = await get_families(params)
+    const res = await get_raw_families_ktor()
+
     const data = res.data || {}
 
-    const results = data.results || []
+    const results = data || []
     const count = data.count || 0
 
     pageCache.value.set(cacheKey, { results, count })
@@ -335,7 +328,7 @@ async function loadFamilies() {
 
 async function loadStudents() {
   try {
-    const res = await rawst()
+    const res = await rawst_ktor()
 
     students.value = res.data || []
   } catch (err) {
@@ -345,7 +338,7 @@ async function loadStudents() {
 
 function openAddModal() {
   isEdit.value = false
-  Object.assign(form, { name: '', memberIds: [], is_active: true, deactivation_reason: '' })
+  Object.assign(form, { name: '', is_active: true, deactivation_reason: '' })
   editingId.value = null
   formValidationMessage.value = ''
   showFormModal.value = true
@@ -357,7 +350,7 @@ function openEditModal(family) {
 
   Object.assign(form, {
     name: family.name || '',
-    memberIds: (family.members || []).map(m => String(m.id || m.user?.id)),
+
     is_active: !!family.is_active,
     deactivation_reason: family.deactivation_reason || '',
   })
@@ -388,9 +381,9 @@ async function saveFamily() {
 
   const payload = {
     name,
-    member_ids: form.memberIds.map(Number),
-    is_active: form.is_active,
-    deactivation_reason: form.is_active ? '' : (form.deactivation_reason.trim() || undefined),
+
+    // is_active: form.is_active,
+    // deactivation_reason: form.is_active ? '' : (form.deactivation_reason.trim() || undefined),
   }
 
 
@@ -407,7 +400,7 @@ async function saveFamily() {
       }
       toast.success('Family updated')
     } else {
-      updatedFamily = await create_family(payload)
+      updatedFamily = await create_family_ktor(payload)
 
       families.value.unshift(updatedFamily.data)
       totalCount.value += 1
@@ -415,6 +408,7 @@ async function saveFamily() {
     }
     closeFormModal()
   } catch (err) {
+
 
     formValidationMessage.value = err.response?.data?.detail || 'Save failed'
     toast.error(formValidationMessage.value)
@@ -440,7 +434,7 @@ async function deleteSingle() {
   isDeleting.value = true
 
   try {
-    await delete_family(deleteTarget.value.id)
+    await delete_family_ktor(deleteTarget.value.id)
     families.value = families.value.filter(f => f.id !== deleteTarget.value.id)
     selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
     totalCount.value = Math.max(0, totalCount.value - 1)
@@ -463,7 +457,7 @@ async function deleteBulk() {
 
   try {
     for (const id of ids) {
-      await delete_family(id)
+      await delete_family_ktor(id)
     }
 
     families.value = families.value.filter(f => !ids.includes(f.id))

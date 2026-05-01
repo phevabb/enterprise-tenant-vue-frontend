@@ -87,13 +87,13 @@
                     <CFormCheck v-model="selectedIds" :value="row.id" aria-label="Select row" />
                   </CTableDataCell>
                   <CTableHeaderCell scope="row">{{ (currentPage - 1) * pageSize + idx + 1 }}</CTableHeaderCell>
-                  <CTableDataCell>{{ row.student_fee_record?.student?.user?.full_name || '—' }}</CTableDataCell>
-                  <CTableDataCell>{{ row.student_fee_record?.fee_structure?.grade_class?.name || '—' }}</CTableDataCell>
-                  <CTableDataCell>{{ row.student_fee_record?.fee_structure?.term?.name || '—' }}</CTableDataCell>
-                  <CTableDataCell>{{ row.student_fee_record?.fee_structure?.academic_year?.name || '—' }}</CTableDataCell>
-                  <CTableDataCell>{{ row.date || '—' }}</CTableDataCell>
+                  <CTableDataCell>{{ row.student_fee_record?.student?.user?.fullName || '—' }}</CTableDataCell>
+                  <CTableDataCell>{{ row.student_fee_record?.feeStructure?.grade_class?.name || '—' }}</CTableDataCell>
+                  <CTableDataCell>{{ row.student_fee_record?.feeStructure?.term?.name || '—' }}</CTableDataCell>
+                  <CTableDataCell>{{ row.student_fee_record?.feeStructure?.academic_year?.name || '—' }}</CTableDataCell>
+                  <CTableDataCell>{{ formatDateTime(row.date_created) || '—' }}</CTableDataCell>
                   <CTableDataCell class="text-end">{{ formatAmount(row.amount) }}</CTableDataCell>
-                  <CTableDataCell class="text-end">{{ formatAmount(row.student_fee_record?.balance) }}</CTableDataCell>
+                  <CTableDataCell class="text-end">{{ formatAmount(row.balance) }}</CTableDataCell>
                   <CTableDataCell class="text-end">
                     <CButtonGroup size="sm">
                       <CButton color="danger" variant="outline" @click="openSingleDeleteConfirm(row)">
@@ -132,6 +132,8 @@
     <CModalHeader>
       <CModalTitle>Add Payment</CModalTitle>
     </CModalHeader>
+
+
     <CModalBody>
       <div class="mb-3 position-relative">
         <CFormLabel for="sfr">Student / Class / Term / AY</CFormLabel>
@@ -153,10 +155,10 @@
             class="dropdown-item text-truncate"
             @click="selectRecord(rec)"
           >
-            {{ rec.student?.user?.full_name }} /
-            {{ rec.fee_structure?.grade_class?.name }} /
-            {{ rec.fee_structure?.term?.name }} /
-            {{ rec.fee_structure?.academic_year?.name }} /
+            {{ rec.student?.user?.fullName }} /
+            {{ rec.feeStructure?.grade_class?.name }} /
+            {{ rec.feeStructure?.term?.name }} /
+            {{ rec.feeStructure?.academic_year?.name }} /
             {{ rec.balance }}
           </button>
         </div>
@@ -186,6 +188,10 @@
         {{ formValidationMessage }}
       </div>
     </CModalBody>
+
+
+
+
     <CModalFooter>
       <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">
         Cancel
@@ -202,7 +208,7 @@
     <CModalHeader><CModalTitle>Delete Payment</CModalTitle></CModalHeader>
     <CModalBody>
       Delete payment of <strong>GHS {{ formatAmount(deleteTarget?.amount) }}</strong>
-      for <strong>{{ deleteTarget?.student_fee_record?.student?.user?.full_name || '—' }}</strong>
+      for <strong>{{ deleteTarget?.student_fee_record?.student?.user?.fullName || '—' }}</strong>
       on {{ deleteTarget?.date }}?<br />
       This action cannot be undone.
     </CModalBody>
@@ -234,14 +240,15 @@
   </CModal>
 </template>
 
+
 <script setup>
 import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useToast } from 'vue-toastification'
 import {
-  get_payments,
-  get_raw_student_fee_records,
-  create_payment,
-  delete_payment
+  get_payments_ktor,
+  get_raw_student_fee_records_ktor,
+  create_payment_ktor,
+  delete_payment_ktor
 } from '@/services/api' // adjust path
 import Pagination from '@/Pagination.vue'
 
@@ -284,6 +291,20 @@ const deleteTarget          = ref(null)
 const showDeleteBulkModal   = ref(false)
 
 // ──────────────────────────────────────────────── Computed
+
+
+function formatDateTime(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return d.toLocaleString('en-GB', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).replace(',', '')
+}
+
 
 const showingRange = computed(() => {
   if (totalCount.value === 0) return 'Showing 0–0 of 0'
@@ -349,7 +370,8 @@ function toggleSelectAll() {
 
 async function loadStudentFeeRecords() {
   try {
-    const res = await get_raw_student_fee_records()
+    const res = await get_raw_student_fee_records_ktor()
+
 
     studentFeeRecords.value = res.data || []
   } catch (err) {
@@ -389,12 +411,13 @@ async function loadPayments(page = 1, force = false) {
     if (search) params.search = search
     if (dateF) params.date_filter = dateF   // ← ideally backend supports this
 
-    const res = await get_payments(params)
+    const res = await get_payments_ktor()
     const data = res.data
+
 
     pageCache.value.set(cacheKey, { results: data.results, count: data.count })
 
-    payments.value   = data.results || []
+    payments.value   = data || []
     totalCount.value = data.count || 0
     totalPages.value = Math.ceil(totalCount.value / pageSize)
     currentPage.value = page
@@ -409,28 +432,39 @@ async function loadPayments(page = 1, force = false) {
 // ──────────────────────────────────────────────── Record Search (client-side)
 
 function filterRecords() {
-  const q = recordSearch.value.toLowerCase().trim()
+  const q = (recordSearch.value || '').toLowerCase().trim()
   if (!q) {
     filteredStudentFeeRecords.value = []
     return
   }
 
-  filteredStudentFeeRecords.value = studentFeeRecords.value
+  const qNum = Number(q)
+  const isNum = !Number.isNaN(qNum)
 
-    .filter(r => {
-      const name  = r.student?.user?.full_name?.toLowerCase() || ''
-      const cls   = r.fee_structure?.grade_class?.name?.toLowerCase() || ''
-      const term  = r.fee_structure?.term?.name?.toLowerCase() || ''
-      const year  = r.fee_structure?.academic_year?.name?.toLowerCase() || ''
-      const balance = r.balance
-      return name.includes(q) || cls.includes(q) || term.includes(q) || year.includes(q) || balance.includes(q)
+  filteredStudentFeeRecords.value = (studentFeeRecords.value || [])
+    .filter((r) => {
+      const name = (r.student?.user?.fullName || '').toLowerCase()
+      const cls  = (r.feeStructure?.grade_class?.name || '').toLowerCase()
+      const term = (r.feeStructure?.term?.name || '').toLowerCase()
+      const year = (r.feeStructure?.academic_year?.name || '').toLowerCase()
+
+      const balanceMatch = isNum ? (Number(r.balance) === qNum) : false
+
+      return (
+        name.includes(q) ||
+        cls.includes(q) ||
+        term.includes(q) ||
+        year.includes(q) ||
+        balanceMatch
+      )
     })
-    .slice(0, 15) // limit dropdown results
+    .slice(0, 15)
 }
+
 
 function selectRecord(record) {
   formPayment.studentFeeRecordId = record.id
-  recordSearch.value = `${record.student?.user?.full_name || '?'} / ${record.fee_structure?.grade_class?.name || '?'} / ${record.fee_structure?.term?.name || '?'} / ${record.fee_structure?.academic_year?.name || '?'} / ${record.balance || '?'} `
+  recordSearch.value = `${record.student?.user?.fullName || '?'} / ${record.feeStructure?.grade_class?.name || '?'} / ${record.feeStructure?.term?.name || '?'} / ${record.feeStructure?.academic_year?.name || '?'} / ${record.balance || '?'} `
   filteredStudentFeeRecords.value = []
 }
 
@@ -454,23 +488,24 @@ async function submitForm() {
   const today = new Date().toISOString().split('T')[0]
   const payload = {
     student_fee_record_id: formPayment.studentFeeRecordId,
-    date: formPayment.date || today,
+    // date: formPayment.date || today,
     amount: formPayment.amount
   }
 
   try {
-    const res = await create_payment(payload)
+    const res = await create_payment_ktor(payload)
+
     const created = res.data
 
     // Auto-download receipt if present
-    if (created?.receipt_url) {
-      const link = document.createElement('a')
-      link.href = created.receipt_url
-      link.download = ''
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    }
+    // if (created?.receipt_url) {
+    //   const link = document.createElement('a')
+    //   link.href = created.receipt_url
+    //   link.download = ''
+    //   document.body.appendChild(link)
+    //   link.click()
+    //   document.body.removeChild(link)
+    // }
 
     toast.success('Payment recorded successfully.')
     showFormModal.value = false
@@ -478,7 +513,8 @@ async function submitForm() {
     loadPayments(currentPage.value, true) // refresh
   } catch (err) {
 
-    formValidationMessage.value = err.response?.data?.amount?.[0] || 'Failed to record payment.'
+
+    formValidationMessage.value = err.response.data || 'Failed to record payment.'
     toast.error(formValidationMessage.value)
   } finally {
     isSubmitting.value = false
@@ -503,7 +539,7 @@ async function confirmDeleteSingle() {
   isDeleting.value = true
 
   try {
-    await delete_payment(deleteTarget.value.id)
+    await delete_payment_ktor(deleteTarget.value.id)
     toast.success('Payment deleted.')
     payments.value = payments.value.filter(p => p.id !== deleteTarget.value.id)
     selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
@@ -533,7 +569,7 @@ async function confirmDeleteBulk() {
   const ids = [...selectedIds.value]
 
   try {
-    await Promise.all(ids.map(id => delete_payment(id)))
+    await Promise.all(ids.map(id => delete_payment_ktor(id)))
     payments.value = payments.value.filter(p => !ids.includes(p.id))
     selectedIds.value = []
     toast.success(`Deleted ${ids.length} payment(s).`)
@@ -562,11 +598,14 @@ onMounted(async () => {
   isLoading.value = true
   await Promise.all([
     loadStudentFeeRecords(),
-    loadPayments(1)
+    loadPayments()
   ])
   isLoading.value = false
 })
 </script>
+
+
+
 
 <style scoped>
 .dropdown-menu .dropdown-item {

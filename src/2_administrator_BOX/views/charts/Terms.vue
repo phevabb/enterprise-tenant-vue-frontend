@@ -96,7 +96,7 @@
 
 
       <div class="text-end mt-4">
-        <CButton color="primary" :disabled="loading" @click="submitForm">
+        <CButton color="primary" class="px-4 text-white" :disabled="loading" @click="submitForm">
           <CSpinner v-if="loading" size="sm" class="me-2" />
           {{ isEdit ? 'Update' : 'Create' }}
         </CButton>
@@ -106,14 +106,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useToast } from 'vue-toastification'
 import {
-  get_terms,
-  create_term,
-  update_term,
-  delete_term,
-  get_academic_years
+  get_terms_ktor,
+  create_term_ktor,
+  update_term_ktor,
+  delete_term_ktor,
+  get_academic_years_ktor
 } from '../../../services/api'
 
 const toast = useToast()
@@ -135,7 +135,12 @@ const isEdit = ref(false)
 const currentTerm = ref(null)
 const termToDelete = ref(null)
 
-const form = ref({ name: '', academicYearId: '' })
+function resetForm() {
+  form.name = '',
+  form.academicYearId = ''
+}
+
+const form = reactive({ name: '', academicYearId: '' })
 
 const filteredTerms = computed(() => {
   const term = searchTerm.value.trim().toLowerCase()
@@ -150,9 +155,11 @@ const filteredTerms = computed(() => {
 const fetchTerms = async () => {
   loading.value = true
   try {
-    const response = await get_terms()
+    const response = await get_terms_ktor()
+
     terms.value = response.data
   } catch (err) {
+
     let message = 'Failed to fetch terms.'
 
     // Try to extract backend message
@@ -178,7 +185,7 @@ const fetchTerms = async () => {
 const fetchAcademicYears = async () => {
   academicYearsLoading.value = true
   try {
-    const response = await get_academic_years()
+    const response = await get_academic_years_ktor()
     academicYears.value = response.data
   } catch (err) {
 
@@ -195,7 +202,7 @@ onMounted(() => {
 const openAddModal = () => {
   isEdit.value = false
   currentTerm.value = null
-  form.value = { name: '', academicYearId: '' }
+  resetForm()
 
   showFormModal.value = true
 }
@@ -204,12 +211,15 @@ const openEditModal = (term) => {
 
   isEdit.value = true
   currentTerm.value = term
-  form.value = {
-    name: term.name,
-    academicYearId: term.academic_year?.id || '333'
-  }
+
+  form.name =  term.name,
+  form.academicYearId = term.academic_year?.id || '333'
+
+
   showFormModal.value = true
 }
+
+
 
 const closeFormModal = () => {
   showFormModal.value = false
@@ -218,7 +228,7 @@ const closeFormModal = () => {
 
 const submitForm = async () => {
 
-  if (!form.value.name || !form.value.academicYearId) {
+  if (!form.name || !form.academicYearId) {
     toast.error('Please fill in all fields.', { position: 'top-right' })
     return
   }
@@ -226,29 +236,30 @@ const submitForm = async () => {
   loading.value = true
   try {
     const payload = {
-      name: form.value.name,
-      academic_year_id: form.value.academicYearId
+      name: form.name,
+      academic_year_id: form.academicYearId
     }
 
     if (isEdit.value && currentTerm.value) {
       const payload = {
-  name: form.value.name,
-  academic_year_id:  form.value.academicYearId
+  name: form.name,
+  academic_year_id:  form.academicYearId
 }
 
-      const t = await update_term(currentTerm.value.id, payload)
+      const t = await update_term_ktor(currentTerm.value.id, payload)
 
 
       toast.success('Term updated successfully')
     } else {
 
-      await create_term(payload)
+      await create_term_ktor(payload)
       toast.success('Term created successfully')
     }
 
     await fetchTerms()
     closeFormModal()
   } catch (err) {
+
 
     toast.error(err.response?.data?.message || 'Failed to save term.', { position: 'top-right' })
   } finally {
@@ -271,7 +282,7 @@ const confirmDelete = async () => {
     const idtodelete = termToDelete.value.id;
     const thename = termToDelete.value.name;
 
-    await delete_term(termToDelete.value.id)
+    await delete_term_ktor(termToDelete.value.id)
     terms.value = terms.value.filter(t => t.id !== idtodelete)
     toast.success(`${thename} deleted successfully!`, { position: 'top-right' })
   } catch (error) {

@@ -77,7 +77,7 @@
                   {{ payment.family_fee_record?.term?.name || '—' }} —
                   {{ payment.family_fee_record?.academic_year?.name || '—' }}
                 </CTableDataCell>
-                <CTableDataCell>{{ formatDate(payment.date) }}</CTableDataCell>
+                <CTableDataCell>{{ formatDate(payment.date_created) }}</CTableDataCell>
                 <CTableDataCell class="text-end">{{ formatCurrency(payment.amount) }}</CTableDataCell>
                 <CTableDataCell class="text-end">
                   {{ formatCurrency(payment.family_fee_record?.balance) }}
@@ -147,13 +147,6 @@
         class="mt-3"
       />
 
-      <CFormInput
-        v-model="form.date"
-        label="Payment Date"
-        type="date"
-        :disabled="isSubmitting"
-        class="mt-3"
-      />
 
       <CAlert color="danger" v-if="formError" class="mt-3">
         {{ formError }}
@@ -163,7 +156,7 @@
       <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">
         Cancel
       </CButton>
-      <CButton color="primary" @click="savePayment" :disabled="isSubmitting">
+      <CButton color="primary" class="text-white" @click="savePayment" :disabled="isSubmitting">
         <CSpinner size="sm" v-if="isSubmitting" class="me-1" />
         {{ isEdit ? 'Update' : 'Save' }}
       </CButton>
@@ -218,10 +211,10 @@ import { useToast } from 'vue-toastification'
 import Pagination from '@/Pagination.vue'
 
 import {
-  get_family_payments,
-  create_family_payment,
-  delete_family_payment,
-  get_raw_family_fee_rec,
+  get_family_payments_ktor,
+  create_family_payment_ktor,
+  delete_family_payment_ktor,
+  get_raw_family_fee_rec_ktor,
 } from '@/services/api'
 
 const toast = useToast()
@@ -329,14 +322,14 @@ function isWithinRange(dateStr, start, end) {
 const feeRecordOptions = computed(() =>
   familyFeeRecords.value.map(r => ({
     value: r.id,
-    label: `${r.family_name || '—'} - ${r.term_name || '—'} - ${r.academic_year_name || '—'} - ${r.balance || '—'}`
+    label: `${r.family.name || '—'} - ${r.term.name || '—'} - ${r.academic_year.name || '—'} - ${r.balance || '—'}`
   }))
 )
 
 async function loadFamilyFeeRecords() {
   try {
     isLoadingRecords.value = true
-    const res = await get_raw_family_fee_rec()
+    const res = await get_raw_family_fee_rec_ktor()
 
     familyFeeRecords.value = res.data || []
   } catch {
@@ -403,18 +396,19 @@ async function loadAllPayments() {
   try {
 
     // First page
-    const first = await get_family_payments({ page: 1, page_size: API_PAGE_SIZE })
+    const first = await get_family_payments_ktor()
+
 
     const firstData = first.data || {}
-    const firstResults = firstData.results || []
+    const firstResults = firstData|| []
     const count = Number(firstData.count || firstResults.length)
     const pages = Math.max(1, Math.ceil(count / API_PAGE_SIZE))
 
     const all = [...firstResults]
     // Remaining pages (sequential to avoid hammering)
     for (let p = 2; p <= pages; p++) {
-      const res = await get_family_payments({ page: p, page_size: API_PAGE_SIZE })
-      all.push(...(res.data?.results || []))
+      const res = await get_family_payments_ktor()
+      all.push(...(res.data|| []))
     }
 
     allPayments.value = all
@@ -476,29 +470,27 @@ async function savePayment() {
     formError.value = 'Amount must be greater than 0'
     return
   }
-  if (!form.date) {
-    formError.value = 'Payment date is required'
-    return
-  }
+
 
   isSubmitting.value = true
   formError.value = ''
 
   const payload = {
-    family_fee_record_id: Number(form.familyFeeRecordId),
+    family_fee_record: Number(form.familyFeeRecordId),
     amount: Number(form.amount),
-    date: form.date,
+
   }
 
   try {
     // Create only (no edit endpoint in this view)
-    const res = await create_family_payment(payload)
+    const res = await create_family_payment_ktor(payload)
     // Add to the dataset and reflect immediately
     allPayments.value.unshift(res.data)
     ensureValidPage()
     toast.success('Payment recorded')
     closeFormModal()
   } catch (err) {
+
     const data = err?.response?.data || {}
     formError.value = data.amount?.[0] || data.non_field_errors?.[0] || data.message || 'Failed to save payment'
     toast.error(formError.value)
@@ -513,7 +505,7 @@ async function deleteSingle() {
   isDeleting.value = true
 
   try {
-    await delete_family_payment(deleteTarget.value.id)
+    await delete_family_payment_ktor(deleteTarget.value.id)
     allPayments.value = allPayments.value.filter(p => p.id !== deleteTarget.value.id)
     selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
     ensureValidPage()
@@ -534,7 +526,7 @@ async function deleteBulk() {
   const ids = [...selectedIds.value]
 
   try {
-    await Promise.allSettled(ids.map(id => delete_family_payment(id)))
+    await Promise.allSettled(ids.map(id => delete_family_payment_ktor(id)))
     allPayments.value = allPayments.value.filter(p => !ids.includes(p.id))
     selectedIds.value = []
     ensureValidPage()

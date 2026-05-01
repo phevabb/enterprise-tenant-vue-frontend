@@ -120,11 +120,11 @@
 <script setup>
 
 import { useToast } from 'vue-toastification'
-import { ref, computed, onMounted } from 'vue'
-import {create_class, update_class, delete_class, get_classes, get_staff} from '../../../services/api.js'
+import { ref, computed, reactive, onMounted } from 'vue'
+import {create_class_ktor, update_class_ktor, delete_class_ktor, get_classes_ktor} from '../../../services/api.js'
 
 const toast = useToast()
-const staff = ref([])
+
 const loading = ref(false)
 
 const showDeleteModal = ref(false)
@@ -134,17 +134,18 @@ const classToDelete = ref(null)
 async function fetchClasses() {
   loading.value = true;
   try {
-    const response = await get_classes();
-
-    const response_for_staff = await get_staff();
+    const response = await get_classes_ktor();
 
 
 
-    staff.value = response_for_staff.data.map(item => item.user);
+
+
+
 
 
     gradeClasses.value = response.data;
   } catch (err) {
+
 
 
     if (err.code === 'ERR_NETWORK') {
@@ -193,7 +194,13 @@ const showFormModal = ref(false)
 const isEdit = ref(false)
 const currentClass = ref(null)
 
-const form = ref({ name: '' })
+const form = reactive({ name: '' })
+
+
+function resetForm() {
+  form.name = ''
+}
+
 
 const filteredClasses = computed(() => {
   const term = searchTerm.value.trim().toLowerCase()
@@ -204,19 +211,16 @@ const filteredClasses = computed(() => {
 
 const openAddModal = () => {
   isEdit.value = false
-  currentClass.value = null
-  form.value = { name: '',staff: '' }
+  currentClass.value = ""
+  resetForm()
+
   showFormModal.value = true
 }
 
 const openEditModal = (cls) => {
-
   isEdit.value = true
   currentClass.value = cls
-  form.value = {
-    name: cls.name,
-
-  }
+  form.name = cls.name     // ✅ prefill
   showFormModal.value = true
 }
 
@@ -230,13 +234,13 @@ const submitForm = async () => {
 
   try {
     // ✅ Validate class name only
-    if (!form.value.name || form.value.name.trim() === '') {
+    if (!form.name || form.name.trim() === '') {
       toast.error('Class Name is required', { position: 'top-right' });
       return;
     }
 
     const cleanedForm = {
-      name: form.value.name.trim()
+      name: form.name.trim()
     };
 
     let response;
@@ -247,7 +251,8 @@ const submitForm = async () => {
       const idToEdit = currentClass.value.id;
       const className = currentClass.value.name;
 
-      response = await update_class(idToEdit, cleanedForm);
+      response = await update_class_ktor(idToEdit, cleanedForm);
+
 
       const index = gradeClasses.value.findIndex(c => c.id === idToEdit);
       if (index !== -1) {
@@ -259,7 +264,7 @@ const submitForm = async () => {
     } else {
 
       // ✅ CREATE MODE
-      response = await create_class(cleanedForm);
+      response = await create_class_ktor(cleanedForm);
       gradeClasses.value.push(response.data);
       toast.success('Class created successfully!', { position: 'top-right' });
 
@@ -293,7 +298,7 @@ const confirmDelete = async () => {
   const thename = classToDelete.value.name;
 
   try {
-    await delete_class(classToDelete.value.id)
+    await delete_class_ktor(classToDelete.value.id)
     gradeClasses.value = gradeClasses.value.filter(s => s.id !== theid)
     toast.success(`${thename} deleted successfully!`, { position: 'top-right' })
   } catch (error) {

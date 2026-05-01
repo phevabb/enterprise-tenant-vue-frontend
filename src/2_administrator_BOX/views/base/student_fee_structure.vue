@@ -161,8 +161,8 @@
         </CFormSelect>
       </div>
 
-      <!-- Grade/Class -->
-      <div v-if="!formFee.is_discount" class="mb-3">
+      <!-- Grade/Class v-if="!formFee.is_discount"  -->
+      <div class="mb-3">
         <CFormLabel for="grade_class">Class</CFormLabel>
         <CFormSelect id="grade_class" v-model="formFee.gradeClassId">
           <option value="" disabled selected>Select Class</option>
@@ -203,7 +203,7 @@
       </div>
 
       <!-- Discounted Students -->
-      <div v-if="formFee.is_discount" class="mb-3">
+      <!-- <div v-if="formFee.is_discount" class="mb-3">
         <CFormLabel>Select Students for Discount</CFormLabel>
         <v-select
           v-model="formFee.discounted_student_ids"
@@ -213,7 +213,7 @@
           placeholder="Search and select students"
           :reduce="(opt) => opt.value"
         />
-      </div>
+      </div> -->
 
       <div class="text-danger small mt-2" v-if="formValidationMessage">
         {{ formValidationMessage }}
@@ -305,13 +305,14 @@ import Pagination from "@/Pagination.vue";
 
 import {
   rawst,
-  get_academic_years,
-  get_classes,
-  get_terms,
-  create_fee_structure,
-  get_fee_structures,
-  update_fee_structure,
-  delete_fee_structure,
+  get_academic_years_ktor,
+  get_classes_ktor,
+  get_terms_ktor,
+  create_fee_structure_ktor,
+  get_fee_structures_ktor,
+  get_raw_fee_structures_ktor, // not here.
+  update_fee_structure_ktor,
+  delete_fee_structure_ktor,
 } from "@/services/api.js";
 
 /* -------------------------------------------------------
@@ -400,9 +401,9 @@ function rowNumber(idx) {
 ------------------------------------------------------- */
 async function loadReferenceData() {
   const [years, classes, t] = await Promise.all([
-    get_academic_years(),
-    get_classes(),
-    get_terms(),
+    get_academic_years_ktor(),
+    get_classes_ktor(),
+    get_terms_ktor(),
   ]);
 
   academicYears.value = years?.data || [];
@@ -428,16 +429,21 @@ async function loadFeeStructures(page = 1) {
 
   const mySeq = ++loadSeq;
 
+  // try {
+  //   const res = await get_fee_structures_ktor({  django
+  //     page,
+  //     search: search || undefined,
+  //   });
+
+
   try {
-    const res = await get_fee_structures({
-      page,
-      search: search || undefined,
-    });
+    const res = await get_raw_fee_structures_ktor({});
 
     if (mySeq !== loadSeq) return;
 
     const data = res?.data || { results: [], count: 0 };
-    feeStructures.value = data.results || [];
+      // feeStructures.value = data.results || []; django
+    feeStructures.value = data || [];
     totalCount.value = data.count || 0;
 
     currentPage.value = page;
@@ -504,7 +510,7 @@ const studentOptionsForSelect = computed(() =>
 
 async function fetchUsers() {
   try {
-    const response = await rawst();
+    // const response = await rawst();
     const raw = response?.data || [];
     studentOptions.value = Array.isArray(raw) ? raw : raw.results || [];
   } catch (err) {
@@ -544,14 +550,14 @@ function resetForm() {
   editingId.value = null;
 }
 
-watch(
-  () => formFee.is_discount,
-  (val) => {
-    if (val) {
-      formFee.gradeClassId = CRECHE_CLASS_ID;
-    }
-  }
-);
+// watch(
+//   () => formFee.is_discount,
+//   (val) => {
+//     if (val) {
+//       formFee.gradeClassId = CRECHE_CLASS_ID;    django
+//     }
+//   }
+// );
 
 function validateForm() {
   if (!formFee.academicYearId || !formFee.termId) {
@@ -568,10 +574,10 @@ function validateForm() {
     return false;
   }
 
-  if (formFee.is_discount && formFee.discounted_student_ids.length === 0) {
-    formValidationMessage.value = "Please select at least one discounted student.";
-    return false;
-  }
+  // if (formFee.is_discount && formFee.discounted_student_ids.length === 0) {
+  //   formValidationMessage.value = "Please select at least one discounted student.";  django
+  //   return false;
+  // }
 
   if (formFee.amount === "" || formFee.amount === null) {
     formValidationMessage.value = "Amount is required.";
@@ -645,21 +651,25 @@ async function submitForm() {
 
   isSubmitting.value = true;
 
+
+
   const payload = {
     academic_year_id: Number(formFee.academicYearId),
     grade_class_id: Number(formFee.gradeClassId),
     term_id: Number(formFee.termId),
-    amount: formFee.amount,
-    discounted_student_ids: formFee.is_discount
-      ? formFee.discounted_student_ids.map(Number)
-      : [],
+    amount: parseInt(formFee.amount),
+    // discounted_student_ids: formFee.is_discount
+
+    //   ? formFee.discounted_student_ids.map(Number) django
+    //   : [],
     is_discounted: !!formFee.is_discount,
   };
 
 
   try {
     if (isEdit.value && editingId.value != null) {
-      const res = await update_fee_structure(editingId.value, payload);
+      const res = await update_fee_structure_ktor(editingId.value, payload);
+
       const updated = res?.data;
 
       if (updated?.id != null) {
@@ -672,7 +682,7 @@ async function submitForm() {
         position: "top-right",
       });
     } else {
-      await create_fee_structure(payload);
+      await create_fee_structure_ktor(payload);
       toast.success("Fee structure added successfully.", {
         position: "top-right",
       });
@@ -747,7 +757,7 @@ async function confirmDeleteSingle() {
 
   try {
     const id = deleteTarget.value.id;
-    await delete_fee_structure(id);
+    await delete_fee_structure_ktor(id);
 
     feeStructures.value = feeStructures.value.filter((r) => r.id !== id);
     selectedIds.value = selectedIds.value.filter((x) => x !== id);
@@ -777,7 +787,7 @@ async function confirmDeleteBulk() {
   const ids = [...selectedIds.value];
 
   try {
-    const results = await Promise.allSettled(ids.map((id) => delete_fee_structure(id)));
+    const results = await Promise.allSettled(ids.map((id) => delete_fee_structure_ktor(id)));
 
     let successCount = 0;
 
@@ -814,7 +824,8 @@ async function confirmDeleteBulk() {
 onMounted(async () => {
   try {
     isLoading.value = true;
-    await Promise.all([loadReferenceData(), fetchUsers()]);
+
+    await Promise.all([loadReferenceData(), ]);    // fetchUsers()
     await loadFeeStructures(1);
   } finally {
     isLoading.value = false;

@@ -78,18 +78,23 @@
       <CFormLabel>Name</CFormLabel>
       <CFormInput v-model="form.name" placeholder="e.g. 2024/2025" />
       <div class="text-end mt-3">
-        <CButton color="primary" :disabled="loading" @click="submitForm">
-          <CSpinner v-if="loading" size="sm" class="me-2" />
-          {{ isEdit ? 'Update' : 'Create' }}
-        </CButton>
+        <CButton
+  color="primary"
+  :disabled="loading"
+  @click="submitForm"
+  style="color: white;"
+>
+  <CSpinner v-if="loading" size="sm" class="me-2" />
+  {{ isEdit ? 'Update' : 'Create' }}
+</CButton>
       </div>
     </CModalBody>
   </CModal>
 </template>
 
 <script setup>
-import { get_academic_years, create_academic_year, update_academic_year, delete_academic_year } from '../../../services/api'
-import { ref, computed, onMounted } from 'vue'
+import { get_academic_years_ktor, create_academic_year_ktor, update_academic_year_ktor, delete_academic_year_ktor } from '../../../services/api'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useToast } from 'vue-toastification'
 
 const toast = useToast()
@@ -104,7 +109,14 @@ const currentYear = ref(null)
 const showDeleteModal = ref(false)
 const yearToDelete = ref(null)
 
-const form = ref({ name: '' })
+const form = reactive({ name: '' })
+
+
+
+function resetForm() {
+  form.name = ''
+}
+
 
 const filteredYears = computed(() => {
   const term = searchTerm.value.trim().toLowerCase()
@@ -116,7 +128,7 @@ const filteredYears = computed(() => {
 async function fetchYears() {
   loading.value = true
   try {
-    const response = await get_academic_years()
+    const response = await get_academic_years_ktor()
     academicYears.value = response.data
   } catch (err) {
 
@@ -139,14 +151,15 @@ onMounted(() => {
 const openAddModal = () => {
   isEdit.value = false
   currentYear.value = null
-  form.value = { name: '' }
+  resetForm()
+
   showFormModal.value = true
 }
 
 const openEditModal = (year) => {
   isEdit.value = true
   currentYear.value = year
-  form.value = { name: year.name }
+  form.name = year.name
   showFormModal.value = true
 }
 
@@ -156,20 +169,21 @@ const closeFormModal = () => {
 }
 
 const submitForm = async () => {
-  if (!form.value.name.trim()) return
+  if (!form.name.trim()) return
 
   loading.value = true
   try {
     if (isEdit.value && currentYear.value) {
-      await update_academic_year(currentYear.value.id, form.value)
+      await update_academic_year_ktor(currentYear.value.id, form.name)
       toast.success('Academic year updated successfully')
     } else {
-      await create_academic_year(form.value)
+      await create_academic_year_ktor(form.name)
       toast.success('Academic year created successfully')
     }
     await fetchYears()
     closeFormModal()
   } catch (err) {
+
     toast.error('Failed to save academic year')
   } finally {
     loading.value = false
@@ -190,7 +204,7 @@ const confirmDelete = async () => {
   const nameToDelete = yearToDelete.value.name
 
   try {
-    const response = await delete_academic_year(idToDelete)
+    const response = await delete_academic_year_ktor(idToDelete)
 
 
     academicYears.value = academicYears.value.filter(y => y.id !== idToDelete)

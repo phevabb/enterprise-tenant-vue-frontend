@@ -11,3 +11,12 @@ rasther pas the student id:
  ref: `SCH_${Date.now()}`,
 
  also use kog email as default
+
+to make text white: <CButton color="danger" class="text-white" @click="deleteSingle" :disabled="isDeleting">
+        <CSpinner size="sm" v-if="isDeleting" class="me-1" />
+        Delete
+      </CButton>
+
+
+
+      just add class="text-white"
