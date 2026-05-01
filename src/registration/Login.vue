@@ -122,7 +122,10 @@ const route = useRoute()
 
 const username = ref('')
 const password = ref('')
-const role = ref('')          // <--- new
+// const role = ref('') later         // <--- new
+
+const role = ref('administrator')
+
 const loading = ref(false)
 const error = ref<string | null>(null)
 
@@ -177,59 +180,96 @@ function nextTarget() {
   return { name: 'Login' }
 }
 
+// async function onSubmit() {
+//   error.value = null
+//   loading.value = true
+//   try {
+//     const payload = {
+//       login_id: username.value,
+//       password: password.value,
+//       role: role.value, // keep only if backend expects this
+//     }
+
+//     const { data } = await login(payload)
+//     const token = data?.token || data?.access || data?.key
+//     if (!token) throw new Error('No token received from server')
+
+//     // Persist server-authoritative user + token
+//     storeAuth(token, data.user, data.family, data.staff,)
+
+//     // Decide where to go
+//     const target = nextTarget()
+
+//     // Avoid self-redirect; prefer replace after login
+//     const currentName = router.currentRoute.value?.name
+//     if (target?.name && target.name !== currentName) {
+//       await router.replace(target)
+//     } else {
+//   const roleRoutes = {
+//     principal: { name: 'PrincipalDashboard' },
+//     administrator: { name: 'student_fee_records_admin' },
+//     student: { name: 'AcademicRecords' }   // StudentDashboard
+//   }
+
+//   await router.replace(
+//     roleRoutes[data.user?.role] || { name: 'Login' }
+//   )
+// }
+
+
+//   } catch (e) {
+
+
+
+//     const backendError =
+//       e?.response?.data?.non_field_errors?.[0] ||
+//       e?.response?.data?.detail ||
+//       e?.response?.data?.error ||
+//       e?.response?.data?.password?.[0] ||
+//       e?.message ||
+//       'Login failed'
+//     error.value = backendError
+//   } finally {
+//     loading.value = false
+//   }
+// } to be used later when backend auth is ready
+
+
 async function onSubmit() {
   error.value = null
   loading.value = true
+
   try {
-    const payload = {
-      login_id: username.value,
-      password: password.value,
-      role: role.value, // keep only if backend expects this
+    // ✅ DEV MODE: fake user, no backend call
+    const fakeUser = {
+      role: role.value || 'administrator',
     }
 
-    const { data } = await login(payload)
-    const token = data?.token || data?.access || data?.key
-    if (!token) throw new Error('No token received from server')
+    localStorage.setItem('token', 'dev-token')
+    localStorage.setItem('user', JSON.stringify(fakeUser))
 
-    // Persist server-authoritative user + token
-    storeAuth(token, data.user, data.family, data.staff,)
+    // ✅ Go straight to role dashboard
+    const roleRoutes: Record<string, any> = {
+      administrator: { name: 'student_fee_records_admin' },
+      principal: { name: 'PrincipalDashboard' },
+      student: { name: 'AcademicRecords' },
+      staff: { name: 'StaffDashboard' },
+    }
 
-    // Decide where to go
-    const target = nextTarget()
+    await router.replace(
+      roleRoutes[fakeUser.role] || { name: 'student_fee_records_admin' }
+    )
 
-    // Avoid self-redirect; prefer replace after login
-    const currentName = router.currentRoute.value?.name
-    if (target?.name && target.name !== currentName) {
-      await router.replace(target)
-    } else {
-  const roleRoutes = {
-    principal: { name: 'PrincipalDashboard' },
-    administrator: { name: 'student_fee_records_admin' },
-    student: { name: 'AcademicRecords' }   // StudentDashboard
-  }
-
-  await router.replace(
-    roleRoutes[data.user?.role] || { name: 'Login' }
-  )
-}
-
-
-  } catch (e) {
-
-
-
-    const backendError =
-      e?.response?.data?.non_field_errors?.[0] ||
-      e?.response?.data?.detail ||
-      e?.response?.data?.error ||
-      e?.response?.data?.password?.[0] ||
-      e?.message ||
-      'Login failed'
-    error.value = backendError
+  } catch (e: any) {
+    error.value = 'Login failed'
   } finally {
     loading.value = false
   }
 }
+
+
+
+
 
 </script>
 
