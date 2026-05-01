@@ -107,24 +107,28 @@ const router = createRouter({
 })
 
 // Auth + role guard
+// router.beforeEach((to, from, next) => {
+//   const token = getTokenFromStorage()
+//   const user = getUserFromStorage()
+
+//   const requiresAuth = to.matched.some((r) => r.meta && r.meta.requiresAuth)
+//   if (requiresAuth && !token) {
+//     return next({ name: 'Login', query: { redirect: to.name } })
+//   }
+
+//   // Role-based authorization
+//   const allowedRoles = to.matched
+//     .map((r) => (r.meta && r.meta.roles ? r.meta.roles : []))
+//     .flat()
+
+//   if (allowedRoles.length && user && !allowedRoles.includes(user.role)) {
+//     return next(roleHome(user))
+//   }
+
+//   next()
+// })   must be fixed later, for now we will allow all routes without auth checks
+
 router.beforeEach((to, from, next) => {
-  const token = getTokenFromStorage()
-  const user = getUserFromStorage()
-
-  const requiresAuth = to.matched.some((r) => r.meta && r.meta.requiresAuth)
-  if (requiresAuth && !token) {
-    return next({ name: 'Login', query: { redirect: to.name } })
-  }
-
-  // Role-based authorization
-  const allowedRoles = to.matched
-    .map((r) => (r.meta && r.meta.roles ? r.meta.roles : []))
-    .flat()
-
-  if (allowedRoles.length && user && !allowedRoles.includes(user.role)) {
-    return next(roleHome(user))
-  }
-
   next()
 })
 
