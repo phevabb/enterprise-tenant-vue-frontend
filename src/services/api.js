@@ -7,7 +7,9 @@ const api = axios.create({
 
  // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
 
- baseURL: 'https://kog-ktor-backend.onrender.com/api/' ,
+ // baseURL: 'https://kog-ktor-backend.onrender.com/api/' , // ktor render production
+
+ baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production
 
 
 
