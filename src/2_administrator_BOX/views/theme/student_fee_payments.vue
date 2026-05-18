@@ -5,16 +5,17 @@
         <CCardHeader>
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <strong>Payments</strong>
+
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <CFormInput
                 v-model="searchTerm"
                 placeholder="Search by student, receipt..."
                 aria-label="Search payments"
                 size="sm"
-                style="min-width: 220px;"
+                style="min-width: 220px"
               />
 
-              <CFormSelect v-model="dateFilter" size="sm" style="min-width: 160px;">
+              <CFormSelect v-model="dateFilter" size="sm" style="min-width: 160px">
                 <option value="">All Dates</option>
                 <option value="today">Today</option>
                 <option value="7days">Past 7 Days</option>
@@ -45,94 +46,147 @@
             {{ errorMessage }}
           </CAlert>
 
-          <div class="d-flex align-items-center gap-2 mb-2" v-if="isLoading">
-            <CSpinner size="sm" />
-            <span class="text-body-secondary small">Loading payments…</span>
-          </div>
-
-          <DocsExample>
-
-            <div v-if="isLoading" class="text-center my-5">
+          <!-- Loading -->
+          <div v-if="isLoading" class="text-center my-5">
             <CSpinner color="primary" class="me-2" />
             <span class="text-primary fw-bold">Loading payments...</span>
           </div>
 
+          <!-- Table -->
+          <CTable v-else hover responsive>
+            <CTableHead>
+              <CTableRow>
+                <CTableHeaderCell scope="col" class="text-center" style="width: 48px">
+                  <CFormCheck
+                    :checked="allSelected"
+                    :indeterminate="someSelected"
+                    @change="toggleSelectAll"
+                    aria-label="Select all in current view"
+                  />
+                </CTableHeaderCell>
 
-            <CTable v-else  hover responsive>
-              <CTableHead>
-                <CTableRow>
-                  <CTableHeaderCell scope="col" class="text-center" style="width: 48px;">
-                    <CFormCheck
-                      :checked="allSelected"
-                      :indeterminate="someSelected"
-                      @change="toggleSelectAll"
-                      aria-label="Select all in current view"
-                    />
-                  </CTableHeaderCell>
-                  <CTableHeaderCell scope="col" style="width: 60px;">#</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Student</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Class</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Term</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Academic Year</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Date</CTableHeaderCell>
-                  <CTableHeaderCell scope="col" class="text-end">Amount (GHS)</CTableHeaderCell>
-                  <CTableHeaderCell scope="col" class="text-end">Balance (GHS)</CTableHeaderCell>
-                  <CTableHeaderCell scope="col" class="text-end" style="width: 160px;">Actions</CTableHeaderCell>
-                </CTableRow>
-              </CTableHead>
+                <CTableHeaderCell scope="col" style="width: 60px">#</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Student</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Class</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Term</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Academic Year</CTableHeaderCell>
+                <CTableHeaderCell scope="col">Date</CTableHeaderCell>
+                <CTableHeaderCell scope="col" class="text-end">Amount (GHS)</CTableHeaderCell>
+                <CTableHeaderCell scope="col" class="text-end">Balance (GHS)</CTableHeaderCell>
+                <CTableHeaderCell scope="col" class="text-end" style="width: 160px">
+                  Actions
+                </CTableHeaderCell>
+              </CTableRow>
+            </CTableHead>
 
-              <CTableBody>
-                <CTableRow v-for="(row, idx) in payments" :key="row.id">
-                  <CTableDataCell class="text-center">
-                    <CFormCheck v-model="selectedIds" :value="row.id" aria-label="Select row" />
-                  </CTableDataCell>
-                  <CTableHeaderCell scope="row">{{ (currentPage - 1) * pageSize + idx + 1 }}</CTableHeaderCell>
-                  <CTableDataCell>{{ row.student_fee_record?.student?.user?.fullName || '—' }}</CTableDataCell>
-                  <CTableDataCell>{{ row.student_fee_record?.feeStructure?.grade_class?.name || '—' }}</CTableDataCell>
-                  <CTableDataCell>{{ row.student_fee_record?.feeStructure?.term?.name || '—' }}</CTableDataCell>
-                  <CTableDataCell>{{ row.student_fee_record?.feeStructure?.academic_year?.name || '—' }}</CTableDataCell>
-                  <CTableDataCell>{{ formatDateTime(row.date_created) || '—' }}</CTableDataCell>
-                  <CTableDataCell class="text-end">{{ formatAmount(row.amount) }}</CTableDataCell>
-                  <CTableDataCell class="text-end">{{ formatAmount(row.balance) }}</CTableDataCell>
-                  <CTableDataCell class="text-end">
-                    <CButtonGroup size="sm">
-                      <CButton color="danger" variant="outline" @click="openSingleDeleteConfirm(row)">
-                        Delete
-                      </CButton>
-                    </CButtonGroup>
-                  </CTableDataCell>
-                </CTableRow>
+            <CTableBody>
+              <CTableRow v-for="(row, idx) in rows" :key="row.id">
+                <CTableDataCell class="text-center">
+                  <CFormCheck v-model="selectedIds" :value="row.id" aria-label="Select row" />
+                </CTableDataCell>
 
-                <CTableRow v-if="!isLoading && payments.length === 0">
-                  <CTableDataCell colspan="9" class="text-center text-body-secondary">
-                    No payments found<span v-if="searchTerm"> for “{{ searchTerm }}”</span>.
-                  </CTableDataCell>
-                </CTableRow>
-              </CTableBody>
-            </CTable>
+                <CTableHeaderCell scope="row">
+                  {{ (currentPage - 1) * pageSize + idx + 1 }}
+                </CTableHeaderCell>
 
-            <div class="d-flex justify-content-between align-items-center mt-3">
+                <!-- Safely resolve nested dto naming differences -->
+                <CTableDataCell>
+                  {{
+                    (
+                      (row.student_fee_record || row.studentFeeRecord)?.student?.user?.full_name ||
+                      (row.student_fee_record || row.studentFeeRecord)?.student?.user?.fullName ||
+                      (row.student_fee_record || row.studentFeeRecord)?.student?.user?.name ||
+                      "—"
+                    )
+                  }}
+                </CTableDataCell>
+
+                <CTableDataCell>
+                  {{
+                    (
+                      (row.student_fee_record || row.studentFeeRecord)?.feeStructure ||
+                      (row.student_fee_record || row.studentFeeRecord)?.fee_structure
+                    )?.grade_class?.name || "—"
+                  }}
+                </CTableDataCell>
+
+                <CTableDataCell>
+                  {{
+                    (
+                      (row.student_fee_record || row.studentFeeRecord)?.feeStructure ||
+                      (row.student_fee_record || row.studentFeeRecord)?.fee_structure
+                    )?.term?.name || "—"
+                  }}
+                </CTableDataCell>
+
+                <CTableDataCell>
+                  {{
+                    (
+                      (row.student_fee_record || row.studentFeeRecord)?.feeStructure ||
+                      (row.student_fee_record || row.studentFeeRecord)?.fee_structure
+                    )?.academic_year?.name || "—"
+                  }}
+                </CTableDataCell>
+
+                <CTableDataCell>
+                  {{ formatDateTime(row.date_created || row.dateCreated || row.created_at || row.createdAt) }}
+                </CTableDataCell>
+
+                <CTableDataCell class="text-end">
+                  {{ formatAmount(row.amount) }}
+                </CTableDataCell>
+
+                <CTableDataCell class="text-end">
+                  {{ formatAmount(row.balance) }}
+                </CTableDataCell>
+
+                <CTableDataCell class="text-end">
+                  <CButtonGroup size="sm">
+                    <CButton
+                      color="danger"
+                      variant="outline"
+                      @click="openSingleDeleteConfirm(row)"
+                    >
+                      Delete
+                    </CButton>
+                  </CButtonGroup>
+                </CTableDataCell>
+              </CTableRow>
+
+              <CTableRow v-if="rows.length === 0">
+                <CTableDataCell colspan="10" class="text-center text-body-secondary">
+                  No payments found<span v-if="searchTerm"> for “{{ searchTerm }}”</span>.
+                </CTableDataCell>
+              </CTableRow>
+            </CTableBody>
+          </CTable>
+
+          <!-- Pagination + Range -->
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div>
               <Pagination
+                v-if="totalPages > 1"
                 :current-page="currentPage"
                 :total-pages="totalPages"
+                :disabled="isLoading"
                 @page-changed="onPageChanged"
               />
-              <div style="font-size: 14px; color: #7f8c8d;">
-                {{ showingRange }}
-              </div>
             </div>
-          </DocsExample>
+
+            <div style="font-size: 14px; color: #7f8c8d">
+              {{ showingRange }}
+            </div>
+          </div>
         </CCardBody>
       </CCard>
     </CCol>
   </CRow>
 
-  <!-- Add Payment Modal (no edit for now – payments usually immutable) -->
+  <!-- Add Payment Modal -->
   <CModal :visible="showFormModal" @close="closeFormModal" size="lg">
     <CModalHeader>
       <CModalTitle>Add Payment</CModalTitle>
     </CModalHeader>
-
 
     <CModalBody>
       <div class="mb-3 position-relative">
@@ -141,25 +195,32 @@
           id="sfr"
           v-model="recordSearch"
           placeholder="Search fee record..."
-          @input="filterRecords"
           autocomplete="off"
         />
+
         <div
           v-if="filteredStudentFeeRecords.length > 0 && recordSearch"
           class="dropdown-menu show w-100 shadow"
-          style="max-height: 240px; overflow-y: auto; z-index: 1050;"
+          style="max-height: 240px; overflow-y: auto; z-index: 1050"
         >
           <button
             v-for="rec in filteredStudentFeeRecords"
             :key="rec.id"
             class="dropdown-item text-truncate"
             @click="selectRecord(rec)"
+            type="button"
           >
-            {{ rec.student?.user?.fullName }} /
-            {{ rec.feeStructure?.grade_class?.name }} /
-            {{ rec.feeStructure?.term?.name }} /
-            {{ rec.feeStructure?.academic_year?.name }} /
-            {{ rec.balance }}
+            {{
+              (rec.student?.user?.full_name || rec.student?.user?.fullName || "—")
+            }}
+            /
+            {{ rec.feeStructure?.grade_class?.name || rec.fee_structure?.grade_class?.name || "—" }}
+            /
+            {{ rec.feeStructure?.term?.name || rec.fee_structure?.term?.name || "—" }}
+            /
+            {{ rec.feeStructure?.academic_year?.name || rec.fee_structure?.academic_year?.name || "—" }}
+            /
+            {{ rec.balance ?? "—" }}
           </button>
         </div>
       </div>
@@ -189,14 +250,22 @@
       </div>
     </CModalBody>
 
-
-
-
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">
+      <CButton
+        color="secondary"
+        variant="outline"
+        @click="closeFormModal"
+        :disabled="isSubmitting"
+      >
         Cancel
       </CButton>
-      <CButton class="text-white" color="primary" @click="submitForm" :disabled="isSubmitting">
+
+      <CButton
+        class="text-white"
+        color="primary"
+        @click="submitForm"
+        :disabled="isSubmitting"
+      >
         <CSpinner size="sm" v-if="isSubmitting" class="me-2" />
         Save Payment
       </CButton>
@@ -205,15 +274,28 @@
 
   <!-- Delete Confirmations -->
   <CModal :visible="showDeleteSingleModal" @close="closeDeleteSingleModal">
-    <CModalHeader><CModalTitle>Delete Payment</CModalTitle></CModalHeader>
+    <CModalHeader>
+      <CModalTitle>Delete Payment</CModalTitle>
+    </CModalHeader>
     <CModalBody>
       Delete payment of <strong>GHS {{ formatAmount(deleteTarget?.amount) }}</strong>
-      for <strong>{{ deleteTarget?.student_fee_record?.student?.user?.fullName || '—' }}</strong>
-      on {{ deleteTarget?.date }}?<br />
-      This action cannot be undone.
+      for
+      <strong>
+        {{
+          (deleteTarget?.student_fee_record || deleteTarget?.studentFeeRecord)?.student?.user?.full_name ||
+          (deleteTarget?.student_fee_record || deleteTarget?.studentFeeRecord)?.student?.user?.fullName ||
+          "—"
+        }}
+      </strong>
+      ? This action cannot be undone.
     </CModalBody>
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">
+      <CButton
+        color="secondary"
+        variant="outline"
+        @click="closeDeleteSingleModal"
+        :disabled="isDeleting"
+      >
         Cancel
       </CButton>
       <CButton color="danger" @click="confirmDeleteSingle" :disabled="isDeleting">
@@ -224,12 +306,19 @@
   </CModal>
 
   <CModal :visible="showDeleteBulkModal" @close="closeBulkDeleteConfirm">
-    <CModalHeader><CModalTitle>Delete Selected Payments</CModalTitle></CModalHeader>
+    <CModalHeader>
+      <CModalTitle>Delete Selected Payments</CModalTitle>
+    </CModalHeader>
     <CModalBody>
       Delete <strong>{{ selectedIds.length }}</strong> payment(s)? This cannot be undone.
     </CModalBody>
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="closeBulkDeleteConfirm" :disabled="isDeleting">
+      <CButton
+        color="secondary"
+        variant="outline"
+        @click="closeBulkDeleteConfirm"
+        :disabled="isDeleting"
+      >
         Cancel
       </CButton>
       <CButton color="danger" @click="confirmDeleteBulk" :disabled="isDeleting">
@@ -241,370 +330,442 @@
 </template>
 
 
+
 <script setup>
-import { ref, computed, reactive, watch, onMounted } from 'vue'
-import { useToast } from 'vue-toastification'
+import { ref, computed, reactive, watch, onMounted } from "vue";
+import { useToast } from "vue-toastification";
 import {
-  get_payments_ktor,
+  get_payments_ktor_paginated,
   get_raw_student_fee_records_ktor,
   create_payment_ktor,
-  delete_payment_ktor
-} from '@/services/api' // adjust path
-import Pagination from '@/Pagination.vue'
+  delete_payment_ktor,
+} from "@/services/api";
+import Pagination from "@/Pagination.vue";
 
-const toast = useToast()
-const pageSize = 10
+const toast = useToast();
+const pageSize = 10;
 
-// ────────────────────────────────────────────────
-const isLoading      = ref(false)
-const isSubmitting   = ref(false)
-const isDeleting     = ref(false)
-const errorMessage   = ref('')
+/* -------------------------------------------------------
+   STATE
+------------------------------------------------------- */
+const isLoading = ref(false);
+const isSubmitting = ref(false);
+const isDeleting = ref(false);
+const errorMessage = ref("");
 
-const payments       = ref([])
-const currentPage    = ref(1)
-const totalPages     = ref(1)
-const totalCount     = ref(0)
-const pageCache      = ref(new Map())
-const currentSearch  = ref('')
-const currentDateFilter = ref('')
+const payments = ref([]);
+const currentPage = ref(1);
+const totalPages = ref(1);
+const totalCount = ref(0);
 
-const searchTerm     = ref('')
-const dateFilter     = ref('')
-const selectedIds    = ref([])
+const searchTerm = ref("");
+const dateFilter = ref(""); // today|7days|month|year
+const selectedIds = ref([]);
 
-// Form
-const showFormModal       = ref(false)
-const formPayment         = reactive({
-  studentFeeRecordId: '',
-  date: '',
-  amount: ''
-})
-const recordSearch        = ref('')
-const studentFeeRecords   = ref([])
-const filteredStudentFeeRecords = ref([])
-const formValidationMessage = ref('')
+/* Cache + request sequencing */
+const pageCache = reactive(new Map());
+const makeKey = (page, search, dateF) => `${page}__${search || ""}__${dateF || ""}`;
+const clearCache = () => pageCache.clear();
+let loadSeq = 0;
 
-// Delete
-const showDeleteSingleModal = ref(false)
-const deleteTarget          = ref(null)
-const showDeleteBulkModal   = ref(false)
+/* -------------------------------------------------------
+   FORM (Create payment)
+------------------------------------------------------- */
+const showFormModal = ref(false);
+const formPayment = reactive({
+  studentFeeRecordId: "",
+  date: "",
+  amount: "",
+});
 
-// ──────────────────────────────────────────────── Computed
+const recordSearch = ref("");
+const studentFeeRecords = ref([]);
+const filteredStudentFeeRecords = ref([]);
+const formValidationMessage = ref("");
 
+/* -------------------------------------------------------
+   DELETE MODALS
+------------------------------------------------------- */
+const showDeleteSingleModal = ref(false);
+const deleteTarget = ref(null);
+const showDeleteBulkModal = ref(false);
 
-function formatDateTime(iso) {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return d.toLocaleString('en-GB', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).replace(',', '')
-}
-
+/* -------------------------------------------------------
+   COMPUTED
+------------------------------------------------------- */
+const rows = computed(() => payments.value);
 
 const showingRange = computed(() => {
-  if (totalCount.value === 0) return 'Showing 0–0 of 0'
-  const start = (currentPage.value - 1) * pageSize + 1
-  const end = Math.min(start + pageSize - 1, totalCount.value)
-  return `Showing ${start}–${end} of ${totalCount.value}`
-})
+  if (totalCount.value === 0) return "Showing 0–0 of 0";
+  const start = (currentPage.value - 1) * pageSize + 1;
+  const end = Math.min(currentPage.value * pageSize, totalCount.value);
+  return `Showing ${start}–${end} of ${totalCount.value}`;
+});
 
-const allSelected = computed(() =>
-  payments.value.length > 0 &&
-  payments.value.every(p => selectedIds.value.includes(p.id))
-)
+const allSelected = computed(() => {
+  const idsInView = rows.value.map((p) => p.id);
+  return idsInView.length > 0 && idsInView.every((id) => selectedIds.value.includes(id));
+});
 
-const someSelected = computed(() =>
-  payments.value.some(p => selectedIds.value.includes(p.id)) && !allSelected.value
-)
+const someSelected = computed(() => {
+  const idsInView = rows.value.map((p) => p.id);
+  if (idsInView.length === 0) return false;
+  const selectedInView = idsInView.filter((id) => selectedIds.value.includes(id)).length;
+  return selectedInView > 0 && selectedInView < idsInView.length;
+});
 
-// ──────────────────────────────────────────────── Helpers
-
+/* -------------------------------------------------------
+   HELPERS
+------------------------------------------------------- */
 function formatAmount(v) {
-  const n = Number(v)
-  return Number.isNaN(n) ? '—' : n.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })
+  const n = Number(v);
+  return Number.isNaN(n)
+    ? "—"
+    : n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Handles:
+ * - ISO strings
+ * - epoch millis (Long)
+ */
+function formatDateTime(value) {
+  if (value == null || value === "") return "—";
+
+  const d =
+    typeof value === "number"
+      ? new Date(value) // epoch millis
+      : /^\d+$/.test(String(value))
+        ? new Date(Number(value)) // numeric string millis
+        : new Date(value); // ISO string
+
+  if (Number.isNaN(d.getTime())) return "—";
+
+  return d
+    .toLocaleString("en-GB", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    .replace(",", "");
 }
 
 function resetForm() {
-  formPayment.studentFeeRecordId = ''
-  formPayment.date  = ''
-  formPayment.amount = ''
-  recordSearch.value = ''
-  filteredStudentFeeRecords.value = []
-  formValidationMessage.value = ''
+  formPayment.studentFeeRecordId = "";
+  formPayment.date = "";
+  formPayment.amount = "";
+  recordSearch.value = "";
+  filteredStudentFeeRecords.value = [];
+  formValidationMessage.value = "";
 }
 
 function validateForm() {
   if (!formPayment.studentFeeRecordId) {
-    formValidationMessage.value = 'Please select a student fee record.'
-    return false
+    formValidationMessage.value = "Please select a student fee record.";
+    return false;
   }
-  if (!formPayment.amount || Number(formPayment.amount) <= 0) {
-    formValidationMessage.value = 'Amount must be greater than zero.'
-    return false
+  if (formPayment.amount === "" || formPayment.amount == null || Number(formPayment.amount) <= 0) {
+    formValidationMessage.value = "Amount must be greater than zero.";
+    return false;
   }
-  formValidationMessage.value = ''
-  return true
+  formValidationMessage.value = "";
+  return true;
 }
 
+/* Select all (only items in current page) */
 function toggleSelectAll() {
+  const idsInView = rows.value.map((p) => p.id);
+  if (idsInView.length === 0) return;
+
   if (allSelected.value) {
-    selectedIds.value = selectedIds.value.filter(id =>
-      !payments.value.some(p => p.id === id)
-    )
+    selectedIds.value = selectedIds.value.filter((id) => !idsInView.includes(id));
   } else {
-    const set = new Set(selectedIds.value)
-    payments.value.forEach(p => set.add(p.id))
-    selectedIds.value = [...set]
+    const set = new Set(selectedIds.value);
+    idsInView.forEach((id) => set.add(id));
+    selectedIds.value = [...set];
   }
 }
 
-// ──────────────────────────────────────────────── Data Loading
-
+/* -------------------------------------------------------
+   DATA LOADING
+------------------------------------------------------- */
 async function loadStudentFeeRecords() {
   try {
-    const res = await get_raw_student_fee_records_ktor()
-
-
-    studentFeeRecords.value = res.data || []
+    const res = await get_raw_student_fee_records_ktor();
+    studentFeeRecords.value = res?.data || [];
   } catch (err) {
-    toast.error('Failed to load student fee records.')
+    toast.error("Failed to load student fee records.");
   }
 }
 
 async function loadPayments(page = 1, force = false) {
-  const search = searchTerm.value?.trim() || ''
-  const dateF = dateFilter.value
+  const search = searchTerm.value?.trim() || "";
+  const dateF = dateFilter.value?.trim() || "";
+  const key = makeKey(page, search, dateF);
 
-  // Reset cache when search or date filter changes
-  if (currentSearch.value !== search || currentDateFilter.value !== dateF) {
-    currentSearch.value = search
-    currentDateFilter.value = dateF
-    pageCache.value.clear()
-    currentPage.value = 1
-    page = 1
+  // Cache hit
+  if (!force && pageCache.has(key)) {
+    const cached = pageCache.get(key);
+    payments.value = cached.items;
+    totalCount.value = cached.total;
+    currentPage.value = cached.page;
+    totalPages.value = cached.totalPages;
+    return;
   }
 
-  const cacheKey = `${page}|${search}|${dateF}`
-
-  if (!force && pageCache.value.has(cacheKey)) {
-    const cached = pageCache.value.get(cacheKey)
-    payments.value = cached.results
-    totalCount.value = cached.count
-    totalPages.value = Math.ceil(cached.count / pageSize)
-    currentPage.value = page
-    return
-  }
-
-  isLoading.value = true
-  errorMessage.value = ''
+  isLoading.value = true;
+  errorMessage.value = "";
+  const mySeq = ++loadSeq;
 
   try {
-    const params = { page, page_size: pageSize }
-    if (search) params.search = search
-    if (dateF) params.date_filter = dateF   // ← ideally backend supports this
+    // ✅ API: (page, limit, search, date_filter)
+    const res = await get_payments_ktor_paginated(page, pageSize, search, dateF);
 
-    const res = await get_payments_ktor()
-    const data = res.data
+    if (mySeq !== loadSeq) return;
 
+    // ✅ Ktor shape: { data: [], meta: { page, limit, total, totalPages } }
+    const body = res?.data || {};
+    const items = body.data || [];
+    const meta = body.meta || {};
 
-    pageCache.value.set(cacheKey, { results: data.results, count: data.count })
+    payments.value = Array.isArray(items) ? items : [];
+    totalCount.value = Number(meta.total ?? 0);
+    currentPage.value = Number(meta.page ?? page);
+    totalPages.value = Number(meta.totalPages ?? Math.max(1, Math.ceil(totalCount.value / pageSize)));
 
-    payments.value   = data || []
-    totalCount.value = data.count || 0
-    totalPages.value = Math.ceil(totalCount.value / pageSize)
-    currentPage.value = page
+    pageCache.set(key, {
+      items: payments.value,
+      total: totalCount.value,
+      page: currentPage.value,
+      totalPages: totalPages.value,
+    });
   } catch (err) {
-    errorMessage.value = 'Failed to load payments.'
-    toast.error(errorMessage.value)
+    if (mySeq !== loadSeq) return;
+
+    errorMessage.value =
+      err?.response?.data?.message ||
+      err?.response?.data?.detail ||
+      err?.message ||
+      "Failed to load payments.";
+
+    toast.error(errorMessage.value);
   } finally {
-    isLoading.value = false
+    if (mySeq === loadSeq) isLoading.value = false;
   }
 }
 
-// ──────────────────────────────────────────────── Record Search (client-side)
-
+/* -------------------------------------------------------
+   RECORD SEARCH (client-side)
+------------------------------------------------------- */
 function filterRecords() {
-  const q = (recordSearch.value || '').toLowerCase().trim()
+  const q = (recordSearch.value || "").toLowerCase().trim();
   if (!q) {
-    filteredStudentFeeRecords.value = []
-    return
+    filteredStudentFeeRecords.value = [];
+    return;
   }
 
-  const qNum = Number(q)
-  const isNum = !Number.isNaN(qNum)
+  const qNum = Number(q);
+  const isNum = !Number.isNaN(qNum);
 
   filteredStudentFeeRecords.value = (studentFeeRecords.value || [])
     .filter((r) => {
-      const name = (r.student?.user?.fullName || '').toLowerCase()
-      const cls  = (r.feeStructure?.grade_class?.name || '').toLowerCase()
-      const term = (r.feeStructure?.term?.name || '').toLowerCase()
-      const year = (r.feeStructure?.academic_year?.name || '').toLowerCase()
+      const fullName =
+        (r.student?.user?.full_name ||
+          r.student?.user?.fullName ||
+          r.student?.user?.name ||
+          "") + "";
 
-      const balanceMatch = isNum ? (Number(r.balance) === qNum) : false
+      const name = fullName.toLowerCase();
 
-      return (
-        name.includes(q) ||
-        cls.includes(q) ||
-        term.includes(q) ||
-        year.includes(q) ||
-        balanceMatch
-      )
+      const fs = r.feeStructure || r.fee_structure || {};
+      const cls = (fs.grade_class?.name || "").toLowerCase();
+      const term = (fs.term?.name || "").toLowerCase();
+      const year = (fs.academic_year?.name || "").toLowerCase();
+
+      const balanceMatch = isNum ? Number(r.balance) === qNum : false;
+
+      return name.includes(q) || cls.includes(q) || term.includes(q) || year.includes(q) || balanceMatch;
     })
-    .slice(0, 15)
+    .slice(0, 15);
 }
-
 
 function selectRecord(record) {
-  formPayment.studentFeeRecordId = record.id
-  recordSearch.value = `${record.student?.user?.fullName || '?'} / ${record.feeStructure?.grade_class?.name || '?'} / ${record.feeStructure?.term?.name || '?'} / ${record.feeStructure?.academic_year?.name || '?'} / ${record.balance || '?'} `
-  filteredStudentFeeRecords.value = []
+  formPayment.studentFeeRecordId = record.id;
+
+  const fullName =
+    record.student?.user?.full_name ||
+    record.student?.user?.fullName ||
+    record.student?.user?.name ||
+    "?";
+
+  const fs = record.feeStructure || record.fee_structure || {};
+  recordSearch.value = `${fullName} / ${fs.grade_class?.name || "?"} / ${fs.term?.name || "?"} / ${
+    fs.academic_year?.name || "?"
+  } / ${record.balance ?? "?"}`;
+
+  filteredStudentFeeRecords.value = [];
 }
 
-// ──────────────────────────────────────────────── Actions
-
+/* -------------------------------------------------------
+   ACTIONS
+------------------------------------------------------- */
 function openAddModal() {
-  resetForm()
-  showFormModal.value = true
+  resetForm();
+  showFormModal.value = true;
 }
 
 function closeFormModal() {
-  if (isSubmitting.value) return
-  showFormModal.value = false
-  resetForm()
+  if (isSubmitting.value) return;
+  showFormModal.value = false;
+  resetForm();
 }
 
 async function submitForm() {
-  if (!validateForm()) return
-  isSubmitting.value = true
+  if (!validateForm()) return;
+  isSubmitting.value = true;
 
-  const today = new Date().toISOString().split('T')[0]
   const payload = {
-    student_fee_record_id: formPayment.studentFeeRecordId,
-    // date: formPayment.date || today,
-    amount: formPayment.amount
-  }
+    student_fee_record_id: Number(formPayment.studentFeeRecordId),
+    amount: Number(formPayment.amount),
+    // if backend supports explicit date:
+    // date: formPayment.date || new Date().toISOString().split("T")[0],
+  };
 
   try {
-    const res = await create_payment_ktor(payload)
+    await create_payment_ktor(payload);
 
-    const created = res.data
+    toast.success("Payment recorded successfully.");
+    showFormModal.value = false;
+    resetForm();
 
-    // Auto-download receipt if present
-    // if (created?.receipt_url) {
-    //   const link = document.createElement('a')
-    //   link.href = created.receipt_url
-    //   link.download = ''
-    //   document.body.appendChild(link)
-    //   link.click()
-    //   document.body.removeChild(link)
-    // }
-
-    toast.success('Payment recorded successfully.')
-    showFormModal.value = false
-    resetForm()
-    loadPayments(currentPage.value, true) // refresh
+    clearCache();
+    await loadPayments(currentPage.value, true);
   } catch (err) {
+    formValidationMessage.value =
+      err?.response?.data?.message ||
+      err?.response?.data?.detail ||
+      err?.response?.data ||
+      err?.message ||
+      "Failed to record payment.";
 
-
-    formValidationMessage.value = err.response.data || 'Failed to record payment.'
-    toast.error(formValidationMessage.value)
+    toast.error(formValidationMessage.value);
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
 }
 
-// ─── Delete ───────────────────────────────────────
-
+/* -------------------------------------------------------
+   DELETE
+------------------------------------------------------- */
 function openSingleDeleteConfirm(row) {
-  deleteTarget.value = row
-  showDeleteSingleModal.value = true
+  deleteTarget.value = row;
+  showDeleteSingleModal.value = true;
 }
 
 function closeDeleteSingleModal() {
-  if (isDeleting.value) return
-  showDeleteSingleModal.value = false
-  deleteTarget.value = null
+  if (isDeleting.value) return;
+  showDeleteSingleModal.value = false;
+  deleteTarget.value = null;
 }
 
 async function confirmDeleteSingle() {
-  if (!deleteTarget.value?.id) return
-  isDeleting.value = true
+  if (!deleteTarget.value?.id) return;
+  isDeleting.value = true;
 
   try {
-    await delete_payment_ktor(deleteTarget.value.id)
-    toast.success('Payment deleted.')
-    payments.value = payments.value.filter(p => p.id !== deleteTarget.value.id)
-    selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
-    closeDeleteSingleModal()
+    await delete_payment_ktor(deleteTarget.value.id);
+
+    toast.success("Payment deleted.");
+    payments.value = payments.value.filter((p) => p.id !== deleteTarget.value.id);
+    selectedIds.value = selectedIds.value.filter((id) => id !== deleteTarget.value.id);
+
+    clearCache();
+    await loadPayments(currentPage.value, true);
   } catch (err) {
-    toast.error('Failed to delete payment.')
+    toast.error("Failed to delete payment.");
   } finally {
-    isDeleting.value = false
-    closeDeleteSingleModal()
+    isDeleting.value = false;
+    closeDeleteSingleModal();
   }
 }
 
 function openBulkDeleteConfirm() {
-  if (selectedIds.value.length === 0) return
-  showDeleteBulkModal.value = true
+  if (selectedIds.value.length === 0) return;
+  showDeleteBulkModal.value = true;
 }
 
 function closeBulkDeleteConfirm() {
-  if (isDeleting.value) return
-  showDeleteBulkModal.value = false
+  if (isDeleting.value) return;
+  showDeleteBulkModal.value = false;
 }
 
 async function confirmDeleteBulk() {
-  if (selectedIds.value.length === 0) return
-  isDeleting.value = true
+  if (selectedIds.value.length === 0) return;
+  isDeleting.value = true;
 
-  const ids = [...selectedIds.value]
+  const ids = [...selectedIds.value];
 
   try {
-    await Promise.all(ids.map(id => delete_payment_ktor(id)))
-    payments.value = payments.value.filter(p => !ids.includes(p.id))
-    selectedIds.value = []
-    toast.success(`Deleted ${ids.length} payment(s).`)
-    closeBulkDeleteConfirm()
+    const results = await Promise.allSettled(ids.map((id) => delete_payment_ktor(id)));
+
+    let successCount = 0;
+    results.forEach((r) => {
+      if (r.status === "fulfilled") successCount++;
+    });
+
+    payments.value = payments.value.filter((p) => !ids.includes(p.id));
+    selectedIds.value = [];
+
+    toast.success(`Deleted ${successCount} payment(s).`);
+
+    clearCache();
+    await loadPayments(currentPage.value, true);
   } catch (err) {
-    toast.error('Some deletions failed.')
+    toast.error("Some deletions failed.");
   } finally {
-    isDeleting.value = false
-    closeBulkDeleteConfirm()
+    isDeleting.value = false;
+    closeBulkDeleteConfirm();
   }
 }
 
-// ──────────────────────────────────────────────── Events & Watch
-
+/* -------------------------------------------------------
+   EVENTS / WATCH
+------------------------------------------------------- */
 function onPageChanged(page) {
-  loadPayments(page)
+  currentPage.value = Number(page);
+  loadPayments(currentPage.value);
 }
 
+/* Debounced search/date filter */
+let searchTimer = null;
 watch([searchTerm, dateFilter], () => {
-  loadPayments(1)
-})
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1;
+    clearCache();
+    loadPayments(1);
+  }, 350);
+});
 
-// ──────────────────────────────────────────────── Init
+/* Record search (client-side) */
+watch(recordSearch, () => {
+  filterRecords();
+});
 
+/* -------------------------------------------------------
+   INIT
+------------------------------------------------------- */
 onMounted(async () => {
-  isLoading.value = true
-  await Promise.all([
-    loadStudentFeeRecords(),
-    loadPayments()
-  ])
-  isLoading.value = false
-})
+  try {
+    isLoading.value = true;
+    await Promise.all([loadStudentFeeRecords(), loadPayments(1)]);
+  } finally {
+    isLoading.value = false;
+  }
+});
 </script>
-
-
 
 
 <style scoped>

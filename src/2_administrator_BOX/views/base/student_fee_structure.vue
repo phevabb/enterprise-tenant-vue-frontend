@@ -1,3 +1,4 @@
+
 <template>
   <CRow>
     <CCol :xs="12">
@@ -38,11 +39,7 @@
             {{ errorMessage }}
           </CAlert>
 
-          <div class="d-flex align-items-center gap-2 mb-2" v-if="isLoading">
-            <CSpinner size="sm" />
-            <span class="text-body-secondary small">Loading fee structures…</span>
-          </div>
-
+          <!-- Single loading block (clean) -->
           <div v-if="isLoading" class="text-center my-5">
             <CSpinner color="primary" class="me-2" />
             <span class="text-primary fw-bold">Loading fee structures...</span>
@@ -116,7 +113,7 @@
                 </CTableDataCell>
               </CTableRow>
 
-              <CTableRow v-if="!isLoading && rows.length === 0">
+              <CTableRow v-if="rows.length === 0">
                 <CTableDataCell colspan="8" class="text-center text-body-secondary">
                   No fee structures found
                   <span v-if="searchTerm"> for “{{ searchTerm }}” </span>
@@ -126,14 +123,18 @@
           </CTable>
 
           <!-- Pagination + Range -->
-          <div
-            style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px"
-          >
-            <Pagination
-              :current-page="currentPage"
-              :total-pages="totalPages"
-              @page-changed="onPageChanged"
-            />
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <!-- Show Pagination only if more than 1 page -->
+            <div>
+              <Pagination
+                v-if="totalPages > 1"
+                :current-page="currentPage"
+                :total-pages="totalPages"
+                :disabled="isLoading"
+                @page-changed="onPageChanged"
+              />
+            </div>
+
             <div style="font-size: 14px; color: #7f8c8d">
               {{ showingRange }}
             </div>
@@ -161,7 +162,7 @@
         </CFormSelect>
       </div>
 
-      <!-- Grade/Class v-if="!formFee.is_discount"  -->
+      <!-- Grade/Class -->
       <div class="mb-3">
         <CFormLabel for="grade_class">Class</CFormLabel>
         <CFormSelect id="grade_class" v-model="formFee.gradeClassId">
@@ -201,19 +202,6 @@
         <CFormLabel class="me-3 mb-0">Discounted Fee</CFormLabel>
         <CFormSwitch v-model="formFee.is_discount" color="primary" label="Yes" />
       </div>
-
-      <!-- Discounted Students -->
-      <!-- <div v-if="formFee.is_discount" class="mb-3">
-        <CFormLabel>Select Students for Discount</CFormLabel>
-        <v-select
-          v-model="formFee.discounted_student_ids"
-          :options="studentOptionsForSelect"
-          :multiple="true"
-          :close-on-select="false"
-          placeholder="Search and select students"
-          :reduce="(opt) => opt.value"
-        />
-      </div> -->
 
       <div class="text-danger small mt-2" v-if="formValidationMessage">
         {{ formValidationMessage }}
@@ -262,10 +250,11 @@
 
       <CButton
         color="danger"
-        @click="() => { confirmDeleteSingle(); closeDeleteSingleModal(); }"
+        @click="confirmDeleteSingle"
         :disabled="isDeleting"
       >
-        <CSpinner size="sm" v-if="isDeleting" class="me-2" />Delete
+        <CSpinner size="sm" v-if="isDeleting" class="me-2" />
+        Delete
       </CButton>
     </CModalFooter>
   </CModal>
@@ -289,11 +278,13 @@
         Cancel
       </CButton>
       <CButton color="danger" @click="confirmDeleteBulk" :disabled="isDeleting">
-        <CSpinner size="sm" v-if="isDeleting" class="me-2" />Delete Selected
+        <CSpinner size="sm" v-if="isDeleting" class="me-2" />
+        Delete Selected
       </CButton>
     </CModalFooter>
   </CModal>
 </template>
+
 
 <script setup>
 import vSelect from "vue3-select";
@@ -309,8 +300,7 @@ import {
   get_classes_ktor,
   get_terms_ktor,
   create_fee_structure_ktor,
-  get_fee_structures_ktor,
-  get_raw_fee_structures_ktor, // not here.
+  get_raw_fee_structures_ktor_paginated,
   update_fee_structure_ktor,
   delete_fee_structure_ktor,
 } from "@/services/api.js";
@@ -415,12 +405,13 @@ async function loadFeeStructures(page = 1) {
   const search = searchTerm.value.trim();
   const key = makeKey(page, search);
 
+  // serve from cache if present
   if (pageCache.has(key)) {
     const cached = pageCache.get(key);
-    feeStructures.value = cached.results;
-    totalCount.value = cached.count;
-    currentPage.value = page;
-    totalPages.value = Math.max(1, Math.ceil(cached.count / PAGE_SIZE));
+    feeStructures.value = cached.items;
+    totalCount.value = cached.total;
+    currentPage.value = cached.page;
+    totalPages.value = cached.totalPages;
     return;
   }
 
@@ -429,27 +420,27 @@ async function loadFeeStructures(page = 1) {
 
   const mySeq = ++loadSeq;
 
-  // try {
-  //   const res = await get_fee_structures_ktor({  django
-  //     page,
-  //     search: search || undefined,
-  //   });
-
-
   try {
-    const res = await get_raw_fee_structures_ktor({});
+    const res = await get_raw_fee_structures_ktor_paginated(page, PAGE_SIZE, search);
 
     if (mySeq !== loadSeq) return;
 
-    const data = res?.data || { results: [], count: 0 };
-      // feeStructures.value = data.results || []; django
-    feeStructures.value = data || [];
-    totalCount.value = data.count || 0;
+    // ✅ Ktor paginated response
+    const body = res?.data || {};
+    const items = body.data || [];
+    const meta = body.meta || {};
 
-    currentPage.value = page;
-    totalPages.value = Math.max(1, Math.ceil((data.count || 0) / PAGE_SIZE));
+    feeStructures.value = Array.isArray(items) ? items : [];
+    totalCount.value = Number(meta.total ?? 0);
+    currentPage.value = Number(meta.page ?? page);
+    totalPages.value = Number(meta.totalPages ?? Math.max(1, Math.ceil(totalCount.value / PAGE_SIZE)));
 
-    pageCache.set(key, { results: feeStructures.value, count: totalCount.value });
+    pageCache.set(key, {
+      items: feeStructures.value,
+      total: totalCount.value,
+      page: currentPage.value,
+      totalPages: totalPages.value,
+    });
   } catch (err) {
     if (mySeq !== loadSeq) return;
 
@@ -464,6 +455,7 @@ async function loadFeeStructures(page = 1) {
 }
 
 function onPageChanged(page) {
+  currentPage.value = page;
   loadFeeStructures(page);
 }
 
@@ -472,6 +464,7 @@ let searchTimer = null;
 watch(searchTerm, () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
+    clearCache();            // ✅ important so search results don't mix
     currentPage.value = 1;
     loadFeeStructures(1);
   }, 350);
@@ -485,8 +478,7 @@ function toggleSelectAll() {
   if (idsInView.length === 0) return;
 
   if (allSelected.value) {
-    const remove = new Set(idsInView);
-    selectedIds.value = selectedIds.value.filter((id) => !remove.has(id));
+    selectedIds.value = selectedIds.value.filter((id) => !idsInView.includes(id));
   } else {
     const set = new Set(selectedIds.value);
     idsInView.forEach((id) => set.add(id));
@@ -510,11 +502,10 @@ const studentOptionsForSelect = computed(() =>
 
 async function fetchUsers() {
   try {
-    // const response = await rawst();
+    const response = await rawst();          // ✅ FIXED (was undefined)
     const raw = response?.data || [];
     studentOptions.value = Array.isArray(raw) ? raw : raw.results || [];
   } catch (err) {
-
     toast.error("Failed to load students for discount selector", {
       position: "top-right",
     });
@@ -550,15 +541,6 @@ function resetForm() {
   editingId.value = null;
 }
 
-// watch(
-//   () => formFee.is_discount,
-//   (val) => {
-//     if (val) {
-//       formFee.gradeClassId = CRECHE_CLASS_ID;    django
-//     }
-//   }
-// );
-
 function validateForm() {
   if (!formFee.academicYearId || !formFee.termId) {
     formValidationMessage.value = "Academic Year and Term are required.";
@@ -573,11 +555,6 @@ function validateForm() {
     formValidationMessage.value = "Class is required for non-discounted fees.";
     return false;
   }
-
-  // if (formFee.is_discount && formFee.discounted_student_ids.length === 0) {
-  //   formValidationMessage.value = "Please select at least one discounted student.";  django
-  //   return false;
-  // }
 
   if (formFee.amount === "" || formFee.amount === null) {
     formValidationMessage.value = "Amount is required.";
@@ -639,11 +616,7 @@ function extractErrorMessage(err) {
     return data.slice(0, 300);
   }
 
-  return (
-    data.message ||
-    data.detail ||
-    JSON.stringify(data)
-  );
+  return data.message || data.detail || JSON.stringify(data);
 }
 
 async function submitForm() {
@@ -651,25 +624,17 @@ async function submitForm() {
 
   isSubmitting.value = true;
 
-
-
   const payload = {
     academic_year_id: Number(formFee.academicYearId),
     grade_class_id: Number(formFee.gradeClassId),
     term_id: Number(formFee.termId),
     amount: parseInt(formFee.amount),
-    // discounted_student_ids: formFee.is_discount
-
-    //   ? formFee.discounted_student_ids.map(Number) django
-    //   : [],
     is_discounted: !!formFee.is_discount,
   };
-
 
   try {
     if (isEdit.value && editingId.value != null) {
       const res = await update_fee_structure_ktor(editingId.value, payload);
-
       const updated = res?.data;
 
       if (updated?.id != null) {
@@ -678,15 +643,11 @@ async function submitForm() {
         );
       }
 
-      toast.success("Fee structure updated successfully.", {
-        position: "top-right",
-      });
+      toast.success("Fee structure updated successfully.", { position: "top-right" });
     } else {
       await create_fee_structure_ktor(payload);
-      toast.success("Fee structure added successfully.", {
-        position: "top-right",
-      });
 
+      toast.success("Fee structure added successfully.", { position: "top-right" });
       currentPage.value = 1;
     }
 
@@ -696,7 +657,6 @@ async function submitForm() {
     showFormModal.value = false;
     resetForm();
   } catch (err) {
-
     formValidationMessage.value = extractErrorMessage(err);
   } finally {
     isSubmitting.value = false;
@@ -762,18 +722,14 @@ async function confirmDeleteSingle() {
     feeStructures.value = feeStructures.value.filter((r) => r.id !== id);
     selectedIds.value = selectedIds.value.filter((x) => x !== id);
 
-    toast.success("Fee structure deleted successfully.", {
-      position: "top-right",
-    });
+    toast.success("Fee structure deleted successfully.", { position: "top-right" });
 
     clearCache();
     await loadFeeStructures(currentPage.value);
 
     closeDeleteSingleModal();
   } catch (error) {
-    toast.error(friendlyDeleteError(error, deleteTarget.value.id), {
-      position: "top-right",
-    });
+    toast.error(friendlyDeleteError(error, deleteTarget.value.id), { position: "top-right" });
   } finally {
     isDeleting.value = false;
     closeDeleteSingleModal();
@@ -796,16 +752,12 @@ async function confirmDeleteBulk() {
       if (result.status === "fulfilled") {
         successCount++;
       } else {
-        toast.error(friendlyDeleteError(result.reason, id), {
-          position: "top-right",
-        });
+        toast.error(friendlyDeleteError(result.reason, id), { position: "top-right" });
       }
     });
 
     if (successCount > 0) {
-      toast.success(`Deleted ${successCount} fee structure(s) successfully.`, {
-        position: "top-right",
-      });
+      toast.success(`Deleted ${successCount} fee structure(s) successfully.`, { position: "top-right" });
     }
 
     selectedIds.value = [];
@@ -825,7 +777,11 @@ onMounted(async () => {
   try {
     isLoading.value = true;
 
-    await Promise.all([loadReferenceData(), ]);    // fetchUsers()
+    await Promise.all([
+      loadReferenceData(),
+      // fetchUsers(), // uncomment if you need discounted students selector
+    ]);
+
     await loadFeeStructures(1);
   } finally {
     isLoading.value = false;

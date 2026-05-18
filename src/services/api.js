@@ -5,11 +5,11 @@ import axios from 'axios'
 const api = axios.create({
 // baseURL: 'http://127.0.0.1:8000/api/', // django development server
 
- // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
+//baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
 
  // baseURL: 'https://kog-ktor-backend.onrender.com/api/' , // ktor render production
 
- baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production
+ baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
 
 
 
@@ -127,8 +127,16 @@ export const update_term = (id, payload) => api.put(`student/terms/${id}/`, payl
 export const update_term_ktor = (id, payload) => api.patch(`term/${id}`, payload);
 
 // fee structure APIs
-export const get_raw_fee_structures = () => api.get("fees/raw-fee-structures");
 export const get_raw_fee_structures_ktor = () => api.get("fee-structure");
+
+export const get_raw_fee_structures_ktor_paginated = (page, limit, search) =>
+  api.get("fee-structure/paginated", {
+    params: {
+      page,
+      limit,
+      ...(search?.trim() ? { search: search.trim() } : {})
+    }
+  });
 
 export const get_fee_structures = (params) => api.get("fees/fee-structures", { params }); // for pagination
 export const get_fee_structures_ktor = (params) => api.get("fee-structures", { params }); // for pagination
@@ -147,7 +155,21 @@ export const student_profile = (id) => api.get(`student/student-profile/${id}/`)
 export const st = (params) => api.get("student/students", { params });
 
 export const rawst = () => api.get("student/rawstudents");
-export const rawst_ktor = () => api.get("student");
+
+
+export const rawst_ktor = (search) =>
+  api.get("student/raw", {
+    params: search?.trim() ? { search: search.trim() } : {}
+  })
+
+export const rawst_ktor_paginated = (page, limit, search) =>
+  api.get("student/paginated", {
+    params: {
+      page,
+      limit,
+      ...(search?.trim() ? { search: search.trim() } : {})
+    }
+  })
 
 export const get_num_of_students_insignt = () => api.get("student/students/total/");
 export const get_students_grouped_by_class_insignt = () => api.get("student/students/per_class/");
@@ -169,7 +191,27 @@ export const get_student_payment_list_per_term = (id) => api.get(`fees/student-p
 export const get_regular_payments = (id) => api.get(`fees/regular-payments/${id}/`);
 
 export const get_student_fee_record = (params) => api.get("fees/student-fee-records", { params });
+
 export const get_student_fee_record_ktor = () => api.get("fee-records");
+
+// services/api.js
+export const get_student_fee_records_ktor_paginated = (
+  page,
+  limit,
+  search,
+  fee_structure_id,
+  is_fully_paid
+) =>
+  api.get("fee-records/paginated", {
+    params: {
+      page,
+      limit,
+      ...(search?.trim() ? { search: search.trim() } : {}),
+      ...(fee_structure_id ? { fee_structure_id } : {}),
+      ...(is_fully_paid != null && is_fully_paid !== "" ? { is_fully_paid } : {}),
+    },
+  });
+
 
 export const create_student_fee_record = (payload) => api.post("fees/student-fee-records/", payload);
 export const create_student_fee_record_ktor = (payload) => api.post("fee-records", payload);
@@ -180,6 +222,23 @@ export const delete_student_fee_record_ktor = (id) => api.delete(`fee-records/${
 // PAYMENTS APIs
 export const get_payments = (params) => api.get("fees/payments", { params });
 export const get_payments_ktor = () => api.get("payment");
+
+
+
+
+
+export const get_payments_ktor_paginated = (page, limit, search, date_filter) =>
+  api.get("payment/paginated", {
+    params: {
+      page,
+      limit,
+      ...(search?.trim() ? { search: search.trim() } : {}),
+      ...(date_filter?.trim() ? { date_filter: date_filter.trim() } : {}),
+    }
+  });
+
+
+
 
 export const delete_payment = (id) => api.delete(`fees/payments/${id}/`);
 export const delete_payment_ktor = (id) => api.delete(`payment/${id}`);

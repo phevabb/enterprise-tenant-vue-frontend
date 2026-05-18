@@ -1,64 +1,81 @@
 <script setup>
 import { computed } from "vue";
 
+// ============================
 // Props
+// ============================
 const props = defineProps({
   totalPages: {
     type: Number,
     required: true,
-    default: 4,
   },
   currentPage: {
     type: Number,
     required: true,
-    default: 2,
+  },
+  disabled: {
+    type: Boolean,
+    default: false,
   },
 });
 
-// Emit
+// ============================
+// Emits
+// ============================
 const emit = defineEmits(["page-changed"]);
 
+// ============================
 // Methods
+// ============================
 function changePage(page) {
-  if (page >= 1 && page <= props.totalPages && page !== props.currentPage) {
+  if (
+    !props.disabled &&
+    page >= 1 &&
+    page <= props.totalPages &&
+    page !== props.currentPage
+  ) {
     emit("page-changed", page);
   }
 }
 
-// Computed: smart pagination (no overflow)
-// Computed: smart pagination (no overflow)
+// ============================
+// Computed: Smart Pagination
+// ============================
 const pages = computed(() => {
   const total = props.totalPages;
   const current = props.currentPage;
-  const delta = 2; // how many pages to show around current
+  const delta = 2;
   const range = [];
 
-  // Always show first page
+  // ✅ handle small pages
+  if (total <= 1) {
+    return [1];
+  }
+
+  // Always show first
   range.push(1);
 
-  // Calculate left and right boundaries
   const left = Math.max(2, current - delta);
   const right = Math.min(total - 1, current + delta);
 
-  // Add ellipsis if there's a gap between first page and left boundary
+  // Left dots
   if (left > 2) {
     range.push("...");
   }
 
-  // Add page numbers between left and right
+  // Middle pages
   for (let i = left; i <= right; i++) {
-    // Fix: Ensure we don't add duplicate pages when there are exactly 2 pages
     if (i !== 1 && i !== total) {
       range.push(i);
     }
   }
 
-  // Add ellipsis if there's a gap between right boundary and last page
+  // Right dots
   if (right < total - 1) {
     range.push("...");
   }
 
-  // Add last page if there is more than one page
+  // Last page
   if (total > 1) {
     range.push(total);
   }
@@ -68,33 +85,59 @@ const pages = computed(() => {
 </script>
 
 <template>
-  <div class="pagination">
-    <!-- Previous button -->
+  <!-- ✅ hide when only 1 page -->
+  <div v-if="totalPages > 1" class="pagination">
+
+    <!-- First -->
     <button
-      :disabled="currentPage === 1"
-      @click="changePage(currentPage - 1)"
       class="pagination-btn"
+      :disabled="currentPage === 1 || disabled"
+      @click="changePage(1)"
+    >
+      First
+    </button>
+
+    <!-- Prev -->
+    <button
+      class="pagination-btn"
+      :disabled="currentPage === 1 || disabled"
+      @click="changePage(currentPage - 1)"
     >
       Prev
     </button>
 
-    <!-- Page numbers with ... -->
+    <!-- Pages -->
     <div
       v-for="(page, index) in pages"
       :key="index"
-      @click="page !== '...' && changePage(page)"
-      :class="['pagination-page', { active: page === currentPage, dots: page === '...' }]"
+      @click="!disabled && page !== '...' && changePage(page)"
+      :class="[
+        'pagination-page',
+        {
+          active: page === currentPage,
+          dots: page === '...'
+        }
+      ]"
     >
       {{ page }}
     </div>
 
-    <!-- Next button -->
+    <!-- Next -->
     <button
-      :disabled="currentPage === totalPages"
-      @click="changePage(currentPage + 1)"
       class="pagination-btn"
+      :disabled="currentPage === totalPages || disabled"
+      @click="changePage(currentPage + 1)"
     >
       Next
+    </button>
+
+    <!-- Last -->
+    <button
+      class="pagination-btn"
+      :disabled="currentPage === totalPages || disabled"
+      @click="changePage(totalPages)"
+    >
+      Last
     </button>
   </div>
 </template>
@@ -103,7 +146,7 @@ const pages = computed(() => {
 .pagination {
   display: flex;
   align-items: center;
-  flex-wrap: wrap; /* so it never overflows horizontally */
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -112,8 +155,8 @@ const pages = computed(() => {
   border: 1px solid #ddd;
   background: #f8f8f8;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background 0.2s, color 0.2s;
+  border-radius: 6px;
+  transition: 0.2s;
 }
 
 .pagination-btn:hover:not(:disabled) {
@@ -130,10 +173,10 @@ const pages = computed(() => {
   padding: 6px 12px;
   border: 1px solid #ddd;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   min-width: 32px;
   text-align: center;
-  transition: background 0.2s, color 0.2s;
+  transition: 0.2s;
 }
 
 .pagination-page:hover:not(.dots):not(.active) {

@@ -1,3 +1,7 @@
+
+
+
+
 <template>
   <CRow>
     <CCol :xs="12">
@@ -8,14 +12,22 @@
           <strong class="fs-5 text-dark">Student Profiles</strong>
 
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <CFormInput
-              v-model="searchTerm"
-              placeholder="Search by name, class, or contacts..."
-              size="sm"
-              class="shadow-sm border-primary"
-              style="min-width: 260px"
-              :disabled="loading"
-            />
+            <!-- ✅ SEARCH (cursor no longer disappears) -->
+            <div class="position-relative" style="min-width: 260px">
+              <CFormInput
+                v-model="searchTerm"
+                placeholder="Search by name, class, or contacts..."
+                size="sm"
+                class="shadow-sm border-primary pe-5"
+                :disabled="loading"
+              />
+              <span
+                v-if="listLoading"
+                class="position-absolute top-50 end-0 translate-middle-y me-2"
+              >
+                <CSpinner size="sm" color="primary" />
+              </span>
+            </div>
 
             <CButton
               color="light"
@@ -50,7 +62,7 @@
         </CCardHeader>
 
         <CCardBody>
-          <div v-if="loading" class="text-center my-5">
+          <div v-if="listLoading" class="text-center my-5">
             <CSpinner color="primary" class="me-2" />
             <span class="text-primary fw-bold">Loading students...</span>
           </div>
@@ -61,7 +73,7 @@
                 <CTableHeaderCell class="text-center" style="width: 48px">
                   <CFormCheck
                     :checked="allSelected"
-                    :indeterminate="!allSelected && displayedStudents.some(s => selectedIds.includes(Number(s.id)))"
+                    :indeterminate="hasSomeSelected && !allSelected"
                     @change="toggleSelectAll"
                     :disabled="loading || !displayedStudents.length"
                   />
@@ -111,17 +123,27 @@
 
                 <CTableDataCell class="text-end">
                   <CButtonGroup size="sm">
-                    <CButton color="secondary" variant="outline" @click="openEditModal(student)">
+                    <CButton
+                      color="secondary"
+                      variant="outline"
+                      @click="openEditModal(student)"
+                      :disabled="loading"
+                    >
                       Edit
                     </CButton>
-                    <CButton color="danger" variant="outline" @click="deleteStudent(student)">
+                    <CButton
+                      color="danger"
+                      variant="outline"
+                      @click="deleteStudent(student)"
+                      :disabled="loading"
+                    >
                       Delete
                     </CButton>
                   </CButtonGroup>
                 </CTableDataCell>
               </CTableRow>
 
-              <CTableRow v-if="!loading && !filteredStudents.length">
+              <CTableRow v-if="!listLoading && !filteredStudents.length">
                 <CTableDataCell colspan="8" class="text-center text-muted py-5">
                   No students found<span v-if="searchTerm"> for “{{ searchTerm }}”</span>.
                 </CTableDataCell>
@@ -133,11 +155,16 @@
             <Pagination
               :current-page="currentPage"
               :total-pages="totalPages"
+              :disabled="loading || listLoading"
               @page-changed="changePage"
-              :disabled="loading || !filteredStudents.length"
             />
+
             <div style="font-size: 14px; color: #6c757d">
-              Showing {{ displayedStudents.length }} of {{ filteredStudents.length }}
+              Showing
+              {{ showingFrom }}
+              -
+              {{ showingTo }}
+              of {{ totalItems }}
             </div>
           </div>
         </CCardBody>
@@ -172,7 +199,12 @@
     </CModalHeader>
     <CModalBody>This action cannot be undone.</CModalBody>
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="showDeleteBulkModal = false" :disabled="isDeleting">
+      <CButton
+        color="secondary"
+        variant="outline"
+        @click="showDeleteBulkModal = false"
+        :disabled="isDeleting"
+      >
         Cancel
       </CButton>
       <CButton color="danger" @click="confirmDeleteBulk" :disabled="isDeleting">
@@ -229,8 +261,8 @@
                 <CFormLabel>Family (Optional)</CFormLabel>
                 <CFormSelect v-model="form.family">
                   <option :value="null">Select Family</option>
-                  <option v-for="cls in familyOptions" :key="cls.value" :value="cls.value">
-                    {{ cls.label }}
+                  <option v-for="f in familyOptions" :key="f.value" :value="f.value">
+                    {{ f.label }}
                   </option>
                 </CFormSelect>
               </div>
@@ -374,7 +406,9 @@
     </CModalBody>
 
     <CModalFooter class="footer-premium">
-      <CButton color="light" class="me-3" @click="closeFormModal" :disabled="loading">Cancel</CButton>
+      <CButton color="light" class="me-3" @click="closeFormModal" :disabled="loading">
+        Cancel
+      </CButton>
       <CButton color="primary" class="text-white" @click="submitForm" :disabled="loading">
         <CIcon icon="cil-save" class="me-2 text-white" />
         {{ isEdit ? 'Update Student' : 'Create Student' }}
@@ -384,14 +418,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, watch } from 'vue'
 import { useToast } from 'vue-toastification'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 import Pagination from '@/Pagination.vue'
 import {
-  rawst_ktor,
+  rawst_ktor_paginated,
   get_raw_families_ktor,
   create_student_ktor,
   update_student_ktor,
@@ -402,17 +436,30 @@ import {
 const toast = useToast()
 
 // ─────────────────────────────────────────────────────────────
-// State
+// Pagination state
 // ─────────────────────────────────────────────────────────────
-const loading = ref(false)
-const errorMessage = ref('')
-
-const allStudents = ref([])
-const searchTerm = ref('')
 const currentPage = ref(1)
+const totalPages = ref(1)
+const totalItems = ref(0)
 const pageSize = 10
 
-const classOptions = ref([]) // [{ label, value }]
+// ─────────────────────────────────────────────────────────────
+// Loading state
+// loading = mutations (create/update/delete)
+// listLoading = table fetch (pagination/search)
+// This prevents search cursor from disappearing.
+// ─────────────────────────────────────────────────────────────
+const loading = ref(false)
+const listLoading = ref(false)
+const errorMessage = ref('')
+
+// ─────────────────────────────────────────────────────────────
+// Data
+// ─────────────────────────────────────────────────────────────
+const allStudents = ref([])
+const searchTerm = ref('')
+
+const classOptions = ref([])
 const familyOptions = ref([])
 
 const selectedIds = ref([])
@@ -426,7 +473,7 @@ const isEdit = ref(false)
 const currentStudent = ref(null)
 
 // ─────────────────────────────────────────────────────────────
-// Form (reactive) — keep internal names consistent
+// Form
 // ─────────────────────────────────────────────────────────────
 const form = reactive({
   id: null, // user.id
@@ -435,15 +482,14 @@ const form = reactive({
   nationality: 'Ghanaian',
   dateOfBirth: '',
 
-  // IMPORTANT: store class ID here (number or null)
   currentNewGradeClassId: null,
-
-  family:null,
+  family: null,
 
   classSeekingAdmissionTo: '',
   isDiscountedStudent: false,
   isImmunized: false,
 
+  hasAllergies: false,
   allergicFoods: '',
   lastSchoolAttended: '',
   houseNumber: '',
@@ -477,6 +523,7 @@ function resetForm() {
   form.isDiscountedStudent = false
   form.isImmunized = false
 
+  form.hasAllergies = false
   form.allergicFoods = ''
   form.lastSchoolAttended = ''
   form.houseNumber = ''
@@ -500,16 +547,12 @@ function resetForm() {
 // Helpers
 // ─────────────────────────────────────────────────────────────
 function ensureValidPage() {
-  const pages = totalPages.value
+  const pages = totalPages.value || 1
   if (currentPage.value > pages) currentPage.value = pages
   if (currentPage.value < 1) currentPage.value = 1
 }
 
 function normalizeStudent(s) {
-  // Normalize common backend differences.
-  // Ensure we always have:
-  // - user.fullName (fallback from user.full_name)
-  // - currentNewGradeClass {id,name} (fallback from current_new_grade_class)
   if (!s) return s
 
   const user = s.user || {}
@@ -538,7 +581,7 @@ function normalizeStudent(s) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Fetch classes
+// Fetch classes/families
 // ─────────────────────────────────────────────────────────────
 async function fetchClasses() {
   try {
@@ -547,7 +590,7 @@ async function fetchClasses() {
       label: c.name,
       value: c.id
     }))
-  } catch (e) {
+  } catch {
     toast.error('Failed to fetch classes', { position: 'top-right' })
   }
 }
@@ -555,77 +598,88 @@ async function fetchClasses() {
 async function fetchFamilies() {
   try {
     const res = await get_raw_families_ktor()
-
-
-    familyOptions.value = (res.data || []).map(c => ({
-      label: c.name,
-      value: c.id
+    familyOptions.value = (res.data || []).map(f => ({
+      label: f.name,
+      value: f.id
     }))
-  } catch (e) {
-
+  } catch {
     toast.error('Failed to fetch families', { position: 'top-right' })
   }
 }
 
-
-
-
-
 // ─────────────────────────────────────────────────────────────
-// Fetch students
+// Students fetch (backend pagination + backend search)
+// IMPORTANT: rawst_ktor(page, limit, search)
 // ─────────────────────────────────────────────────────────────
 async function loadAllStudents() {
-  loading.value = true
+  listLoading.value = true
   errorMessage.value = ''
 
   try {
-    const res = await rawst_ktor()
+    const res = await rawst_ktor_paginated(currentPage.value, pageSize, searchTerm.value)
 
-    const list = Array.isArray(res.data) ? res.data : []
+    const list = res.data?.data || []
     allStudents.value = list.map(normalizeStudent)
+
+    totalPages.value = res.data?.meta?.totalPages || 1
+    totalItems.value = res.data?.meta?.total || 0
+
     ensureValidPage()
   } catch (err) {
     errorMessage.value = 'Failed to load students'
     toast.error(errorMessage.value, { position: 'top-right' })
   } finally {
-    loading.value = false
+    listLoading.value = false
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Filtering + pagination
+// Debounced search (prevents cursor issues + API spam)
 // ─────────────────────────────────────────────────────────────
-const filteredStudents = computed(() => {
-  const q = (searchTerm.value || '').trim().toLowerCase()
-  if (!q) return allStudents.value
+function debounce(fn, delay = 400) {
+  let t
+  return (...args) => {
+    clearTimeout(t)
+    t = setTimeout(() => fn(...args), delay)
+  }
+}
 
-  return allStudents.value.filter(s => {
-    const name = (s.user?.fullName || '').toLowerCase()
-    const className = (s.currentNewGradeClass?.name || '').toLowerCase()
-    const dad = (s.contactOfFather || s.contact_of_father || '').toLowerCase()
-    const mom = (s.contactOfMother || s.contact_of_mother || '').toLowerCase()
+const debouncedSearchReload = debounce(() => {
+  currentPage.value = 1
+  loadAllStudents()
+}, 400)
 
-    return (
-      name.includes(q) ||
-      className.includes(q) ||
-      dad.includes(q) ||
-      mom.includes(q)
-    )
-  })
+watch(searchTerm, () => {
+  debouncedSearchReload()
 })
 
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredStudents.value.length / pageSize))
-)
+// ─────────────────────────────────────────────────────────────
+// Pagination
+// ─────────────────────────────────────────────────────────────
+async function changePage(page) {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
+  await loadAllStudents()
+}
 
-const displayedStudents = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredStudents.value.slice(start, start + pageSize)
-})
+// ─────────────────────────────────────────────────────────────
+// Display + (keep your old names)
+// filteredStudents now equals displayedStudents because server does filtering.
+// This keeps your template intact.
+// ─────────────────────────────────────────────────────────────
+const displayedStudents = computed(() => allStudents.value)
+const filteredStudents = computed(() => displayedStudents.value)
 
+// ─────────────────────────────────────────────────────────────
+// Selection
+// ─────────────────────────────────────────────────────────────
 const allSelected = computed(() =>
   displayedStudents.value.length > 0 &&
   displayedStudents.value.every(s => selectedIds.value.includes(Number(s.id)))
+)
+
+const hasSomeSelected = computed(() =>
+  displayedStudents.value.some(s => selectedIds.value.includes(Number(s.id)))
 )
 
 function toggleSelectAll() {
@@ -638,7 +692,21 @@ function toggleSelectAll() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Export
+// Footer "Showing X-Y of total"
+// ─────────────────────────────────────────────────────────────
+const showingFrom = computed(() => {
+  if (!totalItems.value || !displayedStudents.value.length) return 0
+  return (currentPage.value - 1) * pageSize + 1
+})
+
+const showingTo = computed(() => {
+  if (!totalItems.value) return 0
+  return (currentPage.value - 1) * pageSize + displayedStudents.value.length
+})
+
+// ─────────────────────────────────────────────────────────────
+// Export (exports current page results)
+// If you want "export ALL filtered results", that must be done server-side.
 // ─────────────────────────────────────────────────────────────
 function exportToCSV() {
   if (!filteredStudents.value.length) return toast.info('No data to export')
@@ -714,7 +782,6 @@ function openEditModal(student) {
   currentStudent.value = student
   resetForm()
 
-  // Fill form from normalized student
   form.id = student.user?.id ?? null
   form.fullName = student.user?.fullName ?? ''
   form.gender = student.user?.gender ?? ''
@@ -727,7 +794,9 @@ function openEditModal(student) {
   form.isDiscountedStudent = !!student.isDiscountedStudent
   form.isImmunized = !!student.isImmunized
 
+  form.hasAllergies = !!student.hasAllergies
   form.allergicFoods = student.allergicFoods ?? ''
+
   form.lastSchoolAttended = student.lastSchoolAttended ?? ''
   form.houseNumber = student.houseNumber ?? ''
   form.otherRelatedInfo = student.otherRelatedInfo ?? ''
@@ -754,31 +823,19 @@ function closeFormModal() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Submit (Create / Patch)
+// Submit (Create / Update)
 // ─────────────────────────────────────────────────────────────
 async function submitForm() {
   loading.value = true
 
   try {
-    // Validation
-    if (!form.fullName.trim()) {
-      toast.error('Full Name is required')
-      return
-    }
-    if (!form.gender) {
-      toast.error('Gender is required')
-      return
-    }
+    if (!form.fullName.trim()) return toast.error('Full Name is required')
+    if (!form.gender) return toast.error('Gender is required')
     if (!form.contactOfFather.trim() && !form.contactOfMother.trim()) {
-      toast.error('At least one parent contact is required')
-      return
+      return toast.error('At least one parent contact is required')
     }
-    if (!form.currentNewGradeClassId) {
-      toast.error('Current class is required')
-      return
-    }
+    if (!form.currentNewGradeClassId) return toast.error('Current class is required')
 
-    // Payload MUST match your backend DTOs (camelCase)
     const payload = {
       user: {
         id: form.id ?? undefined,
@@ -790,7 +847,6 @@ async function submitForm() {
         role: 'student',
         isStaff: false
       },
-
       currentNewGradeClassId: Number(form.currentNewGradeClassId) || null,
       family: form.family || null,
 
@@ -798,7 +854,9 @@ async function submitForm() {
       isDiscountedStudent: !!form.isDiscountedStudent,
       isImmunized: !!form.isImmunized,
 
+
       allergicFoods: form.allergicFoods.trim() || null,
+
       lastSchoolAttended: form.lastSchoolAttended.trim() || null,
       houseNumber: form.houseNumber.trim() || null,
       otherRelatedInfo: form.otherRelatedInfo.trim() || null,
@@ -818,26 +876,17 @@ async function submitForm() {
         : null
     }
 
-
-
-    let res
     if (isEdit.value && currentStudent.value) {
-      res = await update_student_ktor(currentStudent.value.id, payload)
-      const normalized = normalizeStudent(res.data)
-
-      const idx = allStudents.value.findIndex(s => s.id === currentStudent.value.id)
-      if (idx !== -1) allStudents.value.splice(idx, 1, normalized)
-
+      await update_student_ktor(currentStudent.value.id, payload)
       toast.success('Student updated successfully!')
     } else {
-      res = await create_student_ktor(payload)
-      const normalized = normalizeStudent(res.data)
-      allStudents.value.unshift(normalized)
-      currentPage.value = 1
+      await create_student_ktor(payload)
       toast.success('Student created successfully!')
+      currentPage.value = 1
     }
 
     closeFormModal()
+    await loadAllStudents()
   } catch (err) {
     const serverMsg = err?.response?.data
     toast.error(formatBackendErrors(serverMsg) || 'Failed to save student', { position: 'top-right' })
@@ -847,7 +896,7 @@ async function submitForm() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Delete
+// Delete (Single + Bulk)
 // ─────────────────────────────────────────────────────────────
 function deleteStudent(student) {
   studentToDelete.value = student
@@ -856,19 +905,20 @@ function deleteStudent(student) {
 
 async function confirmDelete() {
   if (!studentToDelete.value) return
+
   loading.value = true
   showDeleteModal.value = false
 
-  const id = Number(studentToDelete.value.id)
-  const name = studentToDelete.value.user?.fullName || 'Student'
-
   try {
+    const id = Number(studentToDelete.value.id)
     await delete_student_ktor(id)
-    allStudents.value = allStudents.value.filter(s => Number(s.id) !== id)
+
+    toast.success('Student deleted successfully!')
     selectedIds.value = selectedIds.value.filter(sid => sid !== id)
-    toast.success(`${name} deleted successfully!`)
+
+    await loadAllStudents()
     ensureValidPage()
-  } catch (err) {
+  } catch {
     toast.error('Failed to delete student')
   } finally {
     loading.value = false
@@ -888,11 +938,11 @@ async function confirmDeleteBulk() {
   isDeleting.value = true
   try {
     await Promise.all(ids.map(id => delete_student_ktor(id)))
-    allStudents.value = allStudents.value.filter(s => !ids.includes(Number(s.id)))
     selectedIds.value = []
     toast.success('Selected students deleted successfully!')
+    await loadAllStudents()
     ensureValidPage()
-  } catch (err) {
+  } catch {
     toast.error('Failed to delete some students')
   } finally {
     isDeleting.value = false
@@ -930,8 +980,8 @@ function formatBackendErrors(errData) {
 // ─────────────────────────────────────────────────────────────
 onMounted(async () => {
   await fetchClasses()
-  await loadAllStudents()
   await fetchFamilies()
+  await loadAllStudents()
 })
 </script>
 
