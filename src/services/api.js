@@ -5,11 +5,11 @@ import axios from 'axios'
 const api = axios.create({
 // baseURL: 'http://127.0.0.1:8000/api/', // django development server
 
-//baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
+// baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
 
  // baseURL: 'https://kog-ktor-backend.onrender.com/api/' , // ktor render production
 
- baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
+  baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
 
 
 
@@ -258,11 +258,31 @@ export const delete_family_ktor = (id) => api.delete(`family/${id}`);
 
 export const get_families = (params) => api.get("family-fees/families", { params });
 
+export const get_families_paginated = (page, limit, search) =>
+  api.get("family/paginated", {
+    params: {
+      page,
+      limit,
+      ...(search?.trim() ? { search: search.trim() } : {})
+    }
+  });
+
+
 export const update_family = (id, payload) => api.put(`family-fees/families/${id}/`, payload);
+export const update_family_ktor = (id, payload) =>  api.patch(`family/${id}`, payload);
 
 // FAMILY FEES RECS APIs /////////////////////////////
 export const get_raw_family_fee_rec = () => api.get("family-fees/raw-family-fee-records");
 export const get_raw_family_fee_rec_ktor = () => api.get("family-fee-record");
+
+export const get_family_fee_records_paginated = (page, limit, search) =>
+  api.get("family-fee-record/paginated", {
+    params: {
+      page,
+      limit,
+      ...(search?.trim() ? { search: search.trim() } : {})
+    }
+  });
 
 export const create_family_fee_rec = (payload) => api.post("family-fees/family-fee-records/", payload);
 export const create_family_fee_rec_ktor = (payload) => api.post("family-fee-record", payload);

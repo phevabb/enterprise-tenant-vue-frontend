@@ -129,7 +129,7 @@
                 </CTableDataCell>
 
                 <CTableDataCell>
-                  {{ formatDateTime(row.date_created || row.dateCreated || row.created_at || row.createdAt) }}
+                  {{ formatDate(row.date_created || row.dateCreated || row.created_at || row.createdAt) }}
                 </CTableDataCell>
 
                 <CTableDataCell class="text-end">
@@ -389,6 +389,18 @@ const formValidationMessage = ref("");
 const showDeleteSingleModal = ref(false);
 const deleteTarget = ref(null);
 const showDeleteBulkModal = ref(false);
+
+const formatDate = (iso) => {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return d.toLocaleString('en-GH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 /* -------------------------------------------------------
    COMPUTED

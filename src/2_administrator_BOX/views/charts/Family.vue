@@ -1,10 +1,15 @@
+
+
 <template>
   <CRow>
     <CCol :xs="12">
       <CCard class="mb-4">
+
+        <!-- HEADER -->
         <CCardHeader>
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <strong>Families</strong>
+
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <CFormInput
                 v-model="searchTerm"
@@ -12,6 +17,7 @@
                 size="sm"
                 style="min-width: 260px;"
               />
+
               <CButton
                 color="danger"
                 size="sm"
@@ -20,25 +26,24 @@
               >
                 Delete Selected ({{ selectedIds.length }})
               </CButton>
-              <CButton class="text-white" color="primary" size="sm" @click="openAddModal">
-  Add Family
-</CButton>
+
+              <CButton color="primary" class="text-white"  size="sm" @click="openAddModal">
+                Add Family
+              </CButton>
             </div>
           </div>
         </CCardHeader>
 
+        <!-- BODY -->
         <CCardBody>
-          <p class="text-body-secondary small mb-3">
-            Create families and manage their student members (relatives).
-          </p>
 
-
-
+          <!-- LOADER -->
           <div v-if="isLoading" class="d-flex align-items-center gap-2 mb-3">
             <CSpinner size="sm" />
             <span class="text-body-secondary small">Loading families…</span>
           </div>
 
+          <!-- TABLE -->
           <CTable hover responsive>
             <CTableHead>
               <CTableRow>
@@ -49,30 +54,39 @@
                     @change="toggleSelectAll"
                   />
                 </CTableHeaderCell>
-                <CTableHeaderCell style="width:60px">#</CTableHeaderCell>
+
+                <CTableHeaderCell>#</CTableHeaderCell>
                 <CTableHeaderCell>Name</CTableHeaderCell>
-                <CTableHeaderCell>Members (Preview)</CTableHeaderCell>
+                <CTableHeaderCell>Members</CTableHeaderCell>
                 <CTableHeaderCell class="text-end">Count</CTableHeaderCell>
-                <CTableHeaderCell class="text-end" style="width:160px">Actions</CTableHeaderCell>
+                <CTableHeaderCell class="text-end">Actions</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
 
             <CTableBody>
               <CTableRow v-for="(family, idx) in families" :key="family.id">
+
                 <CTableDataCell class="text-center">
                   <CFormCheck v-model="selectedIds" :value="family.id" />
                 </CTableDataCell>
-                <CTableHeaderCell scope="row">
-                  {{ (currentPage - 1) * pageSize + idx + 1 }}
-                </CTableHeaderCell>
-                <CTableDataCell>{{ family.name }}</CTableDataCell>
+
                 <CTableDataCell>
-                  <span v-if="!family.members?.length" class="text-body-secondary">No members</span>
+                  {{ (currentPage - 1) * pageSize + idx + 1 }}
+                </CTableDataCell>
+
+                <CTableDataCell>{{ family.name }}</CTableDataCell>
+
+                <CTableDataCell>
+                  <span v-if="!family.members?.length">No members</span>
                   <span v-else>{{ previewMembers(family.members) }}</span>
                 </CTableDataCell>
+
                 <CTableDataCell class="text-end">
-                  <CBadge color="info">{{ family.members?.length || 0 }}</CBadge>
+                  <CBadge color="info">
+                    {{ family.members?.length || 0 }}
+                  </CBadge>
                 </CTableDataCell>
+
                 <CTableDataCell class="text-end">
                   <CButtonGroup size="sm">
                     <CButton color="info" variant="outline" @click="openEditModal(family)">
@@ -83,389 +97,260 @@
                     </CButton>
                   </CButtonGroup>
                 </CTableDataCell>
+
               </CTableRow>
 
+              <!-- EMPTY -->
               <CTableRow v-if="!isLoading && families.length === 0">
-                <CTableDataCell colspan="6" class="text-center text-body-secondary py-4">
-                  No families found<span v-if="searchTerm"> for “{{ searchTerm }}”</span>.
+                <CTableDataCell colspan="6" class="text-center">
+                  No families found
                 </CTableDataCell>
               </CTableRow>
+
             </CTableBody>
           </CTable>
 
-          <div class="d-flex justify-content-between align-items-center mt-3">
+          <!-- PAGINATION -->
+          <div class="d-flex justify-content-between mt-3">
             <Pagination
               :current-page="currentPage"
               :total-pages="totalPages"
               @page-changed="changePage"
             />
-            <div style="font-size:14px; color:#7f8c8d;">
-              {{ showingRange }}
-            </div>
+            <div>{{ showingRange }}</div>
           </div>
+
         </CCardBody>
       </CCard>
     </CCol>
   </CRow>
 
-  <!-- Add / Edit Modal -->
-  <CModal :visible="showFormModal" @close="closeFormModal" :backdrop="!isSubmitting">
+  <!-- FORM MODAL -->
+  <CModal :visible="showFormModal" @close="closeFormModal">
     <CModalHeader>
       <CModalTitle>{{ isEdit ? 'Edit Family' : 'Add Family' }}</CModalTitle>
     </CModalHeader>
+
     <CModalBody>
       <CFormInput
         v-model="form.name"
         label="Family Name"
         placeholder="Enter family name"
-        :maxlength="100"
-        :invalid="!!formValidationMessage"
-        :disabled="isSubmitting"
       />
-      <div v-if="formValidationMessage" class="invalid-feedback d-block">
+
+      <div v-if="formValidationMessage" class="text-danger mt-2">
         {{ formValidationMessage }}
       </div>
-
-      <CFormLabel class="mt-3">Members (Students)</CFormLabel>
-
-
-      <div class="mt-3">
-        <CFormSwitch v-model="form.is_active" label="Active Family" :disabled="isSubmitting" />
-      </div>
-
-      <CFormInput
-        v-if="!form.is_active"
-        v-model="form.deactivation_reason"
-        label="Deactivation Reason"
-        placeholder="Reason (optional)"
-        :disabled="isSubmitting"
-        class="mt-2"
-      />
     </CModalBody>
+
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="closeFormModal" :disabled="isSubmitting">
-        Cancel
-      </CButton>
-      <CButton color="primary" @click="saveFamily" :disabled="isSubmitting">
-        <CSpinner size="sm" v-if="isSubmitting" class="me-1" />
+      <CButton @click="closeFormModal">Cancel</CButton>
+
+      <CButton class="text-white" color="primary" @click="saveFamily">
+        <CSpinner size="sm" v-if="isSubmitting" />
         {{ isEdit ? 'Update' : 'Create' }}
       </CButton>
     </CModalFooter>
   </CModal>
 
-  <!-- Single Delete Confirm -->
+  <!-- DELETE -->
   <CModal :visible="showDeleteSingleModal" @close="closeDeleteSingleModal">
     <CModalHeader>
       <CModalTitle>Confirm Delete</CModalTitle>
     </CModalHeader>
+
     <CModalBody>
-      Delete family <strong>{{ deleteTarget?.name }}</strong>?
-      <div v-if="deleteTarget?.members?.length" class="text-danger small mt-2">
-        This will also remove all member associations.
-      </div>
+      Delete <strong>{{ deleteTarget?.name }}</strong>?
     </CModalBody>
+
     <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="closeDeleteSingleModal" :disabled="isDeleting">
-        Cancel
-      </CButton>
-      <CButton color="danger" @click="deleteSingle" :disabled="isDeleting">
-        <CSpinner size="sm" v-if="isDeleting" class="me-1" />
-        Delete
-      </CButton>
+      <CButton @click="closeDeleteSingleModal">Cancel</CButton>
+      <CButton color="danger" @click="deleteSingle">Delete</CButton>
     </CModalFooter>
   </CModal>
 
-  <!-- Bulk Delete Confirm -->
-  <CModal :visible="showDeleteBulkModal" @close="showDeleteBulkModal = false">
-    <CModalHeader>
-      <CModalTitle>Delete {{ selectedIds.length }} Families?</CModalTitle>
-    </CModalHeader>
-    <CModalBody>
-      This action cannot be undone.
-    </CModalBody>
-    <CModalFooter>
-      <CButton color="secondary" variant="outline" @click="showDeleteBulkModal = false" :disabled="isDeleting">
-        Cancel
-      </CButton>
-      <CButton color="danger" @click="deleteBulk" :disabled="isDeleting">
-        <CSpinner size="sm" v-if="isDeleting" class="me-1" />
-        Delete Selected
-      </CButton>
-    </CModalFooter>
-  </CModal>
+  <!-- BULK DELETE -->
+<CModal :visible="showDeleteBulkModal" @close="showDeleteBulkModal = false">
+  <CModalHeader>
+    <CModalTitle>
+      Delete {{ selectedIds.length }} Families?
+    </CModalTitle>
+  </CModalHeader>
+
+  <CModalBody>
+    This action cannot be undone.
+  </CModalBody>
+
+  <CModalFooter>
+    <CButton @click="showDeleteBulkModal = false" :disabled="isDeleting">
+      Cancel
+    </CButton>
+
+    <CButton color="danger" @click="deleteBulk" :disabled="isDeleting">
+      <CSpinner size="sm" v-if="isDeleting" />
+      Delete All
+    </CButton>
+  </CModalFooter>
+</CModal>
+
+
 </template>
+
 
 <script setup>
 import { ref, computed, watch, onMounted, reactive } from 'vue'
 import { useToast } from 'vue-toastification'
-import vSelect from 'vue3-select'
-import 'vue3-select/dist/vue3-select.css'
 import Pagination from '@/Pagination.vue'
 
-const editingId = ref(null)
-
-
-import { rawst_ktor, get_families, get_raw_families_ktor, create_family_ktor, update_family, delete_family_ktor } from '@/services/api'
+import {
+  rawst_ktor,
+  get_families_paginated,
+  create_family_ktor,
+  update_family_ktor,
+  delete_family_ktor
+} from '@/services/api'
 
 const toast = useToast()
 const pageSize = 10
 
-// ── State ────────────────────────────────────────
-const isLoading       = ref(false)
-const isSubmitting    = ref(false)
-const isDeleting      = ref(false)
-const errorMessage    = ref('')
+// ── STATE ─────────────────────────────
+const isLoading = ref(false)
+const isSubmitting = ref(false)
+const isDeleting = ref(false)
+const errorMessage = ref('')
+const showDeleteBulkModal = ref(false)
+const families = ref([])
+const students = ref([])
 
-const families        = ref([])
-const students        = ref([])
+const searchTerm = ref('')
+const currentPage = ref(1)
+const totalPages = ref(1)
+const totalCount = ref(0)
 
-const searchTerm      = ref('')
-const currentPage     = ref(1)
-const totalPages      = ref(1)
-const totalCount      = ref(0)
+const selectedIds = ref([])
 
-const selectedIds     = ref([])
+const showFormModal = ref(false)
+const isEdit = ref(false)
+const editingId = ref(null)
 
-const showFormModal         = ref(false)
-const isEdit                = ref(false)
-const form                  = reactive({
-  name: '',
-
-  is_active: true,
-  deactivation_reason: '',
+const form = reactive({
+  name: ''
 })
+
+
+const previewMembers = (members = []) => {
+  if (!members || members.length === 0) return ''
+
+  const names = members
+    .slice(0, 3)
+    .map(m => m.name || '—')
+
+  return names.join(', ') +
+    (members.length > 3 ? ` +${members.length - 3} more` : '')
+}
+
+function changePage(page) {
+  if (page < 1 || page > totalPages.value) return
+
+  loadFamilies(page)
+
+
+}
+
 
 const formValidationMessage = ref('')
 
 const showDeleteSingleModal = ref(false)
-const deleteTarget          = ref(null)
+const deleteTarget = ref(null)
 
-const showDeleteBulkModal   = ref(false)
+// ── CACHE ─────────────────────────────
+const pageCache = reactive(new Map())
 
-// ── Cache ────────────────────────────────────────
-const pageCache = ref(new Map()) // key: "page|search" → { results, count }
-
-// ── Computed ─────────────────────────────────────
+// ── COMPUTED ─────────────────────────
 const showingRange = computed(() => {
-  if (!families.value.length) return 'Showing 0 families'
+  if (!totalCount.value) return 'Showing 0–0 of 0'
   const start = (currentPage.value - 1) * pageSize + 1
-  const end = start + families.value.length - 1
+  const end = Math.min(start + families.value.length - 1, totalCount.value)
   return `Showing ${start}–${end} of ${totalCount.value}`
 })
 
-const studentOptions = computed(() =>
-  students.value.map(s => ({
-    label: s.user?.fullName || 'Unnamed',
-    value: String( s.user?.id),
-  }))
-)
-
-const previewMembers = (members = []) => {
-  if (!members.length) return ''
-  const names = members.slice(0, 3).map(m => m.name || m.user?.name || '—')
-  return names.join(', ') + (members.length > 3 ? ` +${members.length - 3} more` : '')
-}
-
 const allSelected = computed(() =>
-  families.value.length > 0 && families.value.every(f => selectedIds.value.includes(f.id))
+  families.value.length > 0 &&
+  families.value.every(f => selectedIds.value.includes(f.id))
 )
 
-const someSelected = computed(() =>
-  !allSelected.value && families.value.some(f => selectedIds.value.includes(f.id))
-)
-
-// ── Watchers ─────────────────────────────────────
+// ── SEARCH ───────────────────────────
+let timer = null
 watch(searchTerm, () => {
-  currentPage.value = 1
-  loadFamilies()
+  clearTimeout(timer)
+  timer = setTimeout(() => {
+    currentPage.value = 1
+    pageCache.clear()
+    loadFamilies()
+  }, 300)
 })
 
-// ── Methods ──────────────────────────────────────
-function changePage(page) {
-  currentPage.value = page
-  loadFamilies()
-}
+// ── LOAD ─────────────────────────────
+async function loadFamilies(page = currentPage.value, force = false) {
+  const search = searchTerm.value.trim()
+  const key = `${page}|${search}`
 
-async function loadFamilies() {
-  const page = currentPage.value
-  const search = searchTerm.value.trim() || undefined
-  const cacheKey = `${page}|${search || ''}`
+  if (!force && pageCache.has(key)) {
+    const cached = pageCache.get(key)
 
-  if (pageCache.value.has(cacheKey)) {
-    const cached = pageCache.value.get(cacheKey)
-    families.value = cached.results
-    totalCount.value = cached.count
-    totalPages.value = Math.ceil(cached.count / pageSize)
+    families.value = cached.data
+    totalCount.value = cached.total
+    totalPages.value = cached.totalPages
+    currentPage.value = page   // ✅ important
+
     return
   }
 
   isLoading.value = true
-  errorMessage.value = ''
 
   try {
-    const params = { page, page_size: pageSize }
-    if (search) params.search = search
+    const res = await get_families_paginated(page, pageSize, search)
+    const body = res.data || {}
 
-    const res = await get_raw_families_ktor()
+    families.value = body.data || []
+    totalCount.value = body.meta?.total || 0
+    totalPages.value = body.meta?.totalPages || 1
+    currentPage.value = page   // ✅ critical
 
-    const data = res.data || {}
+    pageCache.set(key, {
+      data: families.value,
+      total: totalCount.value,
+      totalPages: totalPages.value
+    })
 
-    const results = data || []
-    const count = data.count || 0
-
-    pageCache.value.set(cacheKey, { results, count })
-
-    families.value = results
-    totalCount.value = count
-    totalPages.value = Math.ceil(count / pageSize)
   } catch (err) {
-    errorMessage.value = err.response?.data?.detail || 'Could not load families'
-    toast.error(errorMessage.value)
+
+    toast.error('Failed to load families')
   } finally {
     isLoading.value = false
   }
 }
 
-async function loadStudents() {
-  try {
-    const res = await rawst_ktor()
-
-    students.value = res.data || []
-  } catch (err) {
-    toast.error('Failed to load students')
-  }
-}
-
-function openAddModal() {
-  isEdit.value = false
-  Object.assign(form, { name: '', is_active: true, deactivation_reason: '' })
-  editingId.value = null
-  formValidationMessage.value = ''
-  showFormModal.value = true
-}
-
-function openEditModal(family) {
-  isEdit.value = true
-  editingId.value = family.id   // ✅ STORE THE ID
-
-  Object.assign(form, {
-    name: family.name || '',
-
-    is_active: !!family.is_active,
-    deactivation_reason: family.deactivation_reason || '',
-  })
-
-  formValidationMessage.value = ''
-  showFormModal.value = true
-}
-
-
-function closeFormModal() {
-  if (isSubmitting.value) return
-  showFormModal.value = false
-}
-
-async function saveFamily() {
-  const name = form.name.trim()
-  if (!name) {
-    formValidationMessage.value = 'Family name is required'
-    return
-  }
-  if (name.length > 100) {
-    formValidationMessage.value = 'Name too long (max 100)'
-    return
-  }
-
-  isSubmitting.value = true
-  formValidationMessage.value = ''
-
-  const payload = {
-    name,
-
-    // is_active: form.is_active,
-    // deactivation_reason: form.is_active ? '' : (form.deactivation_reason.trim() || undefined),
-  }
-
-
-
-  try {
-    let updatedFamily
-    if (isEdit.value) {
-      updatedFamily = await update_family(editingId.value, payload)
-      // Note: you lost editingId -- add ref if needed or pass from row
-
-      const idx = families.value.findIndex(f => f.id === updatedFamily.data.id)
-      if (idx !== -1) {
-        families.value[idx] = updatedFamily.data
-      }
-      toast.success('Family updated')
-    } else {
-      updatedFamily = await create_family_ktor(payload)
-
-      families.value.unshift(updatedFamily.data)
-      totalCount.value += 1
-      toast.success('Family created')
-    }
-    closeFormModal()
-  } catch (err) {
-
-
-    formValidationMessage.value = err.response?.data?.detail || 'Save failed'
-    toast.error(formValidationMessage.value)
-  } finally {
-    isSubmitting.value = false
-    closeFormModal()
-  }
-}
-
-function openDeleteConfirm(family) {
-  deleteTarget.value = family
-  showDeleteSingleModal.value = true
-}
-
-function closeDeleteSingleModal() {
-  if (isDeleting.value) return
-  showDeleteSingleModal.value = false
-  deleteTarget.value = null
-}
-
-async function deleteSingle() {
-  if (!deleteTarget.value?.id) return
-  isDeleting.value = true
-
-  try {
-    await delete_family_ktor(deleteTarget.value.id)
-    families.value = families.value.filter(f => f.id !== deleteTarget.value.id)
-    selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
-    totalCount.value = Math.max(0, totalCount.value - 1)
-    toast.success('Family deleted')
-    closeDeleteSingleModal()
-  } catch (err) {
-    const msg = err.response?.data?.detail || 'Delete failed'
-    toast.error(msg)
-  } finally {
-    isDeleting.value = false
-    closeDeleteSingleModal()
-  }
-}
 
 async function deleteBulk() {
   if (!selectedIds.value.length) return
+
   isDeleting.value = true
 
-  const ids = [...selectedIds.value]
-
   try {
-    for (const id of ids) {
-      await delete_family_ktor(id)
-    }
+    await Promise.all(
+      selectedIds.value.map(id => delete_family_ktor(id))
+    )
 
-    families.value = families.value.filter(f => !ids.includes(f.id))
     selectedIds.value = []
-    totalCount.value = Math.max(0, totalCount.value - ids.length)
 
-    toast.success(`Deleted ${ids.length} families`)
-  } catch (error) {
+    pageCache.clear()
+    await loadFamilies(currentPage.value, true)
+
+    toast.success('Selected families deleted')
+
+  } catch (err) {
+
     toast.error('Some deletions failed')
   } finally {
     isDeleting.value = false
@@ -473,22 +358,104 @@ async function deleteBulk() {
   }
 }
 
-function toggleSelectAll() {
-  if (allSelected.value) {
-    selectedIds.value = selectedIds.value.filter(id => !families.value.some(f => f.id === id))
-  } else {
-    const current = new Set(selectedIds.value)
-    families.value.forEach(f => current.add(f.id))
-    selectedIds.value = [...current]
+// ── FORM ─────────────────────────────
+function openAddModal() {
+  isEdit.value = false
+  editingId.value = null
+  form.name = ''
+  showFormModal.value = true
+}
+
+function openEditModal(f) {
+  isEdit.value = true
+  editingId.value = f.id
+  form.name = f.name
+  showFormModal.value = true
+}
+
+function closeFormModal() {
+  showFormModal.value = false
+  form.name = ''
+}
+
+// ── SAVE ─────────────────────────────
+async function saveFamily() {
+  if (!form.name.trim()) {
+    formValidationMessage.value = 'Name required'
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    if (isEdit.value) {
+      const res = await update_family_ktor(editingId.value, {
+        name: form.name.trim()
+      })
+
+      const updated = res.data
+
+      families.value = families.value.map(f =>
+        f.id === updated.id ? updated : f
+      )
+
+      toast.success('Updated')
+    } else {
+      const res = await create_family_ktor({
+        name: form.name.trim()
+      })
+
+      families.value.unshift(res.data)
+      totalCount.value++
+
+      toast.success('Created')
+    }
+
+    pageCache.clear()
+    closeFormModal()   // ✅ ALWAYS CLOSE
+
+  } catch (err) {
+
+    toast.error('Save failed')
+  } finally {
+    isSubmitting.value = false
   }
 }
 
-// ── Lifecycle ────────────────────────────────────
+// ── DELETE ───────────────────────────
+function openDeleteConfirm(f) {
+  deleteTarget.value = f
+  showDeleteSingleModal.value = true
+}
+
+async function deleteSingle() {
+  try {
+    await delete_family_ktor(deleteTarget.value.id)
+
+    pageCache.clear()   // ✅ IMPORTANT
+
+    await loadFamilies(currentPage.value, true)
+
+    toast.success('Deleted')
+
+  } catch {
+    toast.error('Delete failed')
+  } finally {
+    showDeleteSingleModal.value = false
+  }
+}
+
+// ── SELECT ALL ───────────────────────
+function toggleSelectAll() {
+  selectedIds.value = allSelected.value ? [] : families.value.map(f => f.id)
+}
+
+// ── INIT ─────────────────────────────
 onMounted(async () => {
-  await loadStudents()
   await loadFamilies()
 })
 </script>
+
 
 <style scoped>
 @media (max-width: 576px) {

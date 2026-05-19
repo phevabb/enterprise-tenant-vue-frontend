@@ -249,7 +249,7 @@ const form = reactive({
   amount: 0,
   date: new Date().toISOString().split('T')[0],
 })
-const formError        = ref('')
+const formError        = ref("")
 
 const showDeleteSingleModal = ref(false)
 const deleteTarget          = ref(null)
@@ -311,10 +311,14 @@ function getDateRange(preset) {
   return [start, end]
 }
 
-function isWithinRange(dateStr, start, end) {
+function isWithinRange(value, start, end) {
   if (!start || !end) return true
-  if (!dateStr) return false
-  const d = new Date(dateStr) // assuming ISO or yyyy-mm-dd
+  if (!value) return false
+
+  const d = typeof value === 'number'
+    ? new Date(value)         // ✅ timestamp support
+    : new Date(value)
+
   return d >= start && d <= end
 }
 
@@ -345,14 +349,14 @@ const filteredPayments = computed(() => {
   const [start, end] = getDateRange(dateFilter.value)
 
   return allPayments.value.filter(p => {
-    // Text filter over family / term / academic year
     const family = (p.family_fee_record?.family?.name || '').toLowerCase()
     const term   = (p.family_fee_record?.term?.name || '').toLowerCase()
     const ay     = (p.family_fee_record?.academic_year?.name || '').toLowerCase()
+
     const textOK = !q || family.includes(q) || term.includes(q) || ay.includes(q)
 
-    // Date filter over payment.date (not created)
-    const dateOK = isWithinRange(p.date, start, end)
+    // ✅ FIX HERE
+    const dateOK = isWithinRange(p.date_created, start, end)
 
     return textOK && dateOK
   })
@@ -446,7 +450,7 @@ function openAddModal() {
 }
 
 function closeFormModal() {
-  if (isSubmitting.value) return
+
   showFormModal.value = false
 }
 
@@ -464,13 +468,15 @@ function closeDeleteSingleModal() {
 async function savePayment() {
   if (!form.familyFeeRecordId) {
     formError.value = 'Please select a family fee record'
-    return
-  }
-  if (!form.amount || form.amount <= 0) {
-    formError.value = 'Amount must be greater than 0'
+    toast.error(formError.value)   // ✅ show toast
     return
   }
 
+  if (!form.amount || form.amount <= 0) {
+    formError.value = 'Amount must be greater than 0'
+    toast.error(formError.value)   // ✅ show toast
+    return
+  }
 
   isSubmitting.value = true
   formError.value = ''
@@ -478,27 +484,48 @@ async function savePayment() {
   const payload = {
     family_fee_record: Number(form.familyFeeRecordId),
     amount: Number(form.amount),
-
   }
 
   try {
-    // Create only (no edit endpoint in this view)
     const res = await create_family_payment_ktor(payload)
-    // Add to the dataset and reflect immediately
+
     allPayments.value.unshift(res.data)
+
     ensureValidPage()
+
     toast.success('Payment recorded')
-    closeFormModal()
+
+
+    // ✅ ONLY close on success
+closeFormModal()
   } catch (err) {
 
-    const data = err?.response?.data || {}
-    formError.value = data.amount?.[0] || data.non_field_errors?.[0] || data.message || 'Failed to save payment'
-    toast.error(formError.value)
+
+    const data = err?.response?.data
+
+    let message = 'Failed to save payment'
+
+    if (typeof data === 'string') {
+      message = data
+    } else if (data?.message) {
+      message = data.message
+    } else if (data?.detail) {
+      message = data.detail
+    } else if (data?.amount?.[0]) {
+      message = data.amount[0]
+    } else if (data?.non_field_errors?.[0]) {
+      message = data.non_field_errors[0]
+    }
+
+    formError.value = message
+    toast.error(message)
+
   } finally {
     isSubmitting.value = false
-    closeFormModal()
   }
 }
+
+
 
 async function deleteSingle() {
   if (!deleteTarget.value?.id) return

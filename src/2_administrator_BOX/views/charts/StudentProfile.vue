@@ -258,14 +258,18 @@
               </div>
 
               <div class="col-md-6">
-                <CFormLabel>Family (Optional)</CFormLabel>
-                <CFormSelect v-model="form.family">
-                  <option :value="null">Select Family</option>
-                  <option v-for="f in familyOptions" :key="f.value" :value="f.value">
-                    {{ f.label }}
-                  </option>
-                </CFormSelect>
-              </div>
+  <CFormLabel>Family (Optional)</CFormLabel>
+<CFormSelect v-model="form.family">
+  <option value="">No Family</option>
+  <option
+    v-for="f in familyOptions"
+    :key="f.value"
+    :value="String(f.value)"
+  >
+    {{ f.label }}
+  </option>
+</CFormSelect>
+</div>
 
               <div class="col-md-6">
                 <CFormLabel>Date of Birth</CFormLabel>
@@ -483,7 +487,7 @@ const form = reactive({
   dateOfBirth: '',
 
   currentNewGradeClassId: null,
-  family: null,
+  family: '',
 
   classSeekingAdmissionTo: '',
   isDiscountedStudent: false,
@@ -789,7 +793,9 @@ function openEditModal(student) {
   form.dateOfBirth = student.user?.dateOfBirth ?? ''
 
   form.currentNewGradeClassId = student.currentNewGradeClass?.id ?? null
-  form.family = student.family?.id ?? null
+  form.family = student.family?.id
+  ? String(student.family.id)
+  : ''
 
   form.isDiscountedStudent = !!student.isDiscountedStudent
   form.isImmunized = !!student.isImmunized
@@ -848,7 +854,7 @@ async function submitForm() {
         isStaff: false
       },
       currentNewGradeClassId: Number(form.currentNewGradeClassId) || null,
-      family: form.family || null,
+      family: form.family === '' ? null : Number(form.family),
 
       classSeekingAdmissionTo: form.classSeekingAdmissionTo || '',
       isDiscountedStudent: !!form.isDiscountedStudent,
@@ -876,8 +882,9 @@ async function submitForm() {
         : null
     }
 
+
     if (isEdit.value && currentStudent.value) {
-      await update_student_ktor(currentStudent.value.id, payload)
+      await update_student_ktor(currentStudent.value.id, JSON.parse(JSON.stringify(payload)))
       toast.success('Student updated successfully!')
     } else {
       await create_student_ktor(payload)

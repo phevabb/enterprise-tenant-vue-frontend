@@ -116,7 +116,7 @@
                 <CTableHeaderCell class="text-end">Amount Paid</CTableHeaderCell>
                 <CTableHeaderCell class="text-end">Balance</CTableHeaderCell>
                 <CTableHeaderCell>Fully Paid</CTableHeaderCell>
-                <CTableHeaderCell>Created</CTableHeaderCell>
+
                 <CTableHeaderCell class="text-end" style="width:140px;">Actions</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
@@ -139,7 +139,7 @@
                     {{ Number(row.balance) === 0 ? 'Yes' : 'No' }}
                   </CBadge>
                 </CTableDataCell>
-                <CTableDataCell>{{ formatDateTime(row.dateCreated) }}</CTableDataCell>
+
                 <CTableDataCell class="text-end">
                   <CButtonGroup size="sm">
                     <CButton color="danger" variant="outline" @click="openSingleDeleteConfirm(row)">

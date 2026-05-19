@@ -1,3 +1,5 @@
+
+
 <template>
   <CRow>
     <CCol :xs="12">
@@ -82,7 +84,7 @@
                 <CTableHeaderCell class="text-end">Amount Paid (GHS)</CTableHeaderCell>
                 <CTableHeaderCell class="text-end">Balance (GHS)</CTableHeaderCell>
                 <CTableHeaderCell>Fully Paid</CTableHeaderCell>
-                <CTableHeaderCell>Created</CTableHeaderCell>
+                <!-- <CTableHeaderCell>Created</CTableHeaderCell> -->
                 <CTableHeaderCell class="text-end" style="width:140px">Actions</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
@@ -108,7 +110,7 @@
                     {{ record.is_fully_paid ? 'Yes' : 'No' }}
                   </CBadge>
                 </CTableDataCell>
-                <CTableDataCell>{{ formatDate(record.date_created) }}</CTableDataCell>
+                <!-- <CTableDataCell>{{ formatDate(record.date_created) }}</CTableDataCell> -->
                 <CTableDataCell class="text-end">
                   <CButtonGroup size="sm">
                     <CButton color="danger" variant="outline" @click="openDeleteConfirm(record)">
@@ -240,14 +242,16 @@
   </CModal>
 </template>
 
+
+
 <script setup>
 import { ref, computed, watch, onMounted, reactive } from 'vue'
 import { useToast } from 'vue-toastification'
 import Pagination from '@/Pagination.vue'
 
 import {
-  get_family_fee_rec,
-  get_raw_family_fee_rec_ktor,
+
+  get_family_fee_records_paginated,
   create_family_fee_rec_ktor,
   delete_family_fee_rec_ktor,
   get_raw_families_ktor,
@@ -353,17 +357,23 @@ const formatDate = (iso) => {
 }
 
 // ── Watchers ─────────────────────────────────────
+let timer = null
+
 watch(searchTerm, () => {
-  currentPage.value = 1
-  pageCache.value.clear()
-  loadRecords()
+  clearTimeout(timer)
+  timer = setTimeout(() => {
+    currentPage.value = 1
+    pageCache.value.clear()
+    loadRecords(1)
+  }, 300)
 })
 
 // ── Methods ──────────────────────────────────────
 function changePage(page) {
-  currentPage.value = page
-  loadRecords()
+  if (page < 1 || page > totalPages.value) return
+  loadRecords(page)
 }
+
 
 function buildParams(page, size) {
   const params = { page, page_size: size }
@@ -372,46 +382,52 @@ function buildParams(page, size) {
   return params
 }
 
-async function loadRecords() {
-  const page = currentPage.value
-  const search = searchTerm.value.trim() || ''
-  const cacheKey = `${page}|${search}`
 
-  if (pageCache.value.has(cacheKey)) {
-    const cached = pageCache.value.get(cacheKey)
-    records.value = cached.results
 
-    totalCount.value = cached.count
-    totalPages.value = Math.ceil(cached.count / pageSize)
+async function loadRecords(page = currentPage.value, force = false) {
+  const search = searchTerm.value?.trim() || ''
+  const key = `${page}|${search}`
+
+  if (!force && pageCache.value.has(key)) {
+    const cached = pageCache.value.get(key)
+    records.value = cached.data
+    totalCount.value = cached.total
+    totalPages.value = cached.totalPages
+    currentPage.value = page
     return
   }
 
   isLoading.value = true
-  errorMessage.value = ''
 
   try {
-    const params = buildParams(page, pageSize)
-    const res = await get_raw_family_fee_rec_ktor()
+    const res = await get_family_fee_records_paginated(
+      page,
+      pageSize,
+      search
+    )
 
-    const data = res.data || {}
+    const body = res.data || {}
+    const items = body.data || []
+    const meta = body.meta || {}
 
-    const results = data || []
-    const count  = Number(data.count) || 0
+    records.value = items
+    totalCount.value = Number(meta.total || 0)
+    totalPages.value = Number(meta.totalPages || 1)
+    currentPage.value = Number(meta.page || page)
 
-    pageCache.value.set(cacheKey, { results, count })
+    pageCache.value.set(key, {
+      data: items,
+      total: totalCount.value,
+      totalPages: totalPages.value
+    })
 
-    records.value = results
-
-    totalCount.value = count
-    totalPages.value = Math.ceil(count / pageSize)
   } catch (err) {
-    errorMessage.value = err.response?.data?.detail || 'Failed to load records'
-    toast.error(errorMessage.value)
+
+    toast.error('Failed to load records')
   } finally {
     isLoading.value = false
   }
 }
-
 async function loadLookups() {
   try {
     const [famRes, termRes, ayRes] = await Promise.all([
@@ -454,29 +470,25 @@ function closeDeleteSingleModal() {
 
 async function deleteSingle() {
   if (!deleteTarget.value?.id) return
+
   isDeleting.value = true
 
   try {
     await delete_family_fee_rec_ktor(deleteTarget.value.id)
-    records.value = records.value.filter(r => r.id !== deleteTarget.value.id)
-    selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
-    totalCount.value = Math.max(0, totalCount.value - 1)
-    toast.success('Record deleted')
-    closeDeleteSingleModal()
-  } catch (err) {
 
-    const msg = err.response?.data?.detail || 'Delete failed'
-    if (msg.toLowerCase().includes('constraint') || msg.toLowerCase().includes('foreign')) {
-      toast.error('Cannot delete – record is linked to other data')
-    } else {
-      toast.error(msg)
-    }
+    pageCache.value.clear()
+
+    await loadRecords(currentPage.value, true)
+
+    toast.success('Record deleted')
+
+  } catch (err) {
+    toast.error('Delete failed')
   } finally {
     isDeleting.value = false
-    closeDeleteSingleModal()
+    showDeleteSingleModal.value = false
   }
 }
-
 async function deleteBulk() {
   if (!selectedIds.value.length) return
   isDeleting.value = true
@@ -569,14 +581,14 @@ async function saveRecord() {
 // Fetch ALL records matching current search (across pages)
 async function fetchAllRecordsForExport() {
   const EXPORT_PAGE_SIZE = 500
-  const first = await get_raw_family_fee_rec_ktor()
+  const first = await get_family_fee_rec_ktor_paginated(1, EXPORT_PAGE_SIZE, '')
   const data = first.data || {}
   const items = [...(data.results || [])]
   const count = Number(data.count || items.length)
   const pages = Math.max(1, Math.ceil(count / EXPORT_PAGE_SIZE))
 
   for (let p = 2; p <= pages; p++) {
-    const res = await get_raw_family_fee_rec_ktor()
+    const res = await get_family_fee_records_paginated(p, EXPORT_PAGE_SIZE, '')
     items.push(...(res.data?.results || []))
   }
   return items
@@ -731,6 +743,9 @@ function capitalizeWords(text) {
     .join(' ')
 }
 </script>
+
+
+
 
 <style scoped>
 @media (max-width: 576px) {
