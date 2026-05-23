@@ -151,7 +151,7 @@ import { useToast } from "vue-toastification"
 const toast = useToast()
 import {
   getCategories,
-  get_teacher_student,
+  get_teacher_student,   // students based on the logged in teacher
   publish_subject,
   publish_overall,
   create_subject_score,
@@ -400,6 +400,12 @@ async function confirmPublishAndSend() {
 onMounted(async () => {
   booting.value = true
   try {
+    const ans = await get_teacher_student()
+
+    // 6) Load students
+
+    students.value = ans.data ?? []
+
     // 1) Load categories
     const { data: categories } = await getCategories()
 
@@ -432,9 +438,7 @@ onMounted(async () => {
     ctx.termId = t?.id ?? null
     ctx.yearId = t?.academic_year_id ?? null
 
-    // 6) Load students
-    const ans = await get_teacher_student()
-    students.value = ans?.data ?? []
+
 
   } catch (err) {
 

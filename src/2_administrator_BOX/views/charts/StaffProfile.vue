@@ -37,7 +37,7 @@
                 <CTableHeaderCell>Pin</CTableHeaderCell>
                 <CTableHeaderCell>Gender</CTableHeaderCell>
                 <CTableHeaderCell>Contact</CTableHeaderCell>
-                <CTableHeaderCell>Status</CTableHeaderCell>
+
                 <CTableHeaderCell class="text-end">Actions</CTableHeaderCell>
               </CTableRow>
             </CTableHead>
@@ -48,18 +48,14 @@
                 :key="row.id"
               >
                 <CTableHeaderCell>{{ idx + 1 }}</CTableHeaderCell>
-                <CTableDataCell>{{ row.user.full_name }}</CTableDataCell>
+                <CTableDataCell>{{ row.user.fullName }}</CTableDataCell>
                 <CTableDataCell>{{ row.assignedClass?.name || '—' }}</CTableDataCell>
-                <CTableDataCell>{{ row.user.user_id }}</CTableDataCell>
+                <CTableDataCell>{{ row.user.userId }}</CTableDataCell>
                 <CTableDataCell>{{ row.user.pin }}</CTableDataCell>
                 <CTableDataCell>{{ row.user.gender }}</CTableDataCell>
-                <CTableDataCell>{{ row.tell }}</CTableDataCell>
+                <CTableDataCell>{{ row.tel }}</CTableDataCell>
 
-                <CTableDataCell>
-                  <CBadge :color="row.user.is_active ? 'success' : 'secondary'">
-                    {{ row.user.is_active ? 'Active' : 'Inactive' }}
-                  </CBadge>
-                </CTableDataCell>
+
 
                 <CTableDataCell class="text-end">
                   <CButtonGroup size="sm">
@@ -89,7 +85,7 @@
 
     <CModalBody>
       Are you sure you want to delete
-      <strong>{{ staffToDelete?.user?.full_name }}</strong>? This action cannot be reversed.
+      <strong>{{ staffToDelete?.user?.fullName }}</strong>? This action cannot be reversed.
     </CModalBody>
 
     <CModalFooter>
@@ -107,18 +103,18 @@
     <CModalBody>
       <div class="mb-3">
         <CFormLabel>Full Name</CFormLabel>
-        <CFormInput v-model="form.user.full_name" />
+        <CFormInput v-model="form.user.fullName" />
       </div>
 
       <div class="mb-3">
         <CFormLabel>Contact</CFormLabel>
-        <CFormInput v-model="form.tell" />
+        <CFormInput v-model="form.tel" />
       </div>
 
       <div class="mb-3">
         <CFormLabel>Gender</CFormLabel>
         <CFormSelect v-model="form.user.gender">
-          <option disabled value="">Select Gender</option>
+          <option disabled value="" selected>Select Gender</option>
           <option value="male">Male</option>
           <option value="female">Female</option>
         </CFormSelect>
@@ -148,11 +144,11 @@
 import { ref, computed, onMounted } from "vue";
 import { useToast } from "vue-toastification";
 import {
-  get_classes,
-  get_staff,
-  create_staff,
-  update_staff,
-  delete_staff,
+  get_classes_ktor,
+  get_staff_ktor,
+  create_staff_ktor,
+  update_staff_ktor,
+  delete_staff_ktor,
 } from "@/services/api";
 
 const toast = useToast();
@@ -175,7 +171,7 @@ const currentStaff = ref(null);
 
 async function fetchClasses() {
   try {
-    const response = await get_classes();
+    const response = await get_classes_ktor();
     classes.value = response.data;
 
   } catch (err) {
@@ -186,13 +182,16 @@ async function fetchClasses() {
 // Form State
 const form = ref({
   user: {
-    full_name: "",
+    fullName: "",
     gender: "",
-    date_of_birth: "",
+    dateOfBirth: "",
     role: "staff",
+    nationality: "Ghanaian",
+      isActive: true,
+      isStaff: true
   },
   assignedClass: "",
-  tell: "",
+  tel: "",
 });
 
 // CLASS OPTIONS
@@ -205,7 +204,7 @@ async function fetchStaff() {
   loading.value = true;
 
   try {
-    const response = await get_staff();
+    const response = await get_staff_ktor();
 
     staff.value = response.data;
   } catch (err) {
@@ -228,7 +227,7 @@ const filteredStaff = computed(() => {
   if (!t) return staff.value;
 
   return staff.value.filter((s) =>
-    s.user.full_name.toLowerCase().includes(t)
+    s.user.fullName.toLowerCase().includes(t)
   );
 });
 
@@ -249,7 +248,8 @@ const confirmDelete = async () => {
   if (!staffToDelete.value) return;
 
   try {
-    await delete_staff(staffToDelete.value.id);
+
+    await delete_staff_ktor(staffToDelete.value.id);
 
     staff.value = staff.value.filter(
       (s) => s.id !== staffToDelete.value.id
@@ -272,13 +272,16 @@ const openAddModal = () => {
 
   form.value = {
     user: {
-      full_name: "",
+      fullName: "",
       gender: "",
-      date_of_birth: "2002-02-02",
+      dateOfBirth: "2002-02-02",
       role: "staff",
+      nationality: "Ghanaian",
+      isActive: true,
+      isStaff: true
     },
     assignedClass: "",
-    tell: "",
+    tel: "",
   };
 
   showFormModal.value = true;
@@ -286,26 +289,29 @@ const openAddModal = () => {
 
 const openEditModal = (row) => {
 
+
+
   isEdit.value = true;
   currentStaff.value = row;
 
   form.value = {
     user: {
-      full_name: row.user.full_name,
+      fullName: row.user.fullName,
       gender: row.user.gender,
-      date_of_birth: row.user.date_of_birth,
+      dateOfBirth: row.user.dateOfBirth,
       role: row.user.role,
     },
 
-    // ✅ Normalize Contact
-    tell: row.tell ?? "",
+    tel: row.tel ?? "",
 
-    // ✅ VERY IMPORTANT
-    assignedClass: row.assignedClass?.id || ''
+    // ✅ MATCH BACKEND FIELD NAME
+    assignedClass: row.assignedClass?.id ?? null
   };
 
   showFormModal.value = true;
 };
+
+
 const closeFormModal = () => {
   showFormModal.value = false;
 };
@@ -319,34 +325,28 @@ const submitForm = async () => {
 
   const payload = JSON.parse(JSON.stringify(form.value));
 
-  if (!payload.user.full_name) {
+  if (!payload.user.fullName) {
     toast.error("Full name is required.");
     loading.value = false;
     return;
   }
 
   if (!payload.user.gender) {
-    payload.user.gender = "male";
+    toast.error("Gender is required.");
+    loading.value = false;
+    return;
   }
 
   // ✅ Ensure assignedClass is never null BEFORE sending
   if (!payload.assignedClass) {
 
-    const crecheClass = gradeClasses.value.find(
-      c => c.name.toLowerCase() === "creche"
-    );
-
-    if (!crecheClass) {
-      toast.error("Default class 'creche' not found.");
-      loading.value = false;
-      return;
-    }
-
-    payload.assignedClass_id = crecheClass.id;
+    toast.error("Assigned class is required.");
+    loading.value = false;
+    return;
 
   } else {
 
-    payload.assignedClass_id = payload.assignedClass;
+    payload.assignedClassId = payload.assignedClass;
 
   }
 
@@ -356,10 +356,11 @@ const submitForm = async () => {
   try {
 
     if (isEdit.value) {
-      await update_staff(currentStaff.value.id, payload);
+      await update_staff_ktor(currentStaff.value.id, payload);
       toast.success("Staff updated!");
     } else {
-      await create_staff(payload);
+
+      await create_staff_ktor(payload);
       toast.success("Staff created!");
     }
 
@@ -367,6 +368,7 @@ const submitForm = async () => {
     fetchStaff();
 
   } catch (error) {
+
 
     toast.error("Failed to save staff.");
 

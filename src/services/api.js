@@ -9,7 +9,7 @@ const api = axios.create({
 
  // baseURL: 'https://kog-ktor-backend.onrender.com/api/' , // ktor render production
 
-  baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
+   baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
 
 
 
@@ -22,18 +22,21 @@ const api = axios.create({
   },
 })
 
+
+
+
 // Helper: normalize to a pathname we can test
 function resolvePath(config) {
   try {
-    const url = new URL(config.url, config.baseURL)
-    // e.g. "/api/login/" -> "api/login/"
+    // If config.url is relative, URL() will resolve with baseURL
+    const url = new URL(config.url, config.baseURL || api.defaults.baseURL)
+    // "/api/auth/login" -> "api/auth/login"
     return url.pathname.replace(/^\/+/, '')
-  } catch {
-    // Fallback if URL constructor fails (rare)
+  } catch (e) {
+    // Fallback if URL constructor fails
     return (config.url || '').replace(/^\/+/, '')
   }
 }
-
 
 api.interceptors.request.use(
   (config) => {
@@ -42,23 +45,25 @@ api.interceptors.request.use(
       delete config.headers['Content-Type']
     }
 
-    // Determine if request is public
-    const path = resolvePath(config)          // e.g. "api/login/"
+    const path = resolvePath(config)
+
+    // ✅ Ktor public endpoints (match your backend routes)
+
     const publicPaths = [
-      'api/login/',                 // login
-      'api/password-reset/',        // request password reset
-      'api/password-reset/confirm/' // confirm password reset
+      'api/auth/login',
+      'api/auth/login/',
+      // add later if you implement refresh:
+      // 'api/auth/refresh',
+      // 'api/auth/refresh/',
     ]
 
-    let isPublic = publicPaths.some(p => path.startsWith(p))
-
-    // ✅ override for now (NO AUTH ANYWHERE)
-    isPublic = true
+    const isPublic = publicPaths.some((p) => path.startsWith(p))
 
     if (!isPublic) {
       const token = localStorage.getItem('token')
       if (token) {
-        config.headers.Authorization = `Token ${token}`
+        // ✅ JWT Bearer (NOT "Token")
+        config.headers.Authorization = `Bearer ${token}`
       }
     }
 
@@ -67,23 +72,26 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-
-// Optional: central 401/403 handling (logout or redirect)
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    const status = error?.response?.status
-    if (status === 401) {
+    const status = error && error.response ? error.response.status : null
 
+    if (status === 401) {
+      // Token invalid/expired => logout client-side
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       localStorage.removeItem('family')
       localStorage.removeItem('staff')
-      // Optionally: window.location.hash = '#/login'
+      // Optionally redirect to login:
+      // window.location.href = '/#/login'
     }
+
     return Promise.reject(error)
   }
 )
+
+
 
 export const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
 
@@ -325,11 +333,17 @@ export const delete_administrator = (id) => api.delete(`administrators/${id}/`);
 
 // AUTH APIs
 
-export const login = (payload) => api.post('login/', payload)
-export const logout = () => api.post('logout/')
+export const login_ktor = (payload) => api.post('auth/login', payload)
+
+
+
+
+
+export const logout = () => api.post('auth/logout')
 export const changepassword = (data) => api.post('change-password/', data);
 export const resetpassword = (data) => api.post('password-reset/', data);
 export const resetpasswordconfirm = (data) => api.post('confirm/', data);
+
 
 
 
@@ -354,9 +368,7 @@ export const get_family_payment_list_regular = (id) => api.get(`family-fees/fami
 
 
 
-
-
-
+// ///////////////////////////////////////////////////////////////........ no _ktor
 
 
 
@@ -366,12 +378,20 @@ export const get_family_payment_list_regular = (id) => api.get(`family-fees/fami
 
 
 // staff APIs
-export const get_staff = () => api.get("staff/staff-profiles");
+
+export const get_staff_ktor = () => api.get("staff/raw");
+
+export const create_staff_ktor= (payload) => api.post("staff", payload);
+
+export const update_staff_ktor = (id, payload) => api.patch(`staff/${id}`, payload);
+
+export const delete_staff_ktor = (id) => api.delete(`staff/${id}`);
+
+
 export const num_of_staff_insight = () => api.get("staff/staff-profiles/total_teachers");
-export const create_staff = (payload) => api.post("staff/staff-profiles/", payload);
-export const update_staff = (id, payload) => api.patch(`staff/staff-profiles/${id}/`, payload);
-export const delete_staff = (id) => api.delete(`staff/staff-profiles/${id}/`);
-export const get_teacher_student = () => api.get("staff/teacher/students/");
+
+export const get_teacher_student = () => api.get("staff/teacher-students");
+
 
 
 

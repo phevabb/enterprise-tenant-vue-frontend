@@ -109,171 +109,96 @@
 </template>
 
 
-
 <script setup lang="ts">
 import { useToast } from 'vue-toastification'
-const toast = useToast()
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { login } from '../services/api' // your API helper
+import { login_ktor } from '../services/api'
 
+const toast = useToast()
 const router = useRouter()
 const route = useRoute()
 
 const username = ref('')
 const password = ref('')
-// const role = ref('') later         // <--- new
-
-const role = ref('administrator')
+const role = ref<'administrator' | 'principal' | 'staff' | 'student'>('administrator')
 
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-function storeAuth(token: string, user: any, family: any, staff: any) {
+// ✅ store only what you actually receive from Ktor
+function storeAuth(token: string, user: any) {
   localStorage.setItem('token', token)
   localStorage.setItem('user', JSON.stringify(user))
-  localStorage.setItem('family', JSON.stringify(family))
-  localStorage.setItem('staff', JSON.stringify(staff))
-
 }
 
+function clearAuth() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  localStorage.removeItem('family')
+  localStorage.removeItem('staff')
+}
 
 function nextTarget() {
-  // 1) Honor ?redirect=<routeName> from guard (validate it exists)
-  const redirectName = route?.query?.redirect
+  const redirectName = route?.query?.redirect as string | undefined
   if (redirectName) {
     const resolved = router.resolve({ name: redirectName })
-    if (resolved && resolved.name) {
-      return { name: redirectName }
-    }
-    // if invalid, fall through to role home
+    if (resolved?.name) return { name: redirectName }
   }
 
-  // 2) Get user safely from storage
-  let user = null
+  let user: any = null
   try {
     const raw = localStorage.getItem('user')
     if (raw) user = JSON.parse(raw)
-  } catch (e) {
+  } catch {}
 
-  }
+  if (user?.role === 'administrator') return { name: 'student_fee_records_admin' }
+  if (user?.role === 'principal') return { name: 'PrincipalDashboard' }
+  if (user?.role === 'student') return { name: 'AcademicRecords' }
+  if (user?.role === 'staff') return { name: 'StaffDashboard' }
 
-  // 3) Role-based landing (use names that DEFINITELY exist)
-  if (user && user.role === 'administrator') {
-    return { name: 'student_fee_records_admin' }
-  }
-
-  if (user && user.role === 'principal') {
-    return { name: 'PrincipalDashboard' }
-  }
-
-
-  if (user && user.role === 'student') {
-    return { name: 'AcademicRecords' }   // StudentDashboard
-  }
-
-  if (user && user.role === 'staff') {
-    return { name: 'StaffDashboard' }
-  }
-
-  // 4) Fallback
   return { name: 'Login' }
 }
-
-// async function onSubmit() {
-//   error.value = null
-//   loading.value = true
-//   try {
-//     const payload = {
-//       login_id: username.value,
-//       password: password.value,
-//       role: role.value, // keep only if backend expects this
-//     }
-
-//     const { data } = await login(payload)
-//     const token = data?.token || data?.access || data?.key
-//     if (!token) throw new Error('No token received from server')
-
-//     // Persist server-authoritative user + token
-//     storeAuth(token, data.user, data.family, data.staff,)
-
-//     // Decide where to go
-//     const target = nextTarget()
-
-//     // Avoid self-redirect; prefer replace after login
-//     const currentName = router.currentRoute.value?.name
-//     if (target?.name && target.name !== currentName) {
-//       await router.replace(target)
-//     } else {
-//   const roleRoutes = {
-//     principal: { name: 'PrincipalDashboard' },
-//     administrator: { name: 'student_fee_records_admin' },
-//     student: { name: 'AcademicRecords' }   // StudentDashboard
-//   }
-
-//   await router.replace(
-//     roleRoutes[data.user?.role] || { name: 'Login' }
-//   )
-// }
-
-
-//   } catch (e) {
-
-
-
-//     const backendError =
-//       e?.response?.data?.non_field_errors?.[0] ||
-//       e?.response?.data?.detail ||
-//       e?.response?.data?.error ||
-//       e?.response?.data?.password?.[0] ||
-//       e?.message ||
-//       'Login failed'
-//     error.value = backendError
-//   } finally {
-//     loading.value = false
-//   }
-// } to be used later when backend auth is ready
-
 
 async function onSubmit() {
   error.value = null
   loading.value = true
 
   try {
-    // ✅ DEV MODE: fake user, no backend call
-    const fakeUser = {
-      role: role.value || 'administrator',
+    const payload = {
+      userId: username.value.trim(),
+      role: role.value,
+      pin: password.value.trim(),
     }
 
-    localStorage.setItem('token', 'dev-token')
-    localStorage.setItem('user', JSON.stringify(fakeUser))
+    const { data } = await login_ktor(payload)
 
-    // ✅ Go straight to role dashboard
-    const roleRoutes: Record<string, any> = {
-      administrator: { name: 'student_fee_records_admin' },
-      principal: { name: 'PrincipalDashboard' },
-      student: { name: 'AcademicRecords' },
-      staff: { name: 'StaffDashboard' },
-    }
+    // Ktor response: { access, role, user }
+    const token = data?.access
+    if (!token) throw new Error('No token received')
 
-    await router.replace(
-      roleRoutes[fakeUser.role] || { name: 'student_fee_records_admin' }
-    )
+    storeAuth(token, data.user)
+
+    toast.success('Login successful')
+
+    const target = nextTarget()
+    await router.replace(target)
 
   } catch (e: any) {
-    error.value = 'Login failed'
+    const backendError =
+      e?.response?.data?.error ||
+      e?.response?.data?.detail ||
+      e?.message ||
+      'Login failed'
+
+    error.value = backendError
+    toast.error(backendError)
+    clearAuth()
   } finally {
     loading.value = false
   }
 }
-
-
-
-
-
 </script>
-
-
 
 
 <style scoped>
