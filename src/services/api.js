@@ -3,16 +3,14 @@ import axios from 'axios'
 
 
 const api = axios.create({
-// baseURL: 'http://127.0.0.1:8000/api/', // django development server
+  // baseURL: 'http://127.0.0.1:8000/api/', // django development server
+     baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
 
-// baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
 
+
+
+ // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
  // baseURL: 'https://kog-ktor-backend.onrender.com/api/' , // ktor render production
-
-   baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
-
-
-
  //baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/', //active
 
 
@@ -487,6 +485,9 @@ export const publish_overall = (payload) =>
 
 // ✅ Fetch all categories (category → classes)
 export const getCategories = () =>  api.get("academic-records/new-categories/categories");
+export const getCategories_ktor = () =>  api.get("categories");
+
+export const createCategory_ktor = (payload) =>  api.post("categories", payload);
 
 
 export const getCategoriesSubject = () =>  api.get("academic-records/new-subject-categories/subject-categories");

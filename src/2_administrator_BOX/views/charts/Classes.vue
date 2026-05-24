@@ -91,28 +91,49 @@
 
   <CModalBody>
 
-    <!-- ✅ CLASS NAME ONLY -->
-    <CFormLabel>Class Name</CFormLabel>
-    <CFormInput
-      v-model="form.name"
-      placeholder="Enter class name e.g Class 1A"
-    />
+  <!-- ✅ CLASS NAME -->
+  <CFormLabel>Class Name</CFormLabel>
+  <CFormInput
+    v-model="form.name"
+    placeholder="Enter class name e.g Class 1A"
+  />
 
-    <div class="text-end mt-4">
-      <CButton
-        color="primary"
-        class="px-4 text-white"
-        :disabled="loading"
-        @click="submitForm"
+  <!-- ✅ CATEGORY DROPDOWN (NEW) -->
+  <div class="mt-3">
+    <CFormLabel>Category</CFormLabel>
+    <CFormSelect v-model="form.categoryId">
+      <option disabled value="" selected>Select category</option>
+
+      <option
+        v-for="cat in categories"
+        :key="cat.id"
+        :value="cat.id"
       >
-        <CIcon icon="cil-save" class="me-2 text-white" />
-        <span v-if="loading">Processing...</span>
-        <span v-else>{{ isEdit ? 'Update' : 'Create' }}</span>
-      </CButton>
-    </div>
+        {{ cat.name }}
+      </option>
+    </CFormSelect>
+  </div>
 
-  </CModalBody>
+  <div class="text-end mt-4">
+    <CButton
+      color="primary"
+      class="px-4 text-white"
+      :disabled="loading"
+      @click="submitForm"
+    >
+      <CIcon icon="cil-save" class="me-2 text-white" />
+      <span v-if="loading">Processing...</span>
+      <span v-else>{{ isEdit ? 'Update' : 'Create' }}</span>
+    </CButton>
+  </div>
+
+</CModalBody>
+
+
 </CModal>
+
+
+
 
 
 </template>
@@ -121,7 +142,8 @@
 
 import { useToast } from 'vue-toastification'
 import { ref, computed, reactive, onMounted } from 'vue'
-import {create_class_ktor, update_class_ktor, delete_class_ktor, get_classes_ktor} from '../../../services/api.js'
+import {getCategories_ktor, create_class_ktor, update_class_ktor, delete_class_ktor, get_classes_ktor} from '../../../services/api.js'
+import { ca } from 'vuetify/locale'
 
 const toast = useToast()
 
@@ -135,12 +157,6 @@ async function fetchClasses() {
   loading.value = true;
   try {
     const response = await get_classes_ktor();
-
-
-
-
-
-
 
 
     gradeClasses.value = response.data;
@@ -164,6 +180,7 @@ async function fetchClasses() {
 
 onMounted(() => {
   fetchClasses();
+  fetchCategories();
 });
 
 
@@ -193,12 +210,26 @@ const searchTerm = ref('')
 const showFormModal = ref(false)
 const isEdit = ref(false)
 const currentClass = ref(null)
+const categories = ref([])
 
-const form = reactive({ name: '' })
 
+
+const form = reactive({ name: '', categoryId: '' })
+
+const fetchCategories = async () => {
+  try {
+    const { data } = await getCategories_ktor()
+
+    categories.value = data
+
+  } catch (err) {
+
+  }
+}
 
 function resetForm() {
   form.name = ''
+  form.categoryId = ''
 }
 
 
@@ -221,6 +252,7 @@ const openEditModal = (cls) => {
   isEdit.value = true
   currentClass.value = cls
   form.name = cls.name     // ✅ prefill
+  form.categoryId = cls.categoryId || '' // ✅ prefill category if exists
   showFormModal.value = true
 }
 
@@ -240,7 +272,8 @@ const submitForm = async () => {
     }
 
     const cleanedForm = {
-      name: form.name.trim()
+      name: form.name.trim(),
+      categoryId: form.categoryId || null // Send null if no category selected
     };
 
     let response;

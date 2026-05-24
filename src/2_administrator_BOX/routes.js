@@ -22,7 +22,13 @@ export const adminRoutes = {
       meta: { roles: ['administrator'] },
     },
 
-
+{
+      path: 'categories',
+      name: 'categories',
+      component: () =>
+        import('@/2_administrator_BOX/views/charts/Categories.vue'),
+      meta: { roles: ['administrator'] },
+    },
 
 
 

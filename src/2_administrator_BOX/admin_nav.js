@@ -123,5 +123,11 @@ export default [
     to: { name: 'terms' },
     icon: cilLibrary,
   },
+  {
+    component: 'CNavItem',
+    name: 'Categories',
+    to: { name: 'categories' },
+    icon: cilLibrary,
+  },
 
 ]
