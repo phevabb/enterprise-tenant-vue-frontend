@@ -3,13 +3,14 @@ import axios from 'axios'
 
 
 const api = axios.create({
-  // baseURL: 'http://127.0.0.1:8000/api/', // django development server
+    // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
+
      baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
 
 
 
+// baseURL: 'http://127.0.0.1:8000/api/', // django development server
 
- // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
  // baseURL: 'https://kog-ktor-backend.onrender.com/api/' , // ktor render production
  //baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/', //active
 
@@ -342,6 +343,15 @@ export const changepassword = (data) => api.post('change-password/', data);
 export const resetpassword = (data) => api.post('password-reset/', data);
 export const resetpasswordconfirm = (data) => api.post('confirm/', data);
 
+// original ktor apis //
+// SUBJECTS API
+
+export const ktor_getSubjects = () => api.get("subjects");
+
+export const ktor_postSubjects = (payload) => api.post("subjects", payload);
+export const ktor_patchSubjects = (id, payload) => api.patch(`subjects/${id}`, payload);
+
+export const ktor_deleteSubjects = (id) => api.delete(`subjects/${id}`);
 
 
 
@@ -366,8 +376,7 @@ export const get_family_payment_list_regular = (id) => api.get(`family-fees/fami
 
 
 
-// ///////////////////////////////////////////////////////////////........ no _ktor
-
+// ///////////////////////////////////////////////////////////////........
 
 
 
@@ -385,12 +394,27 @@ export const update_staff_ktor = (id, payload) => api.patch(`staff/${id}`, paylo
 
 export const delete_staff_ktor = (id) => api.delete(`staff/${id}`);
 
-
 export const num_of_staff_insight = () => api.get("staff/staff-profiles/total_teachers");
 
 export const get_teacher_student = () => api.get("staff/teacher-students");
 
+// promotion apis
+export const get_promotions_ktor=  () => api.get("promotion");
 
+export const post_promotions_ktor=  (payload) => api.post("promotion", payload);
+
+export const delete_promotions_ktor=  (id) => api.delete(`promotion/${id}`);
+
+export const patch_promotions_ktor=  (id, payload) => api.patch(`promotion/${id}`, payload);
+
+// grading system APIs
+export const get_grading_system_ktor = () => api.get("grades");
+
+export const create_grading_system_ktor = (payload) => api.post("grades", payload);
+
+export const update_grading_system_ktor = (id, payload) => api.patch(`grades/${id}`, payload);
+
+export const delete_grading_system_ktor = (id) => api.delete(`grades/${id}`);
 
 
 
@@ -411,6 +435,7 @@ export const delete_deactivated_family = (id) => api.delete(`family-fees/deactiv
 
 // new
 export const subject_scores = () => api.get("academic-records/new-subject-scores/subject-scores/");
+
 
 
 // academic comments
@@ -488,7 +513,9 @@ export const getCategories = () =>  api.get("academic-records/new-categories/cat
 export const getCategories_ktor = () =>  api.get("categories");
 
 export const createCategory_ktor = (payload) =>  api.post("categories", payload);
+export const updateCategory_ktor = (id, payload) =>  api.put(`categories/${id}`, payload);
 
+export const deleteCategory_ktor = (id) =>  api.delete(`categories/${id}`);
 
 export const getCategoriesSubject = () =>  api.get("academic-records/new-subject-categories/subject-categories");
 

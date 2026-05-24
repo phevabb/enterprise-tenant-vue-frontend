@@ -119,14 +119,34 @@ export default [
   },
   {
     component: 'CNavItem',
-    name: 'Terms',
-    to: { name: 'terms' },
+    name: 'Subjects',
+    to: { name: 'subjects' },
     icon: cilLibrary,
   },
   {
     component: 'CNavItem',
+    name: 'Terms',
+    to: { name: 'terms' },
+    icon: cilLibrary,
+  },
+
+  {
+    component: 'CNavItem',
     name: 'Categories',
     to: { name: 'categories' },
+    icon: cilLibrary,
+  },
+
+  {
+    component: 'CNavItem',
+    name: 'Promotions',
+    to: { name: 'promotions' },
+    icon: cilLibrary,
+  },
+  {
+    component: 'CNavItem',
+    name: 'Grading Scale',
+    to: { name: 'grading_scales' },
     icon: cilLibrary,
   },
 

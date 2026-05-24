@@ -2,22 +2,66 @@
   <CRow>
     <CCol :xs="12">
       <CCard class="mb-4">
-        <CCardHeader class="bg-warning text-dark">
-          <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-            <strong class="fs-5">Grade Classes</strong>
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <CFormInput
-                v-model="searchTerm"
-                placeholder="Search class..."
-                size="sm"
-                style="min-width: 260px;"
-              />
-              <CButton color="dark" class="text-warning border-warning" size="sm" @click="openAddModal">
-                <CIcon icon="cil-school" class="me-1" /> Add Class
-              </CButton>
-            </div>
-          </div>
-        </CCardHeader>
+
+
+
+
+
+       <CCardHeader
+  class="border-bottom py-3 text-white"
+  style="background: linear-gradient(90deg, #0ea5e9, #0369a1);"
+>
+
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+    <!-- ✅ LEFT -->
+    <div class="d-flex align-items-center gap-2">
+      <span class="fw-semibold fs-5">Subjects</span>
+
+      <span class="badge bg-white text-primary border ms-2">
+        Manage
+      </span>
+    </div>
+
+    <!-- ✅ RIGHT -->
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+
+      <CFormInput
+        v-model="searchTerm"
+        placeholder="Search subject..."
+        size="sm"
+        class="border-0 shadow-sm"
+        style="
+          min-width: 240px;
+          background: rgba(255,255,255,0.9);
+        "
+      />
+
+      <CButton
+        size="sm"
+        class="px-3 fw-semibold"
+        style="background: #ffffff; color: #0369a1; border: none;"
+        @click="openAddModal"
+      >
+        <CIcon icon="cil-plus" />
+        Add Subject
+      </CButton>
+
+    </div>
+
+  </div>
+</CCardHeader>
+
+
+
+
+
+
+
+
+
+
+
 
 <CCardBody>
 
@@ -26,7 +70,7 @@
     <CTableHead color="light">
       <CTableRow>
         <CTableHeaderCell>#</CTableHeaderCell>
-        <CTableHeaderCell>Class Name</CTableHeaderCell>
+        <CTableHeaderCell>Subject Name</CTableHeaderCell>
         <CTableHeaderCell>Category</CTableHeaderCell>
 
         <CTableHeaderCell class="text-end">Actions</CTableHeaderCell>
@@ -44,7 +88,7 @@
       <!-- Empty state -->
       <CTableRow v-else-if="filteredClasses.length === 0">
         <CTableDataCell colspan="4" class="text-center text-muted py-4">
-          No classes found<span v-if="searchTerm"> for “{{ searchTerm }}”.</span>
+          No subjects found<span v-if="searchTerm"> for “{{ searchTerm }}”.</span>
         </CTableDataCell>
       </CTableRow>
 
@@ -86,17 +130,17 @@
 <CModal :visible="showFormModal" @close="closeFormModal">
   <CModalHeader>
     <CModalTitle>
-      {{ isEdit ? 'Edit Class' : 'Add Class' }}
+      {{ isEdit ? 'Edit Subject' : 'Add Subject' }}
     </CModalTitle>
   </CModalHeader>
 
   <CModalBody>
 
-  <!-- ✅ CLASS NAME -->
-  <CFormLabel>Class Name</CFormLabel>
+  <!-- ✅ SUBJECT NAME -->
+  <CFormLabel>Subject Name</CFormLabel>
   <CFormInput
     v-model="form.name"
-    placeholder="Enter class name e.g Class 1A"
+    placeholder="Enter subject name e.g Mathematics"
   />
 
   <!-- ✅ CATEGORY DROPDOWN (NEW) -->
@@ -143,7 +187,7 @@
 
 import { useToast } from 'vue-toastification'
 import { ref, computed, reactive, onMounted } from 'vue'
-import {getCategories_ktor, create_class_ktor, update_class_ktor, delete_class_ktor, get_classes_ktor} from '../../../services/api.js'
+import {getCategories_ktor, ktor_postSubjects, ktor_patchSubjects, ktor_deleteSubjects, ktor_getSubjects} from '../../../services/api.js'
 import { ca } from 'vuetify/locale'
 
 const toast = useToast()
@@ -157,8 +201,8 @@ const classToDelete = ref(null)
 async function fetchClasses() {
   loading.value = true;
   try {
-    const response = await get_classes_ktor();
-    console.log('Fetched classes: print', response.data); // Debug log
+    const response = await ktor_getSubjects();
+    console.log('Fetched subjectss: print', response.data); // Debug log
 
 
     gradeClasses.value = response.data;
@@ -270,7 +314,7 @@ const submitForm = async () => {
       const idToEdit = currentClass.value.id;
       const className = currentClass.value.name;
 
-      response = await update_class_ktor(idToEdit, cleanedForm);
+      response = await ktor_patchSubjects(idToEdit, cleanedForm);
 
 
       const index = gradeClasses.value.findIndex(c => c.id === idToEdit);
@@ -283,7 +327,7 @@ const submitForm = async () => {
     } else {
 
       // ✅ CREATE MODE
-      response = await create_class_ktor(cleanedForm);
+      response = await ktor_postSubjects(cleanedForm);
       gradeClasses.value.push(response.data);
       toast.success('Class created successfully!', { position: 'top-right' });
 
@@ -317,7 +361,9 @@ const confirmDelete = async () => {
   const thename = classToDelete.value.name;
 
   try {
-    await delete_class_ktor(classToDelete.value.id)
+ await ktor_deleteSubjects(classToDelete.value.id)
+
+
     gradeClasses.value = gradeClasses.value.filter(s => s.id !== theid)
     toast.success(`${thename} deleted successfully!`, { position: 'top-right' })
   } catch (error) {

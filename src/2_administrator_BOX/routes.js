@@ -23,10 +23,25 @@ export const adminRoutes = {
     },
 
 {
+      path: 'subjects',
+      name: 'subjects',
+      component: () =>
+        import('@/2_administrator_BOX/views/charts/Subjects.vue'),
+      meta: { roles: ['administrator'] },
+    },
+
+    {
       path: 'categories',
       name: 'categories',
       component: () =>
         import('@/2_administrator_BOX/views/charts/Categories.vue'),
+      meta: { roles: ['administrator'] },
+    },
+    {
+      path: 'promotions',
+      name: 'promotions',
+      component: () =>
+        import('@/2_administrator_BOX/views/charts/Promotions.vue'),
       meta: { roles: ['administrator'] },
     },
 
@@ -134,6 +149,14 @@ export const adminRoutes = {
       component: () => import('@/2_administrator_BOX/views/charts/Classes.vue'),
       meta: { roles: ['administrator'] },
     },
+
+    {
+      path: 'grade-scales',
+      name: 'grading_scales',
+      component: () => import('@/2_administrator_BOX/views/charts/GradingScales.vue'),
+      meta: { roles: ['administrator'] },
+    },
+
     {
       path: 'terms',
       name: 'terms',
