@@ -5,7 +5,7 @@ import axios from 'axios'
 const api = axios.create({
     // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
 
-     baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
+      baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
 
 
 
@@ -398,6 +398,15 @@ export const num_of_staff_insight = () => api.get("staff/staff-profiles/total_te
 
 export const get_teacher_student = () => api.get("staff/teacher-students");
 
+export const assigned_class_ktor = (id) => api.get(`staff/assigned-class/${id}`);
+
+export const create_subject_score_ktor = ( payload) => api.post("subject-scores/by-staff", payload);
+
+export const create_subject_score = (payload) =>
+    api.post("academic-records/new-subject-scores/subject-scores/", payload);
+
+
+
 // promotion apis
 export const get_promotions_ktor=  () => api.get("promotion");
 
@@ -446,11 +455,6 @@ export const get_academic_comments = (className) =>  api.get(`academic-records/r
 // services/api.js
 
 export const create_academic_comment = (id, payload) =>api.patch(`academic-records/report-comments/report-comments/${id}/`,   payload  )
-
-export const create_subject_score = (payload) =>
-    api.post("academic-records/new-subject-scores/subject-scores/", payload);
-
-
 
 
 //  academic summary for students

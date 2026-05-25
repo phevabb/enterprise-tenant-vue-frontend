@@ -149,5 +149,11 @@ export default [
     to: { name: 'grading_scales' },
     icon: cilLibrary,
   },
+  {
+    component: 'CNavItem',
+    name: 'Academic Records',
+    to: { name: 'academic_records' },
+    icon: cilLibrary,
+  },
 
 ]

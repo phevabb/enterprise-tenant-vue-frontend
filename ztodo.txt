@@ -20,3 +20,6 @@ to make text white: <CButton color="danger" class="text-white" @click="deleteSin
 
 
       just add class="text-white"
+
+
+local admin: 85940393  4248

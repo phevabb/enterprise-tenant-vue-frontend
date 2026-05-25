@@ -150,11 +150,12 @@ import { useToast } from "vue-toastification"
 
 const toast = useToast()
 import {
-  getCategories,
-  get_teacher_student,   // students based on the logged in teacher
+  getCategories_ktor,
+  get_teacher_student,   // students based on the logged in teacher (works)
+  assigned_class_ktor,
   publish_subject,
   publish_overall,
-  create_subject_score,
+  create_subject_score_ktor,
   get_terms_with_year
 } from "@/services/api"
 
@@ -305,35 +306,31 @@ const completedCount = computed(() => {
    SUBJECT RESOLUTION
 ------------------------------------ */
 function resolveSubjectsForClass(categories, className) {
-  // Normalize className into a safe lowercase string
   let cls = ""
 
-  if (typeof className === "string") {
-    cls = className.trim().toLowerCase()
-  } else if (className && typeof className === "object" && typeof className.name === "string") {
+  if (typeof className === "string") cls = className.trim().toLowerCase()
+  else if (className && typeof className === "object" && typeof className.name === "string")
     cls = className.name.trim().toLowerCase()
-  }
 
-  if (!cls) return []
-  if (!Array.isArray(categories)) return []
+  if (!cls || !Array.isArray(categories)) return []
 
   for (const cat of categories) {
     const specific = Array.isArray(cat?.specific_classes) ? cat.specific_classes : []
-    const groups = Array.isArray(cat?.subject_groups) ? cat.subject_groups : []
 
     const match = specific.some(c => {
-      const cname = typeof c === "string"
-        ? c
-        : (c && typeof c === "object" ? c.name : "")
-
-      return typeof cname === "string" && cname.trim().toLowerCase() === cls
+      const cname =
+        typeof c === "string"
+          ? c
+          : (c && typeof c === "object" ? c.name : "")
+      return (cname || "").trim().toLowerCase() === cls
     })
 
     if (match) {
-      return groups.flatMap(g => {
-        const subs = Array.isArray(g?.subjects) ? g.subjects : []
-        return subs.map(s => (typeof s === "string" ? s : s?.name)).filter(Boolean)
-      })
+      // ✅ NEW: subjects are directly on category
+      const subs = Array.isArray(cat?.subjects) ? cat.subjects : []
+      return subs
+        .map(s => (typeof s === "string" ? s : s?.name))
+        .filter(Boolean)
     }
   }
 
@@ -365,7 +362,14 @@ async function confirmPublishAndSend() {
       const r = rec(s.id)
       if (!isComplete(s.id, subj)) continue
 
-      await create_subject_score({
+      const payload = {
+        student: s.id,
+        subject: subj,
+        class_score: r[`${subj}_class_score`],
+        exam_score: r[`${subj}_exam_score`]
+      }
+
+      await create_subject_score_ktor({
         student: s.id,
         subject: subj,
         class_score: r[`${subj}_class_score`],
@@ -373,20 +377,21 @@ async function confirmPublishAndSend() {
       })
     }
 
-    await publish_subject({
-      class_level: classLevelPayload,
-      academic_year: ctx.yearId,
-      subject: subj
-    })
+    // await publish_subject({
+    //   class_level: classLevelPayload,
+    //   academic_year: ctx.yearId,
+    //   subject: subj
+    // })
 
-    await publish_overall({
-      class_level: classLevelPayload,
-      academic_year: ctx.yearId,
-      term: ctx.termId
-    })
+    // await publish_overall({
+    //   class_level: classLevelPayload,
+    //   academic_year: ctx.yearId,
+    //   term: ctx.termId
+    // })
 
     toast.success("✅ Published successfully")
   } catch (err) {
+
 
     toast.error("❌ Failed to publish")
   } finally {
@@ -400,24 +405,30 @@ async function confirmPublishAndSend() {
 onMounted(async () => {
   booting.value = true
   try {
+    // 1) Load students
     const ans = await get_teacher_student()
-
-    // 6) Load students
-
     students.value = ans.data ?? []
 
-    // 1) Load categories
-    const { data: categories } = await getCategories()
-
-    // 2) Load staff safely
-    staff.value = safeJSONParse(localStorage.getItem("staff"))
-
-    // 3) Normalize assigned class
-    ass_class.value = staff.value?.assignedClass ?? null
-    const normalized = normalizeAssignedClass(ass_class.value)
+    // 2) Load categories (central categories)
+    const { data: categories } = await getCategories_ktor()
 
 
-    // Save normalized values into ctx
+    // 3) Load staff user from localStorage (your key is "user")
+    staff.value = safeJSONParse(localStorage.getItem("user"))
+    if (!staff.value?.userId) {
+      toast.error("No staff userId found in localStorage")
+      return
+    }
+
+    // 4) Get assigned class using userId
+    const userId = staff.value.userId
+    const { data } = await assigned_class_ktor(userId)
+
+    // data = { userId, assignedClass: {id,name} | null }
+    const assigned = data?.assignedClass ?? null
+
+    const normalized = normalizeAssignedClass(assigned)
+
     ctx.gradeclassName = normalized.name
     ctx.gradeclassId = normalized.id
 
@@ -428,20 +439,18 @@ onMounted(async () => {
       return
     }
 
-    // 4) Resolve subjects using the class NAME (because categories match by name)
+    // 5) Resolve subjects based on assigned class name
     const subs = resolveSubjectsForClass(categories, ctx.gradeclassName)
     SUBJECTS.splice(0, SUBJECTS.length, ...subs)
     subject.value = SUBJECTS[0] ?? null
 
-    // 5) Load term + year
+    // 6) Load current term + year
     const { data: t } = await get_terms_with_year()
     ctx.termId = t?.id ?? null
     ctx.yearId = t?.academic_year_id ?? null
 
-
-
   } catch (err) {
-
+    console.error(err)
     toast.error("Could not load data")
   } finally {
     booting.value = false

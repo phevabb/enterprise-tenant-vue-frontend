@@ -158,7 +158,7 @@ async function fetchClasses() {
   loading.value = true;
   try {
     const response = await get_classes_ktor();
-    console.log('Fetched classes: print', response.data); // Debug log
+
 
 
     gradeClasses.value = response.data;
@@ -292,6 +292,7 @@ const submitForm = async () => {
     closeFormModal();
 
   } catch (err) {
+
 
     const backendMessage = err.response?.data?.message || 'Failed to submit form.';
     toast.error(backendMessage, { position: 'top-right' });

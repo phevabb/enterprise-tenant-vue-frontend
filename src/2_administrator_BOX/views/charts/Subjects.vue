@@ -202,7 +202,7 @@ async function fetchClasses() {
   loading.value = true;
   try {
     const response = await ktor_getSubjects();
-    console.log('Fetched subjectss: print', response.data); // Debug log
+
 
 
     gradeClasses.value = response.data;
