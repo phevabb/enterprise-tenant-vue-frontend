@@ -237,7 +237,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getReportCardByStudent, getReportCardByUser , get_profile_picture,} from '@/services/api'
+import { getReportCardByUser , get_profile_picture,} from '@/services/api'
 
 /* ----------------------------------------------------
    PROPS (school branding only)
@@ -419,6 +419,9 @@ onMounted(async () => {
   await fetchReportCard()
 })
 </script>
+
+
+
 
 <style scoped>
 .report-pack-wrapper :deep(.card) { border-radius: 18px; }

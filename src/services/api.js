@@ -3,7 +3,7 @@ import axios from 'axios'
 
 
 const api = axios.create({
-    // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
+     // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
 
       baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
 
@@ -385,6 +385,7 @@ export const get_family_payment_list_regular = (id) => api.get(`family-fees/fami
 
 
 // staff APIs
+export const get_staff = () => api.get("staff/raw");
 
 export const get_staff_ktor = () => api.get("staff/raw");
 
@@ -424,6 +425,21 @@ export const create_grading_system_ktor = (payload) => api.post("grades", payloa
 export const update_grading_system_ktor = (id, payload) => api.patch(`grades/${id}`, payload);
 
 export const delete_grading_system_ktor = (id) => api.delete(`grades/${id}`);
+
+// current term and year APIs
+
+export const get_terms_with_year_ktor = () => api.get("term/current");
+
+// remarks
+export const get_subject_scores_context_ktor = (classId, termId, yearId, subject) =>
+  api.get('/subject-scores/context', {
+    params: { classId, termId, yearId, subject }
+  });
+
+export const get_academic_records_by_class_ktor = (classId) => api.get(`academic-records/class/${classId}`);
+
+
+export const patch_academic_remarks = (id, payload) => api.patch(`academic-records/${id}/remarks`, payload);
 
 
 

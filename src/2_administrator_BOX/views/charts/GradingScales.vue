@@ -24,8 +24,12 @@
             />
           </CInputGroup>
 
-          <CButton style="background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); color: light" size="sm" :disabled="loading" @click="fetchAll">
-            <CIcon :icon="cilReload" class="me-1" />
+          <CButton
+            style="background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); color: white;"
+            size="sm"
+            :disabled="loading"
+            @click="fetchAll"
+          >    <CIcon :icon="cilReload" class="me-1" />
             {{ loading ? 'Loading...' : 'Refresh' }}
           </CButton>
 

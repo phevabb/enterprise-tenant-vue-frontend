@@ -26,10 +26,21 @@
             />
           </CInputGroup>
 
-          <CButton color="light" size="sm" :disabled="loading" @click="fetchScores">
+
+          <CButton style="background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); color: white;" color="light" size="sm" :disabled="loading" @click="fetchScores">
             <CIcon :icon="cilReload" class="me-1" />
             {{ loading ? 'Loading...' : 'Refresh' }}
           </CButton>
+
+          <CButton
+          color="danger"
+          size="sm"
+          :disabled="!selectedIds.length || deleting"
+          @click="confirmDeleteSelected"
+        >
+          <CIcon :icon="cilTrash" class="me-1" />
+          Delete Selected ({{ selectedIds.length }})
+        </CButton>
 
           <CButton
             size="sm"
@@ -164,6 +175,13 @@
       <CTable hover responsive class="mb-0">
         <CTableHead>
           <CTableRow>
+            <CTableHeaderCell style="width: 40px;">
+              <input
+                type="checkbox"
+                :checked="allSelected"
+                @change="toggleSelectAll"
+              />
+            </CTableHeaderCell>
             <CTableHeaderCell>#</CTableHeaderCell>
             <CTableHeaderCell>Student</CTableHeaderCell>
             <CTableHeaderCell>Class</CTableHeaderCell>
@@ -178,7 +196,15 @@
         </CTableHead>
 
         <CTableBody>
+
           <CTableRow v-for="row in paginated" :key="row.id">
+            <CTableDataCell>
+          <input
+            type="checkbox"
+            :value="row.id"
+            v-model="selectedIds"
+          />
+        </CTableDataCell>
             <CTableDataCell>{{ row.id }}</CTableDataCell>
 
             <CTableDataCell>
@@ -277,7 +303,7 @@
             <div class="col-md-6">
               <CFormLabel class="fw-semibold">Academic Record</CFormLabel>
               <CFormSelect v-model="form.academicRecordId">
-                <option disabled value="">Select academic record</option>
+                <option disabled value="" selected>Select academic record</option>
                 <option v-for="r in recordOptions" :key="r.id" :value="String(r.id)">
                   {{ r.label }}
                 </option>
@@ -390,9 +416,224 @@
 
     <!-- Detail Modal -->
     <CModal v-model:visible="showDetail" alignment="center" backdrop="static" :keyboard="false" size="lg">
-      <!-- keep your existing detail modal content here -->
-      <!-- (unchanged; you already have it working) -->
-    </CModal>
+
+  <!-- Header -->
+  <CModalHeader :close-button="false" class="text-white border-0 header-grad">
+    <div class="d-flex align-items-center gap-2">
+      <div class="icon-bubble">
+        <CIcon :icon="cilInfo" class="text-white" />
+      </div>
+      <div>
+        <CModalTitle class="mb-0">Academic Record Details</CModalTitle>
+        <small class="opacity-75">
+          Full student academic performance breakdown
+        </small>
+      </div>
+    </div>
+  </CModalHeader>
+
+  <!-- Body -->
+  <CModalBody class="pt-4" v-if="selected">
+    <div class="p-3 rounded form-surface">
+
+      <!-- ===== Student + Context ===== -->
+      <div class="d-flex justify-content-between flex-wrap gap-3 mb-3">
+        <div>
+          <div class="text-muted small">Student</div>
+          <div class="fw-semibold">
+            {{ selected.studentName ?? selected.student?.name ?? '—' }}
+          </div>
+        </div>
+
+        <div>
+          <div class="text-muted small">Class</div>
+          <div class="fw-semibold text-capitalize">
+            {{ selected.classLevelName ?? selected.classLevel?.name ?? '—' }}
+          </div>
+        </div>
+
+        <div>
+          <div class="text-muted small">Term / Year</div>
+          <div class="fw-semibold">
+            {{ selected.termName ?? selected.term?.name ?? '—' }}
+            /
+            {{ selected.academicYearName ?? selected.academicYear?.name ?? '—' }}
+          </div>
+        </div>
+
+        <div>
+          <div class="text-muted small">Record ID</div>
+          <div class="fw-semibold">#{{ selected.id }}</div>
+        </div>
+      </div>
+
+      <hr />
+
+      <!-- ===== Scores Table ===== -->
+      <div class="mb-4">
+        <div class="fw-semibold mb-2">Subject Scores</div>
+
+        <CTable small hover responsive>
+          <CTableHead>
+            <CTableRow>
+              <CTableHeaderCell>Subject</CTableHeaderCell>
+              <CTableHeaderCell class="text-end">Class</CTableHeaderCell>
+              <CTableHeaderCell class="text-end">Exam</CTableHeaderCell>
+              <CTableHeaderCell class="text-end">Total</CTableHeaderCell>
+              <CTableHeaderCell>Grade</CTableHeaderCell>
+              <CTableHeaderCell>Position</CTableHeaderCell>
+            </CTableRow>
+          </CTableHead>
+
+          <CTableBody>
+            <CTableRow
+              v-for="s in selected.subjectScores"
+              :key="s.id"
+            >
+              <CTableDataCell>{{ s.subjectName }}</CTableDataCell>
+
+              <CTableDataCell class="text-end">
+                {{ s.classScore ?? '—' }}
+              </CTableDataCell>
+
+              <CTableDataCell class="text-end">
+                {{ s.examScore ?? '—' }}
+              </CTableDataCell>
+
+              <CTableDataCell class="text-end fw-semibold">
+                {{ s.totalScore ?? '—' }}
+              </CTableDataCell>
+
+              <CTableDataCell>
+                <CBadge
+                  color="light"
+                  class="border"
+                >
+                  {{ s.gradeCode ?? '—' }}
+                </CBadge>
+              </CTableDataCell>
+
+              <CTableDataCell>
+                {{ s.position ?? '—' }}
+              </CTableDataCell>
+            </CTableRow>
+          </CTableBody>
+        </CTable>
+
+        <div v-if="!selected.subjectScores?.length" class="text-muted text-center py-3">
+          No subject scores recorded.
+        </div>
+      </div>
+
+      <hr />
+
+      <!-- ===== Summary ===== -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <div class="mini-card">
+            <div class="mini-title">Raw Total</div>
+            <div class="fw-semibold">
+              {{ selected.rawScoreTotal ?? '—' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="mini-card">
+            <div class="mini-title">Overall Position</div>
+            <div class="fw-semibold">
+              {{ selected.overallPosition ?? '—' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="mini-card">
+            <div class="mini-title">On Roll</div>
+            <div class="fw-semibold">
+              {{ selected.numberOnRoll ?? '—' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr />
+
+      <!-- ===== Remarks Section ===== -->
+      <div class="row g-3">
+
+        <div class="col-md-6">
+          <div class="mini-card">
+            <div class="mini-title">Conduct</div>
+            <div>{{ selected.conduct ?? '—' }}</div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mini-card">
+            <div class="mini-title">Interest</div>
+            <div>{{ selected.interest ?? '—' }}</div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mini-card">
+            <div class="mini-title">Attitude</div>
+            <div>{{ selected.attitude ?? '—' }}</div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mini-card">
+            <div class="mini-title">Attendance</div>
+            <div>{{ selected.attendance ?? '—' }}</div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="mini-card">
+            <div class="mini-title">Teacher Remarks</div>
+            <div>{{ selected.teacherRemarks ?? '—' }}</div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="mini-card">
+            <div class="mini-title">Head Teacher Remarks</div>
+            <div>{{ selected.headTeacherRemarks ?? '—' }}</div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mini-card">
+            <div class="mini-title">Promoted To</div>
+            <div>{{ selected.promotedTo ?? '—' }}</div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mini-card">
+            <div class="mini-title">Next Term Begins</div>
+            <div>{{ selected.nextTermBegins ?? '—' }}</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </CModalBody>
+
+  <!-- Footer -->
+  <CModalFooter class="border-0 pt-0">
+    <div class="w-100 d-flex justify-content-end">
+      <CButton color="secondary" variant="outline" @click="showDetail = false">
+        Close
+      </CButton>
+    </div>
+  </CModalFooter>
+
+</CModal>
+
 
   </div>
 </template>
@@ -414,7 +655,12 @@ import {
   cilSave
 } from '@coreui/icons'
 
+
+const selectedIds = ref([])
 const toast = useToast()
+
+
+
 
 const loading = ref(false)
 const saving = ref(false)
@@ -445,6 +691,14 @@ const filters = reactive({
   gradeCode: ''
 })
 
+
+const allSelected = computed(() => {
+  return paginated.value.length > 0 &&
+         paginated.value.every(r => selectedIds.value.includes(r.id))
+})
+
+
+
 const form = reactive({
   // create mode
   academicRecordId: '',
@@ -456,6 +710,16 @@ const form = reactive({
   scoreId: null
 })
 
+function toggleSelectAll(e) {
+  if (e.target.checked) {
+    selectedIds.value = paginated.value.map(r => r.id)
+  } else {
+    selectedIds.value = []
+  }
+}
+
+
+
 const formErrors = reactive({
   academicRecordId: '',
   subjectId: ''
@@ -464,6 +728,34 @@ const formErrors = reactive({
 function toggleGroupMode() {
   groupMode.value = groupMode.value === 'student' ? 'subject' : 'student'
 }
+
+
+async function confirmDeleteSelected() {
+  // ✅ 👇 PUT IT RIGHT HERE
+  if (!selectedIds.value.length) return
+  if (!confirm("Are you sure you want to delete the selected scores?")) return
+
+  deleting.value = true
+
+  try {
+    for (const id of selectedIds.value) {
+      await api.delete(`/subject-scores/${id}`)
+    }
+
+    data.value = data.value.filter(
+      x => !selectedIds.value.includes(x.id)
+    )
+
+    toast.success(`${selectedIds.value.length} scores deleted`)
+    selectedIds.value = []
+
+  } catch (e) {
+    toast.error(e?.response?.data?.error || 'Bulk delete failed')
+  } finally {
+    deleting.value = false
+  }
+}
+
 
 function openDetail(row) {
   selected.value = row
@@ -607,7 +899,7 @@ async function confirmDelete() {
     await api.delete(`/subject-scores/${toDelete.value.id}`)
     data.value = data.value.filter(x => x.id !== toDelete.value.id)
     toast.success('Score deleted')
-    closeDelete()
+    showDelete.value = false
   } catch (e) {
     toast.error(e?.response?.data?.error || 'Delete failed')
   } finally {

@@ -1,5 +1,3 @@
-
-
 <template>
   <v-container fluid class="pa-4 premium-bg">
 
@@ -7,7 +5,7 @@
     <v-card class="pa-4 mb-4 premium-hero">
       <div class="d-flex align-center justify-space-between">
         <div class="d-flex align-center">
-          <v-avatar size="56" class="mr-3">
+          <v-avatar size="56" class="mr-3 premium-avatar">
             <v-icon size="32" color="white">mdi-book-education</v-icon>
           </v-avatar>
           <div>
@@ -23,24 +21,26 @@
     </v-card>
 
     <!-- TOP CONTROLS -->
-    <v-card class="pa-3 mb-3">
+    <v-card class="pa-3 mb-3 premium-card">
       <div class="d-flex align-center flex-wrap gap-3">
-        <v-chip size="small" color="primary">{{ ctx.gradeclassName }}</v-chip>
+        <v-chip size="small" color="primary">{{ ctx.gradeclassName || '—' }}</v-chip>
+        <v-chip size="small" color="primary">{{ currentTerm || '—' }}</v-chip>
+        <v-chip size="small" color="primary">{{ currentYear || '—' }}</v-chip>
 
         <v-select
           v-model="subject"
           :items="SUBJECTS"
           label="Subject"
           density="compact"
-          style="max-width:160px"
-          :disabled="booting"
+          style="max-width: 220px"
+          :disabled="booting || !SUBJECTS.length"
         />
 
         <v-btn
           size="small"
           variant="tonal"
           @click="fillBlanks(subject)"
-          :disabled="booting"
+          :disabled="booting || !subject"
         >
           Fill
         </v-btn>
@@ -50,30 +50,56 @@
           variant="tonal"
           color="error"
           @click="clearSubject(subject)"
-          :disabled="booting"
+          :disabled="booting || !subject"
         >
           Clear
         </v-btn>
+
+        <!-- ✅ Publish -->
+        <v-btn
+          color="success"
+          :loading="sending"
+          :disabled="sending || !subject || completedCount < students.length || students.length === 0"
+          @click="confirmPublishAndSend"
+        >
+          Publish ({{ subjectLabel(subject) }})
+        </v-btn>
+      </div>
+
+      <!-- ✅ Preload hint -->
+      <div class="text-caption text-muted mt-2">
+        Tip: Selecting a subject automatically loads existing saved scores for:
+        <b>{{ ctx.gradeclassName || 'your class' }}</b> • <b>{{ currentTerm || 'term' }}</b> • <b>{{ currentYear || 'year' }}</b>
       </div>
     </v-card>
 
     <!-- TABLE -->
-    <v-card class="pa-2">
-      <v-table fixed-header height="60vh" density="compact">
+    <v-card class="pa-2 premium-card beautiful-table">
+      <v-table fixed-header height="60vh" density="compact" class="marks-table striped-table">
         <thead>
           <tr>
             <th>#</th>
             <th>Student</th>
-            <th>Class</th>
-            <th>Exam</th>
-            <th>Total</th>
-            <th>Grade</th>
-            <th>Status</th>
+            <th class="text-no-wrap">Class</th>
+            <th class="text-no-wrap">Exam</th>
+            <th class="text-right text-no-wrap">Total</th>
+            <th class="text-center text-no-wrap">Grade</th>
+            <th class="text-center text-no-wrap">Status</th>
           </tr>
         </thead>
 
         <tbody>
-          <tr v-for="(stu, i) in students" :key="stu.id">
+          <tr v-if="booting">
+            <td colspan="7" class="text-center text-muted py-6">Loading...</td>
+          </tr>
+
+          <tr v-else-if="!students.length">
+            <td colspan="7" class="text-center text-muted py-6">
+              No students found for this teacher/class.
+            </td>
+          </tr>
+
+          <tr v-else v-for="(stu, i) in students" :key="stu.id">
             <td>{{ i + 1 }}</td>
 
             <td>
@@ -81,22 +107,24 @@
               <div class="text-caption">{{ stu.indexNo }}</div>
             </td>
 
-            <td>
+            <td class="cell-input">
               <v-text-field
                 v-model.number="rec(stu.id)[`${subject}_class_score`]"
                 type="number"
                 density="compact"
                 variant="plain"
+                :disabled="!subject"
                 @change="recalc(stu.id, subject)"
               />
             </td>
 
-            <td>
+            <td class="cell-input">
               <v-text-field
                 v-model.number="rec(stu.id)[`${subject}_exam_score`]"
                 type="number"
                 density="compact"
                 variant="plain"
+                :disabled="!subject"
                 @change="recalc(stu.id, subject)"
               />
             </td>
@@ -119,21 +147,20 @@
             </td>
           </tr>
         </tbody>
-
       </v-table>
     </v-card>
 
-    <!-- PUBLISH FOOTER -->
-    <v-card class="pa-3 mt-4">
-      <div class="d-flex justify-space-between">
+    <!-- FOOTER -->
+    <v-card class="pa-3 mt-4 premium-card">
+      <div class="d-flex justify-space-between align-center flex-wrap gap-2">
         <div>
-          Completed: {{ completedCount }}/{{ students.length }}
+          Completed: <b>{{ completedCount }}</b>/<b>{{ students.length }}</b>
         </div>
 
         <v-btn
           color="success"
           :loading="sending"
-          :disabled="sending || completedCount < students.length"
+          :disabled="sending || !subject || completedCount < students.length || students.length === 0"
           @click="confirmPublishAndSend"
         >
           Publish ({{ subjectLabel(subject) }})
@@ -145,31 +172,39 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue"
+/* ===========================
+   (A) IMPORTS - TOP OF FILE
+   ✅ FIX: include watch
+   =========================== */
+import { ref, reactive, computed, onMounted, watch } from "vue"
 import { useToast } from "vue-toastification"
 
 const toast = useToast()
+
+/* ===========================
+   (B) API IMPORTS - TOP OF FILE
+   ✅ FIX: get_subject_scores_context_ktor included and used
+   =========================== */
 import {
   getCategories_ktor,
-  get_teacher_student,   // students based on the logged in teacher (works)
+  get_teacher_student,
   assigned_class_ktor,
-  publish_subject,
-  publish_overall,
+  get_subject_scores_context_ktor,
   create_subject_score_ktor,
-  get_terms_with_year
+  get_terms_with_year_ktor
 } from "@/services/api"
 
-
-/* ------------------------------------
-   STATE
------------------------------------- */
+/* ===========================
+   (C) STATE
+   =========================== */
 const SUBJECTS = reactive([])
 const subject = ref(null)
 
+const currentTerm = ref(null)
+const currentYear = ref(null)
+
 const students = ref([])
 const staff = ref(null)
-const ass_class = ref(null) // can be string OR object {id,name}
-
 const records = reactive({})
 
 const ctx = reactive({
@@ -182,12 +217,12 @@ const ctx = reactive({
 const booting = ref(false)
 const sending = ref(false)
 
-/* ------------------------------------
-   HELPERS
------------------------------------- */
+/* ===========================
+   (D) HELPERS
+   =========================== */
 function subjectLabel(key) {
   if (!key) return "—"
-  return key.replace(/(^\w|\s\w)/g, m => m.toUpperCase())
+  return String(key).replace(/(^\w|\s\w)/g, m => m.toUpperCase())
 }
 
 function rec(id) {
@@ -227,41 +262,107 @@ function isComplete(id, subj) {
   return r[`${subj}_class_score`] != null && r[`${subj}_exam_score`] != null
 }
 
-/* ------------------------------------
-   SAFE STORAGE / CLASS NORMALIZATION
------------------------------------- */
 function safeJSONParse(raw) {
-  try {
-    return raw ? JSON.parse(raw) : null
-  } catch (e) {
-    return null
-  }
+  try { return raw ? JSON.parse(raw) : null } catch { return null }
 }
 
-/**
- * Normalize assigned_class into:
- *  - name: string
- *  - id: number|null
- * Works for:
- *  - "class 2"
- *  - { id: 7, name: "class 2" }
- *  - null/undefined
- */
 function normalizeAssignedClass(assigned) {
-  if (typeof assigned === "string") {
-    return { name: assigned, id: null }
-  }
+  if (typeof assigned === "string") return { name: assigned, id: null }
   if (assigned && typeof assigned === "object") {
-    const name = typeof assigned.name === "string" ? assigned.name : ""
-    const id = typeof assigned.id === "number" ? assigned.id : null
-    return { name, id }
+    return {
+      name: typeof assigned.name === "string" ? assigned.name : "",
+      id: typeof assigned.id === "number" ? assigned.id : null
+    }
   }
   return { name: "", id: null }
 }
 
-/* ------------------------------------
-   FILL & CLEAR
------------------------------------- */
+/* ===========================
+   (E) SUBJECTS FROM CATEGORIES
+   =========================== */
+function resolveSubjectsForClass(categories, className) {
+  let cls = ""
+  if (typeof className === "string") cls = className.trim().toLowerCase()
+
+  if (!cls || !Array.isArray(categories)) return []
+
+  for (const cat of categories) {
+    const specific = Array.isArray(cat?.specific_classes) ? cat.specific_classes : []
+
+    const match = specific.some(c => {
+      const cname =
+        typeof c === "string" ? c
+          : (c && typeof c === "object" ? c.name : "")
+      return (cname || "").trim().toLowerCase() === cls
+    })
+
+    if (match) {
+      const subs = Array.isArray(cat?.subjects) ? cat.subjects : []
+      return subs
+        .map(s => (typeof s === "string" ? s : s?.name))
+        .filter(Boolean)
+    }
+  }
+
+  return []
+}
+
+/* ===========================
+   (F) ✅ PRELOAD EXISTING SCORES
+   WHERE: put this function in script setup (after helpers)
+   =========================== */
+async function preloadSubjectScores(subj) {
+  if (!subj) return
+  if (!ctx.gradeclassId || !ctx.termId || !ctx.yearId) return
+  if (!students.value.length) return
+
+  try {
+    const res = await get_subject_scores_context_ktor(
+      ctx.gradeclassId,
+      ctx.termId,
+      ctx.yearId,
+      subj
+    )
+
+    const list = res?.data ?? []
+
+    // 1) Reset only current subject keys in UI
+    students.value.forEach(s => {
+      const r = rec(s.id)
+      r[`${subj}_class_score`] = null
+      r[`${subj}_exam_score`] = null
+      r[`${subj}_total_score`] = null
+      r[`${subj}_grade`] = null
+    })
+
+    // 2) Fill from backend
+    for (const score of list) {
+      // expected: score.studentId, score.classScore, score.examScore
+      const r = rec(score.studentId)
+      r[`${subj}_class_score`] = score.classScore
+      r[`${subj}_exam_score`] = score.examScore
+      recalc(score.studentId, subj)
+    }
+
+    toast.info(`Loaded saved scores for ${subjectLabel(subj)}`)
+
+  } catch (e) {
+
+    toast.error("Could not preload existing scores")
+  }
+}
+
+/* ===========================
+   (G) ✅ WATCH SUBJECT CHANGES
+   WHERE: put this right after preloadSubjectScores()
+   =========================== */
+watch(subject, async (newSubj) => {
+  await preloadSubjectScores(newSubj)
+})
+
+/* ===========================
+   (H) FILL / CLEAR
+   =========================== */
 function fillBlanks(subj, classMax = 40, examMax = 50) {
   if (!subj) return
 
@@ -294,52 +395,18 @@ function clearSubject(subj) {
   toast.warning("Cleared")
 }
 
-/* ------------------------------------
-   COMPUTED
------------------------------------- */
+/* ===========================
+   (I) COMPUTED
+   =========================== */
 const completedCount = computed(() => {
   if (!subject.value) return 0
   return students.value.filter(s => isComplete(s.id, subject.value)).length
 })
 
-/* ------------------------------------
-   SUBJECT RESOLUTION
------------------------------------- */
-function resolveSubjectsForClass(categories, className) {
-  let cls = ""
-
-  if (typeof className === "string") cls = className.trim().toLowerCase()
-  else if (className && typeof className === "object" && typeof className.name === "string")
-    cls = className.name.trim().toLowerCase()
-
-  if (!cls || !Array.isArray(categories)) return []
-
-  for (const cat of categories) {
-    const specific = Array.isArray(cat?.specific_classes) ? cat.specific_classes : []
-
-    const match = specific.some(c => {
-      const cname =
-        typeof c === "string"
-          ? c
-          : (c && typeof c === "object" ? c.name : "")
-      return (cname || "").trim().toLowerCase() === cls
-    })
-
-    if (match) {
-      // ✅ NEW: subjects are directly on category
-      const subs = Array.isArray(cat?.subjects) ? cat.subjects : []
-      return subs
-        .map(s => (typeof s === "string" ? s : s?.name))
-        .filter(Boolean)
-    }
-  }
-
-  return []
-}
-
-/* ------------------------------------
-   PUBLISH
------------------------------------- */
+/* ===========================
+   (J) PUBLISH (CREATE/UPSERT scores)
+   WHERE: this uses create_subject_score_ktor (by-staff endpoint)
+   =========================== */
 async function confirmPublishAndSend() {
   sending.value = true
   try {
@@ -349,12 +416,8 @@ async function confirmPublishAndSend() {
       return
     }
 
-    // ✅ choose what to send to backend:
-    // If backend supports resolving by ID, prefer ID; otherwise use name.
-    const classLevelPayload = ctx.gradeclassId ?? ctx.gradeclassName
-
-    if (!classLevelPayload) {
-      toast.error("No class selected/assigned")
+    if (!ctx.gradeclassId || !ctx.termId || !ctx.yearId) {
+      toast.error("Missing context: class/term/year")
       return
     }
 
@@ -362,13 +425,7 @@ async function confirmPublishAndSend() {
       const r = rec(s.id)
       if (!isComplete(s.id, subj)) continue
 
-      const payload = {
-        student: s.id,
-        subject: subj,
-        class_score: r[`${subj}_class_score`],
-        exam_score: r[`${subj}_exam_score`]
-      }
-
+      // ✅ Send snake_case keys (works with @JsonNames or @SerialName)
       await create_subject_score_ktor({
         student: s.id,
         subject: subj,
@@ -377,21 +434,11 @@ async function confirmPublishAndSend() {
       })
     }
 
-    // await publish_subject({
-    //   class_level: classLevelPayload,
-    //   academic_year: ctx.yearId,
-    //   subject: subj
-    // })
-
-    // await publish_overall({
-    //   class_level: classLevelPayload,
-    //   academic_year: ctx.yearId,
-    //   term: ctx.termId
-    // })
-
     toast.success("✅ Published successfully")
-  } catch (err) {
+    // Reload to show server-calculated positions/grades if needed
+    await preloadSubjectScores(subj)
 
+  } catch (err) {
 
     toast.error("❌ Failed to publish")
   } finally {
@@ -399,58 +446,63 @@ async function confirmPublishAndSend() {
   }
 }
 
-/* ------------------------------------
-   INIT
------------------------------------- */
+/* ===========================
+   (K) INIT
+   WHERE: called once on mount
+   =========================== */
 onMounted(async () => {
   booting.value = true
   try {
-    // 1) Load students
+    // 1) Load students for teacher
     const ans = await get_teacher_student()
     students.value = ans.data ?? []
 
-    // 2) Load categories (central categories)
+    // 2) Load categories
     const { data: categories } = await getCategories_ktor()
 
-
-    // 3) Load staff user from localStorage (your key is "user")
+    // 3) Load staff user from localStorage
     staff.value = safeJSONParse(localStorage.getItem("user"))
     if (!staff.value?.userId) {
       toast.error("No staff userId found in localStorage")
       return
     }
 
-    // 4) Get assigned class using userId
+    // 4) Assigned class
     const userId = staff.value.userId
     const { data } = await assigned_class_ktor(userId)
-
-    // data = { userId, assignedClass: {id,name} | null }
     const assigned = data?.assignedClass ?? null
-
     const normalized = normalizeAssignedClass(assigned)
 
     ctx.gradeclassName = normalized.name
     ctx.gradeclassId = normalized.id
 
-    if (!ctx.gradeclassName && !ctx.gradeclassId) {
+    if (!ctx.gradeclassId) {
       toast.error("No assigned class found for this staff account")
       SUBJECTS.splice(0, SUBJECTS.length)
       subject.value = null
       return
     }
 
-    // 5) Resolve subjects based on assigned class name
+    // 5) Resolve subjects list
     const subs = resolveSubjectsForClass(categories, ctx.gradeclassName)
     SUBJECTS.splice(0, SUBJECTS.length, ...subs)
     subject.value = SUBJECTS[0] ?? null
 
-    // 6) Load current term + year
-    const { data: t } = await get_terms_with_year()
+    // 6) Current term + year
+    const { data: t } = await get_terms_with_year_ktor()
     ctx.termId = t?.id ?? null
-    ctx.yearId = t?.academic_year_id ?? null
+    ctx.yearId = t?.academic_year?.id ?? null
+
+    currentTerm.value = t?.name ?? null
+    currentYear.value = t?.academic_year?.name ?? null
+
+    // ✅ 7) PRELOAD scores for initial subject
+    if (subject.value) {
+      await preloadSubjectScores(subject.value)
+    }
 
   } catch (err) {
-    console.error(err)
+
     toast.error("Could not load data")
   } finally {
     booting.value = false
@@ -458,20 +510,12 @@ onMounted(async () => {
 })
 </script>
 
-
 <style scoped>
-/* Premium theming similar to enterprise dashboards */
-.premium-bg { background: linear-gradient(135deg, #eaecf0 0%, #dae4f3 40%, #a0b4c6 100%); min-height: 100vh; }
-.premium-hero { background: linear-gradient(135deg, rgba(103,58,183,0.82) 0%, rgba(33,150,243,0.82) 100%); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(4px); }
+/* Premium theming */
+.premium-bg { background: #f5f7fb; min-height: 100vh; }
+.premium-hero { background: linear-gradient(135deg, #673ab7, #3f51b5); border-radius: 16px; }
 .premium-avatar { border: 2px solid rgba(255,255,255,0.6); }
-.premium-card { border-radius: 18px; border: 1px solid rgba(232, 225, 225, 0.06); background: rgba(255,255,255,0.98); }
-
-/* KPI Cards */
-.kpi-card { border-radius: 14px; color: white; }
-.gradient-1 { background: linear-gradient(135deg, #1de9b6, #1dc4e9); }
-.gradient-2 { background: linear-gradient(135deg, #ff8a65, #ff5252); }
-.gradient-3 { background: linear-gradient(135deg, #9ccc65, #43a047); }
-.gradient-4 { background: linear-gradient(135deg, #ffd54f, #ffa000); }
+.premium-card { border-radius: 18px; }
 
 /* Table redesign */
 .marks-table thead th {
@@ -482,55 +526,16 @@ onMounted(async () => {
   top: 0;
   z-index: 2;
 }
-.beautiful-table table {
-  border-collapse: separate !important;
-  border-spacing: 0;
-}
-.beautiful-table tbody td, .beautiful-table thead th {
-  border-bottom: 1px solid #eef1f6;
-}
-.beautiful-table tbody tr:hover {
-  background: #fafcff;
-}
+.beautiful-table table { border-collapse: separate !important; border-spacing: 0; }
+.beautiful-table tbody td, .beautiful-table thead th { border-bottom: 1px solid #eef1f6; }
+.beautiful-table tbody tr:hover { background: #fafcff; }
+.striped-table tbody tr:nth-child(odd) { background: #fcfdff; }
 
-/* Stripes */
-.striped-table tbody tr:nth-child(odd) {
-  background: #fcfdff;
-}
-
-/* Compact cell paddings */
-.marks-table :deep(td), .marks-table :deep(th) {
-  padding: 10px 12px !important;
-}
-
-/* Right/center helpers */
+.marks-table :deep(td), .marks-table :deep(th) { padding: 10px 12px !important; }
 .text-right { text-align: right; }
 .text-center { text-align: center; }
-
-/* Input appearance inside cells */
-.cell-input :deep(.v-field__input) {
-  padding: 0 !important;
-}
-
-/* Validity backgrounds (keep blue text) */
-.score-error input {
-  background-color: #fff6f6;
-  box-shadow: inset 0 0 0 1px rgba(239, 225, 225, 0.25);
-  border-radius: 6px;
-}
-.score-ok input {
-  background-color: #f6fff6;
-  box-shadow: inset 0 0 0 1px rgba(67,160,71,0.25);
-  border-radius: 6px;
-}
-
-.opacity-80 { opacity: 0.8; }
 .text-no-wrap { white-space: nowrap; }
-.text-disabled { color: rgba(0,0,0,0.45); }
-
-
-.premium-bg { background: #f5f7fb; min-height: 100vh; }
-.premium-hero { background: linear-gradient(135deg, #673ab7, #3f51b5); }
 .opacity-80 { opacity: 0.8; }
 
+.cell-input :deep(.v-field__input) { padding: 0 !important; }
 </style>
