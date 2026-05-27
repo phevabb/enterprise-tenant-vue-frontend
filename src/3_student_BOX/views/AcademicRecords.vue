@@ -40,7 +40,7 @@
         <div class="text-muted mt-1 small">
           <span class="me-2">
             Academic Year:
-            <strong>{{ rec.academic_year?.name || rec.academic_year || '—' }}</strong>
+            <strong>{{ rec.academicYear?.name || rec.academic_year || '—' }}</strong>
           </span>
           <span class="me-2">•</span>
           <span class="me-2">
@@ -50,7 +50,7 @@
           <span class="me-2">•</span>
           <span>
             Class:
-            <strong>{{ rec.gradeclass?.name || rec.class_level || '—' }}</strong>
+            <strong>{{ rec.classLevel?.name || rec.class_level || '—' }}</strong>
           </span>
         </div>
       </div>
@@ -75,7 +75,7 @@
     v-else
     class="avatar-img"
     :src="avatarSrc(rec)"
-    :alt="rec.student?.full_name || 'Student'"
+    :alt="rec.student?.name || 'Student'"
     @error="onImgError"
   />
 </div>
@@ -86,14 +86,14 @@
 
 
         <div class="text-end">
-          <div class="fw-bold fs-5">{{ rec.student?.full_name || '—' }}</div>
+          <div class="fw-bold fs-5">{{ rec.student?.name || '—' }}</div>
           <div class="text-muted small">
              <strong>ACADEMIC REPORT</strong>
           </div>
           <div class="text-muted small">
             Overall Position:
-            <strong>{{ rec.overall_position ? ordinal(rec.overall_position) : '—' }}</strong>
-            <span v-if="rec.number_on_roll"> / {{ rec.number_on_roll }}</span>
+            <strong>{{ rec.overallPosition ? ordinal(rec.overallPosition) : '—' }}</strong>
+            <span v-if="rec.numberOnRoll"> / {{ rec.numberOnRoll }}</span>
           </div>
         </div>
       </div>
@@ -130,15 +130,15 @@
                   <CTableDataCell class="text-muted">{{ i + 1 }}</CTableDataCell>
 
                   <CTableDataCell class="fw-semibold text-start">
-                    {{ s.subject_name }}
+                    {{ s.subjectName }}
                   </CTableDataCell>
 
-                  <CTableDataCell>{{ show(s.class_score) }}</CTableDataCell>
-                  <CTableDataCell>{{ show(s.exam_score) }}</CTableDataCell>
-                  <CTableDataCell class="fw-bold">{{ show(s.total_score) }}</CTableDataCell>
+                  <CTableDataCell>{{ show(s.classScore) }}</CTableDataCell>
+                  <CTableDataCell>{{ show(s.examScore) }}</CTableDataCell>
+                  <CTableDataCell class="fw-bold">{{ show(s.totalScore) }}</CTableDataCell>
 
                   <CTableDataCell>
-                    <strong>{{ s.grade || '-' }}</strong>
+                    <strong>{{ s.gradeCode || '-' }}</strong>
                   </CTableDataCell>
 
                   <CTableDataCell>{{ s.interpretation || '-' }}</CTableDataCell>
@@ -156,7 +156,7 @@
 
     <CTableDataCell>{{ sumClass(rec.subjects) }}</CTableDataCell>
     <CTableDataCell>{{ sumExam(rec.subjects) }}</CTableDataCell>
-    <CTableDataCell>{{ sumTotal(rec.subjects) }}</CTableDataCell>
+    <CTableDataCell>{{ rec.rawScoreTotal }}</CTableDataCell>
 
     <CTableDataCell>—</CTableDataCell>
     <CTableDataCell class="text-muted">
@@ -186,7 +186,7 @@
           <CCard class="shadow-sm border-0 text-center rounded-4">
             <CCardBody>
               <div class="text-muted">Number on Roll</div>
-              <div class="fs-4 fw-bold">{{ show(rec.number_on_roll) }}</div>
+              <div class="fs-4 fw-bold">{{ show(rec.numberOnRoll) }}</div>
             </CCardBody>
           </CCard>
         </CCol>
@@ -208,8 +208,8 @@
             <CCardBody>
               <p class="mb-2"><strong>Attitude:</strong> {{ rec.attitude || '-' }}</p>
               <p class="mb-2"><strong>Interest:</strong> {{ rec.interest || '-' }}</p>
-              <p class="mb-2"><strong>Teacher's Remarks:</strong> {{ rec.teacher_remarks || '-' }}</p>
-              <p class="mb-0"><strong>Head Teacher's Remarks:</strong> {{ rec.head_teacher_remarks || '-' }}</p>
+              <p class="mb-2"><strong>Teacher's Remarks:</strong> {{ rec.teacherRemarks || '-' }}</p>
+              <p class="mb-0"><strong>Head Teacher's Remarks:</strong> {{ rec.headTeacherRemarks || '-' }}</p>
             </CCardBody>
           </CCard>
         </CCol>
@@ -217,8 +217,8 @@
           <CCard class="shadow-sm border-0 rounded-4 h-100">
             <CCardHeader class="bg-light fw-bold">Promotion / Next Term</CCardHeader>
             <CCardBody>
-              <p class="mb-2"><strong>Promoted To:</strong> {{ rec.promoted_to || '-' }}</p>
-              <p class="mb-0"><strong>Next Term Begins:</strong> {{ rec.next_term_begins || '-' }}</p>
+              <p class="mb-2"><strong>Promoted To:</strong> {{ rec.promotedTo || '-' }}</p>
+              <p class="mb-0"><strong>Next Term Begins:</strong> {{ rec.nextTermBegins || '-' }}</p>
             </CCardBody>
           </CCard>
         </CCol>
@@ -237,7 +237,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getReportCardByUser , get_profile_picture,} from '@/services/api'
+import { getReportCardByUser_ktor , get_profile_picture,} from '@/services/api'
 
 /* ----------------------------------------------------
    PROPS (school branding only)
@@ -310,6 +310,7 @@ async function fetchReportCard() {
   loading.value = true
   const stu = loadStudent()
 
+
   student.value = stu
 
   if (!stu?.id) {
@@ -319,7 +320,8 @@ async function fetchReportCard() {
   }
 
   try {
-    const response = await getReportCardByUser(stu.id)
+    const response = await getReportCardByUser_ktor(stu.userId)
+
 
 
 
@@ -360,17 +362,17 @@ function gradeColor(g) {
 
 function sumClass(subjects) {
   if (!Array.isArray(subjects)) return 0;
-  return subjects.reduce((acc, s) => acc + (s.class_score || 0), 0);
+  return subjects.reduce((acc, s) => acc + (s.classScore || 0), 0);
 }
 
 function sumExam(subjects) {
   if (!Array.isArray(subjects)) return 0;
-  return subjects.reduce((acc, s) => acc + (s.exam_score || 0), 0);
+  return subjects.reduce((acc, s) => acc + (s.examScore || 0), 0);
 }
 
 function sumTotal(subjects) {
   if (!Array.isArray(subjects)) return 0;
-  return subjects.reduce((acc, s) => acc + (s.total_score || 0), 0);
+  return subjects.reduce((acc, s) => acc + (s.totalScore || 0), 0);
 }
 
 function avgTotal(subjects) {

@@ -1,12 +1,10 @@
-
-
 <template>
   <CContainer fluid class="py-4 parent-bg">
 
     <!-- ✅ HEADER -->
     <CCard class="parent-hero shadow-lg border-0 mb-4">
       <CCardBody>
-        <div class="d-flex justify-content-between align-items-center flex-wrap">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
           <div class="d-flex align-items-center">
             <CAvatar size="lg" class="me-3 parent-avatar">
@@ -14,14 +12,49 @@
             </CAvatar>
 
             <div>
-              <h2 class="fw-bold text-white mb-0">{{ student.name }}</h2>
+              <h2 class="fw-bold text-white mb-0">{{ student.name || "—" }}</h2>
               <div class="text-white-50">
-                Performance Overview For Immediate Past Term
+                Performance Overview For
+                <b class="text-white">{{ headerTermLabel }}</b>
+                <span class="text-white-50"> / </span>
+                <b class="text-white">{{ headerYearLabel }}</b>
               </div>
             </div>
           </div>
 
+          <!-- ✅ FILTERS (Year + Term dropdowns) -->
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <CFormSelect
+              v-model="selectedYear"
+              class="filter-select"
+              :disabled="loadingMeta || loadingChart"
+            >
+              <option value="" disabled>Select Year</option>
+              <option v-for="y in years" :key="y.id" :value="String(y.id)">
+                {{ y.name }}
+              </option>
+            </CFormSelect>
 
+            <CFormSelect
+              v-model="selectedTerm"
+              class="filter-select"
+              :disabled="!selectedYear || loadingMeta || loadingChart"
+            >
+              <option value="" disabled>Select Term</option>
+              <option v-for="t in filteredTerms" :key="t.id" :value="String(t.id)">
+                {{ t.name }}
+              </option>
+            </CFormSelect>
+
+            <CButton
+              color="light"
+              class="ms-1"
+              :disabled="loadingChart || !selectedYear || !selectedTerm"
+              @click="loadChartData"
+            >
+              {{ loadingChart ? "Loading..." : "Load" }}
+            </CButton>
+          </div>
 
         </div>
       </CCardBody>
@@ -29,66 +62,94 @@
 
     <!-- ✅ INFO CARDS -->
     <CRow class="mb-4">
-      <CCol md="6">
+      <CCol md="4">
         <CCard class="shadow-sm info-card">
           <CCardBody>
             <div class="small text-muted">Class</div>
-            <div class="fs-4 fw-bold">{{ student.class }}</div>
+            <div class="fs-4 fw-bold">{{ student.class || "—" }}</div>
           </CCardBody>
         </CCard>
       </CCol>
 
-      <CCol md="6">
+      <CCol md="4">
         <CCard class="shadow-sm info-card">
           <CCardBody>
             <div class="small text-muted">Overall Position</div>
-            <div class="fs-4 fw-bold">{{ student.position }}</div>
+            <div class="fs-4 fw-bold">{{ student.position ?? "—" }}</div>
           </CCardBody>
         </CCard>
       </CCol>
 
-
+      <CCol md="4">
+        <CCard class="shadow-sm info-card">
+          <CCardBody>
+            <div class="small text-muted">Raw Total</div>
+            <div class="fs-4 fw-bold">{{ classAvg }}</div>
+          </CCardBody>
+        </CCard>
+      </CCol>
     </CRow>
 
     <!-- ✅ PERFORMANCE CHART -->
     <CCard class="shadow parent-card mb-4">
       <CCardBody>
-        <h4 class="fw-bold mb-3 text-primary">Performance Chart</h4>
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+          <h4 class="fw-bold mb-0 text-primary">Performance Chart</h4>
+          <small class="text-muted">
+            Click any point to view subject details
+          </small>
+        </div>
 
-        <div style="height: 360px;">
+        <div v-if="loadingChart" class="text-center text-muted py-5">
+          Loading chart...
+        </div>
+
+        <div v-else-if="!subjects.length" class="text-center text-muted py-5">
+          No subject scores found for the selected year/term.
+        </div>
+
+        <div v-else style="height: 360px;">
           <canvas ref="chartCanvas"></canvas>
         </div>
       </CCardBody>
     </CCard>
 
     <!-- ✅ SUBJECT DETAILS DRAWER -->
-    <COffcanvas placement="end" :visible="drawer" @hide="drawer=false" class="subject-offcanvas shadow-lg">
+    <COffcanvas
+      placement="end"
+      :visible="drawer"
+      @hide="drawer=false"
+      class="subject-offcanvas shadow-lg"
+    >
       <CCardBody v-if="activeSubject">
 
         <div class="d-flex justify-content-between mb-3">
-          <h4 class="fw-bold">{{ activeSubject.name }}</h4>
+          <h4 class="fw-bold mb-0">{{ activeSubject.name }}</h4>
 
           <CButton color="light" class="rounded-circle" @click="drawer=false">
             <i class="cil-x fs-4"></i>
           </CButton>
         </div>
 
-        <p class="text-muted">{{ activeSubject.description }}</p>
-
-        <CCard class="shadow-sm border-0 p-3 mt-3 info-mini">
+        <CCard class="shadow-sm border-0 p-3 mt-2 info-mini">
           <div class="d-flex justify-content-between">
             <span>Score</span>
             <b>{{ activeSubject.score }}%</b>
           </div>
 
           <div class="d-flex justify-content-between">
-            <span>Position</span>
-            <b>#{{ activeSubject.position }}</b>
+            <span>Best</span>
+            <b>{{ activeSubject.best }}%</b>
           </div>
 
           <div class="d-flex justify-content-between">
-            <span>Teacher Remark</span>
-            <b>{{ activeSubject.remark }}</b>
+            <span>Average</span>
+            <b>{{ activeSubject.average }}%</b>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <span>Worst</span>
+            <b>{{ activeSubject.worst }}%</b>
           </div>
         </CCard>
 
@@ -99,115 +160,229 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
-import Chart from "chart.js/auto";
+/* =========================
+   (1) IMPORTS — TOP OF FILE
+   ========================= */
+import { ref, computed, onMounted, watch, nextTick } from "vue"
+import { useRoute } from "vue-router"
+import Chart from "chart.js/auto"
+import { useToast } from "vue-toastification"
 
 import {
-  getPerformanceChart,
-  getCategories
-} from "@/services/api";
-import { useToast } from 'vue-toastification'
-const toast = useToast();
+  getPerformanceChart_ktor,
+  getCategories_ktor,
+  get_terms_with_year_ktor,   // /api/term/current
+  get_all_terms_ktor,         // /api/terms
+  get_all_years_ktor          // /api/academic-years
+} from "@/services/api"
 
-/* ✅ Student Info */
-const student = ref({
-  name: "",
-  class: "",
-  position: "",
-});
+const toast = useToast()
+const route = useRoute()
 
-/* ✅ Filters */
-const years = ["2024/2025", "2025/2026"];
-const terms = ["1st Term", "2nd Term", "3rd Term"];
+/* =========================
+   (2) STATE
+   ========================= */
+const student = ref({ name: "", class: "", position: null })
+const classAvg = ref(0)
 
-const selectedYear = ref("2024/2025");
-const selectedTerm = ref("1st Term");
+const subjects = ref([])
 
-/* ✅ Subjects dynamically loaded based on CLASS CATEGORY */
-const subjects = ref([]);
+const years = ref([]) // [{id,name}]
+const terms = ref([]) // [{id,name, academic_year:{id,name}}]
 
-/* ✅ Class Average */
-const classAvg = ref(0);
+const selectedYear = ref("") // store as string for CFormSelect
+const selectedTerm = ref("")
 
-/* ✅ Chart Reference */
-const chartCanvas = ref(null);
-let chartInstance = null;
+const categoriesCache = ref([])
 
-/* ✅ Drawer */
-const activeSubject = ref(null);
-const drawer = ref(false);
+const chartCanvas = ref(null)
+let chartInstance = null
 
-/* ✅ Find subjects based on class → category */
-async function resolveSubjectsForClass(gradeclassName) {
-  const cls = gradeclassName.toLowerCase().trim();
+const activeSubject = ref(null)
+const drawer = ref(false)
 
-  const { data: categories } = await getCategories();
+const loadingMeta = ref(false)
+const loadingChart = ref(false)
 
-  for (const cat of categories) {
-    const match = cat.specific_classes.some(
-      c => c.name.toLowerCase() === cls
-    );
+/* =========================
+   (3) HELPERS
+   ========================= */
+function resolveStudentProfileId() {
+  // Prefer query ?student=312 or route param /:studentId
+  const qp = route.query.student || route.query.studentId
+  const rp = route.params.studentId
+  if (qp) return Number(qp)
+  if (rp) return Number(rp)
+
+  // Fallbacks (only if you stored it)
+  const storedStudentId = localStorage.getItem("studentId")
+  if (storedStudentId) return Number(storedStudentId)
+
+  // Last fallback
+  const u = JSON.parse(localStorage.getItem("user") || "null")
+  return Number(u?.studentId ?? u?.studentProfileId ?? u?.id)
+}
+
+function titleCase(s) {
+  return String(s || "").replace(/\b\w/g, c => c.toUpperCase())
+}
+
+/**
+ * Categories structure (Ktor):
+ * cat.specific_classes: ["class 1"] or [{id,name}]
+ * cat.subjects: ["English Language", ...] or [{id,name}]
+ */
+function resolveAllowedSubjectsForClass(className) {
+  const cls = String(className || "").trim().toLowerCase()
+  if (!cls) return []
+
+  for (const cat of categoriesCache.value) {
+    const specific = Array.isArray(cat?.specific_classes) ? cat.specific_classes : []
+    const match = specific.some(c => {
+      const cname = typeof c === "string" ? c : (c?.name || "")
+      return String(cname).trim().toLowerCase() === cls
+    })
 
     if (match) {
-      return cat.subject_groups.flatMap(g =>
-        g.subjects.map(s => s.name.toLowerCase())
-      );
+      const subs = Array.isArray(cat?.subjects) ? cat.subjects : []
+      return subs
+        .map(s => (typeof s === "string" ? s : (s?.name || "")))
+        .map(s => String(s).trim().toLowerCase())
+        .filter(Boolean)
     }
   }
 
-  return [];
+  return []
 }
 
-/* ✅ Load Chart Data */
-async function loadChartData() {
+/* =========================
+   (4) COMPUTED — dropdown terms filtered by year
+   ========================= */
+const filteredTerms = computed(() => {
+  if (!selectedYear.value) return []
+  const y = Number(selectedYear.value)
+  return (terms.value || []).filter(t => Number(t?.academic_year?.id) === y)
+})
+
+const headerYearLabel = computed(() => {
+  const y = years.value.find(x => String(x.id) === String(selectedYear.value))
+  return y?.name || "—"
+})
+
+const headerTermLabel = computed(() => {
+  const t = terms.value.find(x => String(x.id) === String(selectedTerm.value))
+  return t?.name || "—"
+})
+
+/* =========================
+   (5) LOAD META (years/terms/categories + default current)
+   ========================= */
+async function loadMeta() {
+  loadingMeta.value = true
   try {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    const studentId = storedUser.id;
+    const [yearsRes, termsRes, catsRes] = await Promise.all([
+      get_all_years_ktor(),
+      get_all_terms_ktor(),
+      getCategories_ktor()
+    ])
 
-    const res = await getPerformanceChart(
-      studentId,
-      selectedYear.value,
-      selectedTerm.value
-    );
+    years.value = Array.isArray(yearsRes.data) ? yearsRes.data : []
+    terms.value = Array.isArray(termsRes.data) ? termsRes.data : []
+    categoriesCache.value = Array.isArray(catsRes.data) ? catsRes.data : []
 
-    const record = res.data[0];
-    if (!record) return;
+    // default: current term/year
+    const cur = await get_terms_with_year_ktor()
+    const t = cur.data
 
-    /* ✅ Populate student info */
+    selectedYear.value = t?.academic_year?.id ? String(t.academic_year.id) : ""
+    selectedTerm.value = t?.id ? String(t.id) : ""
+
+  } catch (e) {
+    console.error(e)
+    toast.error("Failed to load years/terms")
+  } finally {
+    loadingMeta.value = false
+  }
+}
+
+/* =========================
+   (6) LOAD CHART DATA from backend
+   ========================= */
+async function loadChartData() {
+  const studentId = resolveStudentProfileId()
+  const yearId = Number(selectedYear.value)
+  const termId = Number(selectedTerm.value)
+
+  if (!studentId || !yearId || !termId) return
+
+  loadingChart.value = true
+
+  try {
+    const res = await getPerformanceChart_ktor(studentId, yearId, termId)
+    const record = res.data
+    if (!record) {
+      subjects.value = []
+      // ✅ if chart exists, destroy it
+      if (chartInstance) {
+        chartInstance.destroy()
+        chartInstance = null
+      }
+      return
+    }
+
+    // ✅ Populate info cards
     student.value = {
       name: record.student,
       class: record.class,
       position: record.position
-    };
+    }
 
-    classAvg.value = record.classAvg;
+    classAvg.value = record.classAvg ?? 0
 
-    /* ✅ Get which subjects belong to this class */
-    const allowedSubjects = await resolveSubjectsForClass(record.class);
+    // ✅ Filter subjects (optional)
+    const allowed = resolveAllowedSubjectsForClass(record.class)
+    const incoming = Array.isArray(record.subjects) ? record.subjects : []
 
-    /* ✅ Filter chart subjects */
-    subjects.value = record.subjects.filter(s =>
-      allowedSubjects.includes(s.name.toLowerCase())
-    );
+    subjects.value = allowed.length
+      ? incoming.filter(s => allowed.includes(String(s.name).trim().toLowerCase()))
+      : incoming
 
-    renderChart();
   } catch (err) {
-    toast.error("Could not load performance data");
+    console.error(err)
+    toast.error(err?.response?.data?.detail || "Could not load performance chart")
+    subjects.value = []
+  } finally {
+    // ✅ IMPORTANT: make canvas visible first
+    loadingChart.value = false
 
+    // ✅ Wait for DOM to render the canvas (because of v-if/v-else)
+    await nextTick()
+
+    // ✅ Render only if we actually have subjects
+    if (subjects.value.length) {
+      renderChart()
+    } else {
+      // ✅ no data: destroy old chart if any
+      if (chartInstance) {
+        chartInstance.destroy()
+        chartInstance = null
+      }
+    }
   }
 }
 
-/* ✅ Render Chart */
+/* =========================
+   (7) RENDER CHART
+   ========================= */
 function renderChart() {
-  if (!chartCanvas.value) return;
+  if (!chartCanvas.value) return
+  if (chartInstance) chartInstance.destroy()
 
-  if (chartInstance) chartInstance.destroy();
-
-  const labels = subjects.value.map(s => s.name);
-  const studentScores = subjects.value.map(s => s.score);
-  const bestScores = subjects.value.map(s => s.best);
-  const avgScores = subjects.value.map(s => s.average);
-  const worstScores = subjects.value.map(s => s.worst);
+  const labels = subjects.value.map(s => s.name)
+  const studentScores = subjects.value.map(s => s.score)
+  const bestScores = subjects.value.map(s => s.best)
+  const avgScores = subjects.value.map(s => s.average)
+  const worstScores = subjects.value.map(s => s.worst)
 
   chartInstance = new Chart(chartCanvas.value, {
     type: "line",
@@ -215,62 +390,97 @@ function renderChart() {
       labels,
       datasets: [
         {
-          label: "Your Child",
+          label: "Student",
           data: studentScores,
           borderColor: "#FFD000",
           backgroundColor: "#FFD000",
           borderWidth: 4,
           tension: 0.25,
-          pointRadius: 7,
+          pointRadius: 6,
         },
         {
-          label: "Best Student",
+          label: "Best",
           data: bestScores,
           borderColor: "#004CFF",
           borderWidth: 3,
           borderDash: [6, 4],
           tension: 0.25,
-          pointRadius: 7,
+          pointRadius: 5,
         },
         {
-          label: "Class Average",
+          label: "Average",
           data: avgScores,
           borderColor: "#8B4513",
           borderWidth: 3,
           borderDash: [6, 4],
           tension: 0.25,
-          pointRadius: 7,
+          pointRadius: 5,
         },
         {
-          label: "Worst Student",
+          label: "Worst",
           data: worstScores,
           borderColor: "#FF1E1E",
           borderWidth: 3,
           tension: 0.25,
-          pointRadius: 7,
-        }
+          pointRadius: 5,
+        },
       ]
     },
     options: {
       responsive: true,
       plugins: { legend: { position: "bottom" } },
-      scales: { y: { suggestedMin: 0, suggestedMax: 100 } }
+      scales: { y: { suggestedMin: 0, suggestedMax: 100 } },
+      // ✅ click a point to open drawer
+      onClick: (_, elements) => {
+        if (!elements?.length) return
+        const idx = elements[0].index
+        openSubject(subjects.value[idx])
+      }
     }
-  });
+  })
 }
 
-/* ✅ Watchers */
-watch([selectedYear, selectedTerm], () => loadChartData());
-
-/* ✅ On Mount */
-onMounted(() => loadChartData());
-
-/* ✅ Drawer open */
+/* =========================
+   (8) Drawer
+   ========================= */
 function openSubject(sub) {
-  activeSubject.value = sub;
-  drawer.value = true;
+  if (!sub) return
+  activeSubject.value = {
+    name: titleCase(sub.name),
+    score: sub.score,
+    best: sub.best,
+    average: sub.average,
+    worst: sub.worst
+  }
+  drawer.value = true
 }
+
+/* =========================
+   (9) WATCHERS
+   - when year changes, reset term to first term in that year
+   - when term changes, load chart
+   ========================= */
+watch(selectedYear, (newVal) => {
+  if (!newVal) return
+  const list = filteredTerms.value
+  selectedTerm.value = list.length ? String(list[0].id) : ""
+})
+
+watch([selectedYear, selectedTerm], () => {
+  if (selectedYear.value && selectedTerm.value) loadChartData()
+})
+
+/* =========================
+   (10) MOUNT
+   ========================= */
+onMounted(async () => {
+  await loadMeta()
+  if (selectedYear.value && selectedTerm.value) {
+    await loadChartData()
+  }
+})
 </script>
+
 
 
 
@@ -303,6 +513,11 @@ function openSubject(sub) {
 }
 
 .info-mini {
+  border-radius: 12px;
+}
+
+.filter-select {
+  min-width: 180px;
   border-radius: 12px;
 }
 </style>

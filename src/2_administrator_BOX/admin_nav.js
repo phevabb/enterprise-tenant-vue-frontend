@@ -81,22 +81,22 @@ export default [
 
   // Deactivation Section
 
-  {
-    component: 'CNavTitle',
-    name: 'Activation',
-  },
-    {
-    component: 'CNavItem',
-    name: 'Deactivated Students',
-    to: { name: 'deactivatedStudents' },
-    icon: 'cil-chart-pie',
-  },
-    {
-      component: 'CNavItem',
-      name: 'Deactivated Families',
-      to: { name: 'deactivatedFamilies' },
-      icon: 'cil-chart-pie',
-    },
+  // {
+  //   component: 'CNavTitle',
+  //   name: 'Activation',
+  // },
+  //   {
+  //   component: 'CNavItem',
+  //   name: 'Deactivated Students',
+  //   to: { name: 'deactivatedStudents' },
+  //   icon: 'cil-chart-pie',
+  // },
+  //   {
+  //     component: 'CNavItem',
+  //     name: 'Deactivated Families',
+  //     to: { name: 'deactivatedFamilies' },
+  //     icon: 'cil-chart-pie',
+  //   },
 
 
 
@@ -150,6 +150,12 @@ export default [
     icon: cilLibrary,
   },
   {
+    component: 'CNavItem',
+    name: 'Subject scores',
+    to: { name: 'subject_scores' },
+    icon: cilLibrary,
+  },
+{
     component: 'CNavItem',
     name: 'Academic Records',
     to: { name: 'academic_records' },

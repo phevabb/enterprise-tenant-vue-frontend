@@ -1,25 +1,59 @@
-import { CIcon } from '@coreui/icons-vue'
-import { cilCreditCard } from '@coreui/icons'
+fix the icon logos on the principal dashboard
 
-<CIcon :icon="cilCreditCard" class="me-2" />
-              Pay Securely Now
-            </CButton>
+pupils per class in principal should be based on active current terms students
+add paginators
+apply the "Select Students for Discount" on the "add fee structure" on the add family too
 
-
-
-rasther pas the student id:
- ref: `SCH_${Date.now()}`,
-
- also use kog email as default
-
-to make text white: <CButton color="danger" class="text-white" @click="deleteSingle" :disabled="isDeleting">
-        <CSpinner size="sm" v-if="isDeleting" class="me-1" />
-        Delete
-      </CButton>
+Admins:
+local admin: 85940393  4248
 
 
+local student:  Mirabel Arhin
+4807 78016000
+
+ "student": {
+      "id": 312,
+      "name": "Mirabel Arhin",
+      "userId": "78016000"
+
+
+
+////////////////////////////////////////////////////////
 
       just add class="text-white"
 
-
+//////////////////////////
 local admin: 85940393  4248
+
+
+refresh button:
+
+<CButton style="background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25); color: white;"
+color="light" size="sm" :disabled="loading" @click="fetchScores">
+            <CIcon :icon="cilReload" class="me-1" />
+            {{ loading ? 'Loading...' : 'Refresh' }}
+          </CButton>
+
+
+
+
+
+
+
+/|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\
+
+STEPS
+1. create academic year
+2. create terms
+3. create categories
+4. create class
+5. Uplaod students
+
+
+
+
+//////////////// todos
+generate receipt
+custom sms
+profile pics
+

@@ -183,7 +183,7 @@ onMounted(fetchRecords)
 
     <!-- HEADER -->
     <div class="header">
-      <h4>Class Academic Records</h4>
+      <h4>Remarks</h4>
       <span class="muted">Manage teacher remarks & student behaviour</span>
     </div>
 

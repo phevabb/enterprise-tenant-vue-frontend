@@ -3,7 +3,7 @@ import axios from 'axios'
 
 
 const api = axios.create({
-     // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
+      // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
 
       baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
 
@@ -403,12 +403,10 @@ export const assigned_class_ktor = (id) => api.get(`staff/assigned-class/${id}`)
 
 export const create_subject_score_ktor = ( payload) => api.post("subject-scores/by-staff", payload);
 
-export const create_subject_score = (payload) =>
-    api.post("academic-records/new-subject-scores/subject-scores/", payload);
-
-
+export const create_subject_score = (payload) =>    api.post("academic-records/new-subject-scores/subject-scores/", payload);
 
 // promotion apis
+
 export const get_promotions_ktor=  () => api.get("promotion");
 
 export const post_promotions_ktor=  (payload) => api.post("promotion", payload);
@@ -431,15 +429,57 @@ export const delete_grading_system_ktor = (id) => api.delete(`grades/${id}`);
 export const get_terms_with_year_ktor = () => api.get("term/current");
 
 // remarks
-export const get_subject_scores_context_ktor = (classId, termId, yearId, subject) =>
-  api.get('/subject-scores/context', {
-    params: { classId, termId, yearId, subject }
-  });
 
-export const get_academic_records_by_class_ktor = (classId) => api.get(`academic-records/class/${classId}`);
+export const get_subject_scores_context_ktor = (classId, termId, yearId, subject) =>  api.get('/subject-scores/context', {    params: { classId, termId, yearId, subject }  });
 
+export const get_academic_records_by_class_ktor = (classId) => api.get(`academic-records/class/${classId}/current`);
 
 export const patch_academic_remarks = (id, payload) => api.patch(`academic-records/${id}/remarks`, payload);
+
+// report card
+
+export const getReportCardByUser_ktor = (userId) =>  api.get(`student-academic-report-cards/user/${userId}`);  // → /api/report-card/user/<id>/
+
+// performance chart
+
+export const getPerformanceChart = (studentId, year, term) =>
+   api.get(    `performance-charts/`,    { params: {student: studentId, year: year,
+        term: term
+      }
+    }
+  );
+
+
+// 2) Fetch performance chart for a specific term/year
+// IMPORTANT: student param is AccountTable.id (your backend now resolves student_profile)
+export const getPerformanceChart_ktor = (accountId, yearId, termId) =>
+  api.get('performance-charts', { params: { student: accountId, year: yearId, term: termId } })
+
+
+
+
+// all terms
+
+export const get_all_years_ktor = () => api.get("year/all-years")
+
+export const get_all_terms_ktor = () => api.get("term/all-terms")
+
+// all academic records
+
+export const get_all_academic_records_ktor = () => api.get("academic-records")
+
+
+export const delete_academic_record_ktor = (id) => api.delete(`academic-records/${id}`);
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -490,17 +530,7 @@ export const getReportCardByStudent = (studentId) =>  api.get(`academic-records/
 
 
 // line chart on parent dashbord
-export const getPerformanceChart = (studentId, year, term) =>
-  api.get(
-    `academic-records/chart/performance-chart/`,
-    {
-      params: {
-        student: studentId,
-        year: year,
-        term: term
-      }
-    }
-  );
+
 
 
   // Report card: single record by id
@@ -509,7 +539,6 @@ export const getReportRecord = (recordId) =>  api.get(`academic-records/report/r
 
 
 
-export const getReportCardByUser = (userId) =>  api.get(`academic-records/report/report-card/user/${userId}/`);  // → /api/report-card/user/<id>/
 
 
 // profile picture

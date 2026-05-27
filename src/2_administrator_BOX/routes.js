@@ -158,11 +158,21 @@ export const adminRoutes = {
     },
 
     {
-      path: 'academic-records',
-      name: 'academic_records',
-      component: () => import('@/2_administrator_BOX/views/charts/AcademicRecords.vue'),
+      path: 'subject-scores',
+      name: 'subject_scores',
+      component: () => import('@/2_administrator_BOX/views/charts/SubjectScores.vue'),
       meta: { roles: ['administrator'] },
     },
+
+
+    {
+      path: 'academic-records',
+      name: 'academic_records',
+      component: () => import('@/2_administrator_BOX/views/charts/AdminAcademicRecords.vue'),
+      meta: { roles: ['administrator'] },
+    },
+
+
 
 
 

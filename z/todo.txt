@@ -1,8 +1,0 @@
-fix the icon logos on the principal dashboard
-
-pupils per class in principal should be based on active current terms students
-add paginators
-apply the "Select Students for Discount" on the "add fee structure" on the add family too
-
-Admins:
-local admin: 85940393  4248
