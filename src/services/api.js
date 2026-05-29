@@ -310,6 +310,7 @@ export const create_family_payment = (payload) => api.post("family-fees/family-p
 export const create_family_payment_ktor = (payload) => api.post("family-payment", payload);
 
 export const delete_family_payment = (id) => api.delete(`family-fees/family-payments/${id}/`);
+
 export const delete_family_payment_ktor = (id) => api.delete(`family-payment/${id}`);
 
 
@@ -385,6 +386,7 @@ export const get_family_payment_list_regular = (id) => api.get(`family-fees/fami
 
 
 // staff APIs
+
 export const get_staff = () => api.get("staff/raw");
 
 export const get_staff_ktor = () => api.get("staff/raw");
@@ -416,6 +418,7 @@ export const delete_promotions_ktor=  (id) => api.delete(`promotion/${id}`);
 export const patch_promotions_ktor=  (id, payload) => api.patch(`promotion/${id}`, payload);
 
 // grading system APIs
+
 export const get_grading_system_ktor = () => api.get("grades");
 
 export const create_grading_system_ktor = (payload) => api.post("grades", payload);
@@ -449,14 +452,9 @@ export const getPerformanceChart = (studentId, year, term) =>
     }
   );
 
-
-// 2) Fetch performance chart for a specific term/year
 // IMPORTANT: student param is AccountTable.id (your backend now resolves student_profile)
 export const getPerformanceChart_ktor = (accountId, yearId, termId) =>
   api.get('performance-charts', { params: { student: accountId, year: yearId, term: termId } })
-
-
-
 
 // all terms
 
@@ -468,8 +466,13 @@ export const get_all_terms_ktor = () => api.get("term/all-terms")
 
 export const get_all_academic_records_ktor = () => api.get("academic-records")
 
-
 export const delete_academic_record_ktor = (id) => api.delete(`academic-records/${id}`);
+
+// receipt printing
+
+export const receipt_print = (id) =>  api.get(`receipts/${id}/pdf`, { responseType: "blob" })
+
+export const family_receipt_pdf = (id) =>  api.get(`family-receipt/${id}/pdf`, { responseType: "blob" })
 
 
 

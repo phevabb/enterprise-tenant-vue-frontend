@@ -77,7 +77,7 @@
                   {{ payment.family_fee_record?.term?.name || '—' }} —
                   {{ payment.family_fee_record?.academic_year?.name || '—' }}
                 </CTableDataCell>
-                <CTableDataCell>{{ formatDate(payment.date_created) }}</CTableDataCell>
+                <CTableDataCell>{{ formatDateTime(payment.date_created) }}</CTableDataCell>
                 <CTableDataCell class="text-end">{{ formatCurrency(payment.amount) }}</CTableDataCell>
                 <CTableDataCell class="text-end">
                   {{ formatCurrency(payment.family_fee_record?.balance) }}
@@ -103,10 +103,11 @@
 
           <div class="d-flex justify-content-between align-items-center mt-3">
             <Pagination
-              :current-page="currentPage"
-              :total-pages="totalPages"
-              @page-changed="changePage"
-            />
+  v-if="totalPages > 1"
+  :current-page="currentPage"
+  :total-pages="totalPages"
+  @page-changed="changePage"
+/>
             <div style="font-size:14px; color:#7f8c8d;">
               {{ showingRange }}
             </div>
@@ -205,104 +206,281 @@
   </CModal>
 </template>
 
+
 <script setup>
-import { ref, computed, watch, onMounted, reactive } from 'vue'
-import { useToast } from 'vue-toastification'
-import Pagination from '@/Pagination.vue'
+import { ref, computed, watch, onMounted, reactive } from "vue"
+import { useToast } from "vue-toastification"
+import Pagination from "@/Pagination.vue"
 
 import {
+  family_receipt_pdf,
   get_family_payments_ktor,
   create_family_payment_ktor,
   delete_family_payment_ktor,
   get_raw_family_fee_rec_ktor,
-} from '@/services/api'
+} from "@/services/api"
 
 const toast = useToast()
 
-// Client pagination size
+/* -----------------------------------------
+   SETTINGS
+----------------------------------------- */
 const pageSize = 10
-// API batch size when loading all results
-const API_PAGE_SIZE = 200
 
-// ── State ────────────────────────────────────────
-const isLoading        = ref(false)
-const isLoadingRecords = ref(false) // <-- fix: was referenced in template
-const isSubmitting     = ref(false)
-const isDeleting       = ref(false)
-const errorMessage     = ref('')
+function formatDateTime(value, {
+  timeZone = "Africa/Accra",
+  locale = "en-GH",
+  withSeconds = false,
+  hour12 = true,
+} = {}) {
+  if (value === null || value === undefined || value === "") return "—"
 
-// Store the full dataset; compute filtered/paged views from it
-const allPayments      = ref([])
+  let date
 
-const familyFeeRecords = ref([])
+  // Date object already
+  if (value instanceof Date) {
+    date = value
+  } else {
+    const raw = String(value).trim()
 
-const searchTerm       = ref('')
-const dateFilter       = ref('')     // '', 'today', '7days', 'month', 'year'
-const currentPage      = ref(1)
+    // numeric epoch (seconds or millis)
+    if (/^\d+$/.test(raw)) {
+      const n = Number(raw)
 
-const selectedIds      = ref([])
+      // ✅ 13 digits => millis, 10 digits => seconds
+      const millis = n < 1e12 ? n * 1000 : n
+      date = new Date(millis)
+    } else {
+      // ISO or other date strings
+      date = new Date(raw)
+    }
+  }
 
-const showFormModal          = ref(false)
-const isEdit                 = ref(false)
-const form = reactive({
-  familyFeeRecordId: '',
-  amount: 0,
-  date: new Date().toISOString().split('T')[0],
-})
-const formError        = ref("")
+  if (Number.isNaN(date.getTime())) return "—"
 
-const showDeleteSingleModal = ref(false)
-const deleteTarget          = ref(null)
-const showBulkDeleteModal   = ref(false)
+  const opts = {
+    timeZone,
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    ...(withSeconds ? { second: "2-digit" } : {}),
+    hour12,
+  }
 
-// ── Helpers ──────────────────────────────────────
-const formatCurrency = (val) => {
-  const num = Number(val)
-  return Number.isNaN(num) ? '—' : num.toLocaleString('en-GH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })
+  return new Intl.DateTimeFormat(locale, opts).format(date)
 }
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleDateString('en-GH', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+
+
+const allSelected = computed(() => {
+  const idsInView = displayedPayments.value.map(p => p.id)
+  return idsInView.length > 0 && idsInView.every(id => selectedIds.value.includes(id))
+})
+
+const someSelected = computed(() => {
+  const idsInView = displayedPayments.value.map(p => p.id)
+  if (idsInView.length === 0) return false
+  const selectedCount = idsInView.filter(id => selectedIds.value.includes(id)).length
+  return selectedCount > 0 && selectedCount < idsInView.length
+})
+
+async function deleteBulk() {
+  if (!selectedIds.value.length) {
+    toast.warning("No payments selected.")
+    return
+  }
+
+  isDeleting.value = true
+
+  // copy IDs because we'll mutate selectedIds later
+  const ids = [...selectedIds.value]
+
+  try {
+    // ✅ delete all (don’t stop if one fails)
+    const results = await Promise.allSettled(
+      ids.map((id) => delete_family_payment_ktor(id))
+    )
+
+    const successIds = []
+    const failedIds = []
+
+    results.forEach((r, idx) => {
+      const id = ids[idx]
+      if (r.status === "fulfilled") successIds.push(id)
+      else failedIds.push(id)
+    })
+
+    // ✅ remove only successfully deleted ones from UI
+    if (successIds.length) {
+      const set = new Set(successIds)
+      allPayments.value = allPayments.value.filter((p) => !set.has(p.id))
+    }
+
+    // ✅ clear selections for those that are deleted
+    selectedIds.value = selectedIds.value.filter((id) => failedIds.includes(id))
+
+    // ✅ keep pagination valid after list shrink
+    ensureValidPage()
+
+    // ✅ close modal
+    showBulkDeleteModal.value = false
+
+    // ✅ toast result
+    if (failedIds.length === 0) {
+      toast.success(`Deleted ${successIds.length} payment(s) ✅`)
+    } else {
+      toast.warning(
+        `Deleted ${successIds.length} payment(s), failed ${failedIds.length}.`
+      )
+
+    }
+
+  } catch (err) {
+
+    toast.error("Bulk delete failed.")
+  } finally {
+    isDeleting.value = false
+  }
+}
+
+
+function toggleSelectAll(e) {
+  const idsInView = displayedPayments.value.map(p => p.id)
+  if (idsInView.length === 0) return
+
+  // CoreUI change event usually provides e.target.checked
+  const checked = e?.target?.checked ?? !allSelected.value
+
+  if (checked) {
+    // ✅ Add all ids on this page
+    const set = new Set(selectedIds.value)
+    idsInView.forEach(id => set.add(id))
+    selectedIds.value = Array.from(set)
+  } else {
+    // ✅ Remove all ids on this page
+    selectedIds.value = selectedIds.value.filter(id => !idsInView.includes(id))
+  }
+}
+
+
+/* -----------------------------------------
+   STATE
+----------------------------------------- */
+const isLoading = ref(false)
+const isLoadingRecords = ref(false)
+const isSubmitting = ref(false)
+const isDeleting = ref(false)
+const errorMessage = ref("")
+
+const allPayments = ref([])
+const familyFeeRecords = ref([])
+
+const searchTerm = ref("")
+const dateFilter = ref("") // '', 'today', '7days', 'month', 'year'
+const currentPage = ref(1)
+
+const selectedIds = ref([])
+
+const showFormModal = ref(false)
+const isEdit = ref(false)
+
+const form = reactive({
+  familyFeeRecordId: "",
+  amount: 0,
+  date: new Date().toISOString().split("T")[0],
+})
+
+const formError = ref("")
+
+const showDeleteSingleModal = ref(false)
+const deleteTarget = ref(null)
+const showBulkDeleteModal = ref(false)
+
+/* -----------------------------------------
+   HELPERS (PDF DOWNLOAD)
+----------------------------------------- */
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  a.style.display = "none"
+  document.body.appendChild(a)
+
+  setTimeout(() => {
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, 0)
+}
+
+/**
+ * ✅ THIS is where `family_receipt_pdf` is used.
+ * It downloads the PDF by receiptId (not pdfUrl).
+ */
+async function downloadFamilyReceiptPdfById(receiptId, receiptNo) {
+  if (!receiptId) {
+    toast.warning("Receipt ID missing. Cannot download.")
+    return
+  }
+
+  try {
+    const res = await family_receipt_pdf(receiptId) // ✅ blob PDF
+    const blob = res.data
+
+    if (!blob || blob.size < 50) {
+      toast.error("Receipt PDF is empty or invalid.")
+      return
+    }
+
+    const name = `${receiptNo || `FAMILY-RECEIPT-${receiptId}`}.pdf`
+    downloadBlob(blob, name)
+  } catch (e) {
+
+  }
+}
+
+/* -----------------------------------------
+   HELPERS (UI + FILTERING)
+----------------------------------------- */
+const formatCurrency = (val) => {
+  const num = Number(val)
+  return Number.isNaN(num)
+    ? "—"
+    : num.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 const dateFilterLabel = computed(() => {
   switch (dateFilter.value) {
-    case 'today':  return 'Today'
-    case '7days':  return 'Past 7 Days'
-    case 'month':  return 'This Month'
-    case 'year':   return 'This Year'
-    default:       return 'All Dates'
+    case "today": return "Today"
+    case "7days": return "Past 7 Days"
+    case "month": return "This Month"
+    case "year": return "This Year"
+    default: return "All Dates"
   }
 })
 
-// Returns [startDate, endDate] for the preset (inclusive, in local time)
 function getDateRange(preset) {
   if (!preset) return [null, null]
   const now = new Date()
   const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
   let start
   switch (preset) {
-    case 'today':
+    case "today":
       start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
       break
-    case '7days': {
+    case "7days": {
       const s = new Date(now)
-      s.setDate(s.getDate() - 6) // include today → last 7 calendar days
+      s.setDate(s.getDate() - 6)
       start = new Date(s.getFullYear(), s.getMonth(), s.getDate(), 0, 0, 0, 0)
       break
     }
-    case 'month':
+    case "month":
       start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
       break
-    case 'year':
+    case "year":
       start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0)
       break
     default:
@@ -314,50 +492,44 @@ function getDateRange(preset) {
 function isWithinRange(value, start, end) {
   if (!start || !end) return true
   if (!value) return false
-
-  const d = typeof value === 'number'
-    ? new Date(value)         // ✅ timestamp support
-    : new Date(value)
-
+  const d = typeof value === "number" ? new Date(value) : new Date(value)
   return d >= start && d <= end
 }
 
-// ── Lookups for modal select ─────────────────────
+/* Dropdown options */
 const feeRecordOptions = computed(() =>
-  familyFeeRecords.value.map(r => ({
+  familyFeeRecords.value.map((r) => ({
     value: r.id,
-    label: `${r.family.name || '—'} - ${r.term.name || '—'} - ${r.academic_year.name || '—'} - ${r.balance || '—'}`
+    label: `${r.family?.name || "—"} - ${r.term?.name || "—"} - ${r.academic_year?.name || "—"} - ${r.balance ?? "—"}`,
   }))
 )
 
+/* Load fee records for dropdown */
 async function loadFamilyFeeRecords() {
   try {
     isLoadingRecords.value = true
     const res = await get_raw_family_fee_rec_ktor()
-
     familyFeeRecords.value = res.data || []
-  } catch {
-    toast.error('Failed to load family fee records for selection')
+  } catch (e) {
+
+    toast.error("Failed to load family fee records for selection")
   } finally {
     isLoadingRecords.value = false
   }
 }
 
-// ── Client filtering & pagination ────────────────
+/* Filter + paginate */
 const filteredPayments = computed(() => {
-  const q = (searchTerm.value || '').trim().toLowerCase()
+  const q = (searchTerm.value || "").trim().toLowerCase()
   const [start, end] = getDateRange(dateFilter.value)
 
-  return allPayments.value.filter(p => {
-    const family = (p.family_fee_record?.family?.name || '').toLowerCase()
-    const term   = (p.family_fee_record?.term?.name || '').toLowerCase()
-    const ay     = (p.family_fee_record?.academic_year?.name || '').toLowerCase()
+  return allPayments.value.filter((p) => {
+    const family = (p.family_fee_record?.family?.name || "").toLowerCase()
+    const term = (p.family_fee_record?.term?.name || "").toLowerCase()
+    const ay = (p.family_fee_record?.academic_year?.name || "").toLowerCase()
 
     const textOK = !q || family.includes(q) || term.includes(q) || ay.includes(q)
-
-    // ✅ FIX HERE
     const dateOK = isWithinRange(p.date_created, start, end)
-
     return textOK && dateOK
   })
 })
@@ -369,117 +541,76 @@ const displayedPayments = computed(() => {
   return filteredPayments.value.slice(start, start + pageSize)
 })
 
-const showingRange = computed(() => {
-  const total = filteredPayments.value.length
-  if (!total) return 'Showing 0 payments'
-  const start = (currentPage.value - 1) * pageSize + 1
-  const end   = Math.min(start + displayedPayments.value.length - 1, total)
-  return `Showing ${start}–${end} of ${total}`
-})
-
-const allSelected = computed(() =>
-  displayedPayments.value.length > 0 &&
-  displayedPayments.value.every(p => selectedIds.value.includes(p.id))
-)
-
-const someSelected = computed(() =>
-  !allSelected.value &&
-  displayedPayments.value.some(p => selectedIds.value.includes(p.id))
-)
-
 function ensureValidPage() {
   if (currentPage.value > totalPages.value) currentPage.value = totalPages.value
   if (currentPage.value < 1) currentPage.value = 1
 }
+function changePage(page) {
+  // Pagination component may emit string; force number
+  const n = Number(page)
+  currentPage.value = Number.isFinite(n) && n > 0 ? n : 1
+  ensureValidPage()
+}
 
-// ── Data Loading (load ALL once) ─────────────────
+
+watch([searchTerm, dateFilter], () => {
+  currentPage.value = 1
+})
+watch(totalPages, () => {
+  ensureValidPage()
+})
+
+/* Load all payments */
 async function loadAllPayments() {
   isLoading.value = true
-  errorMessage.value = ''
-
+  errorMessage.value = ""
   try {
+    const res = await get_family_payments_ktor()
 
-    // First page
-    const first = await get_family_payments_ktor()
-
-
-    const firstData = first.data || {}
-    const firstResults = firstData|| []
-    const count = Number(firstData.count || firstResults.length)
-    const pages = Math.max(1, Math.ceil(count / API_PAGE_SIZE))
-
-    const all = [...firstResults]
-    // Remaining pages (sequential to avoid hammering)
-    for (let p = 2; p <= pages; p++) {
-      const res = await get_family_payments_ktor()
-      all.push(...(res.data|| []))
-    }
-
-    allPayments.value = all
+    allPayments.value = Array.isArray(res.data) ? res.data : (res.data?.data || [])
     ensureValidPage()
-    selectedIds.value = [] // reset selections when dataset changes
-  } catch (err) {
+    selectedIds.value = []
+  } catch (e) {
 
-    errorMessage.value = err?.response?.data?.detail || 'Failed to load payments'
-    toast.error(err)
+    errorMessage.value = e?.response?.data?.detail || "Failed to load payments"
+    toast.error(errorMessage.value)
   } finally {
     isLoading.value = false
   }
 }
 
-// ── Watchers ─────────────────────────────────────
-watch([searchTerm, dateFilter], () => {
-  currentPage.value = 1
-  // no server call; pure client filtering
-})
-
-// ── Methods ──────────────────────────────────────
-function changePage(page) {
-  currentPage.value = page
-}
-
+/* UI actions */
 function openAddModal() {
   isEdit.value = false
   Object.assign(form, {
-    familyFeeRecordId: '',
+    familyFeeRecordId: "",
     amount: 0,
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toISOString().split("T")[0],
   })
-  formError.value = ''
+  formError.value = ""
   showFormModal.value = true
 }
 
 function closeFormModal() {
-
+  if (isSubmitting.value) return
   showFormModal.value = false
-}
-
-function openDeleteConfirm(payment) {
-  deleteTarget.value = payment
-  showDeleteSingleModal.value = true
-}
-
-function closeDeleteSingleModal() {
-  if (isDeleting.value) return
-  showDeleteSingleModal.value = false
-  deleteTarget.value = null
 }
 
 async function savePayment() {
   if (!form.familyFeeRecordId) {
-    formError.value = 'Please select a family fee record'
-    toast.error(formError.value)   // ✅ show toast
+    formError.value = "Please select a family fee record"
+    toast.error(formError.value)
     return
   }
 
-  if (!form.amount || form.amount <= 0) {
-    formError.value = 'Amount must be greater than 0'
-    toast.error(formError.value)   // ✅ show toast
+  if (!form.amount || Number(form.amount) <= 0) {
+    formError.value = "Amount must be greater than 0"
+    toast.error(formError.value)
     return
   }
 
   isSubmitting.value = true
-  formError.value = ''
+  formError.value = ""
 
   const payload = {
     family_fee_record: Number(form.familyFeeRecordId),
@@ -489,102 +620,41 @@ async function savePayment() {
   try {
     const res = await create_family_payment_ktor(payload)
 
+    // add to UI
     allPayments.value.unshift(res.data)
-
     ensureValidPage()
 
-    toast.success('Payment recorded')
-
-
-    // ✅ ONLY close on success
-closeFormModal()
-  } catch (err) {
-
-
-    const data = err?.response?.data
-
-    let message = 'Failed to save payment'
-
-    if (typeof data === 'string') {
-      message = data
-    } else if (data?.message) {
-      message = data.message
-    } else if (data?.detail) {
-      message = data.detail
-    } else if (data?.amount?.[0]) {
-      message = data.amount[0]
-    } else if (data?.non_field_errors?.[0]) {
-      message = data.non_field_errors[0]
+    // ✅ HERE is where you use family_receipt_pdf:
+    const receipt = res?.data?.receipt
+    if (receipt?.id) {
+      await downloadFamilyReceiptPdfById(receipt.id, receipt.receiptNo)
+      toast.success(`Payment recorded ✅ Receipt downloaded: ${receipt.receiptNo}`)
+    } else {
+      toast.success("Payment recorded ✅ (No receipt returned)")
     }
 
+    showFormModal.value = false
+  } catch (err) {
+
+    const data = err?.response?.data
+    let message = "Failed to save payment"
+    if (typeof data === "string") message = data
+    else if (data?.message) message = data.message
+    else if (data?.detail) message = data.detail
     formError.value = message
     toast.error(message)
-
   } finally {
     isSubmitting.value = false
   }
 }
 
-
-
-async function deleteSingle() {
-  if (!deleteTarget.value?.id) return
-  isDeleting.value = true
-
-  try {
-    await delete_family_payment_ktor(deleteTarget.value.id)
-    allPayments.value = allPayments.value.filter(p => p.id !== deleteTarget.value.id)
-    selectedIds.value = selectedIds.value.filter(id => id !== deleteTarget.value.id)
-    ensureValidPage()
-    toast.success('Payment deleted')
-    closeDeleteSingleModal()
-  } catch (err) {
-    const msg = err?.response?.data?.detail || 'Delete failed'
-    toast.error(msg.includes('constraint') ? 'Cannot delete – linked to other data' : msg)
-  } finally {
-    isDeleting.value = false
-    closeDeleteSingleModal()
-  }
-}
-
-async function deleteBulk() {
-  if (!selectedIds.value.length) return
-  isDeleting.value = true
-  const ids = [...selectedIds.value]
-
-  try {
-    await Promise.allSettled(ids.map(id => delete_family_payment_ktor(id)))
-    allPayments.value = allPayments.value.filter(p => !ids.includes(p.id))
-    selectedIds.value = []
-    ensureValidPage()
-    toast.success(`Deleted ${ids.length} payments`)
-  } catch {
-    toast.error('Some deletions failed')
-  } finally {
-    isDeleting.value = false
-    showBulkDeleteModal.value = false
-  }
-}
-
-function toggleSelectAll() {
-  const currentPageIds = displayedPayments.value.map(p => p.id)
-  if (allSelected.value) {
-    // unselect only those on the current page
-    selectedIds.value = selectedIds.value.filter(id => !currentPageIds.includes(id))
-  } else {
-    // select all on the current page
-    const s = new Set(selectedIds.value)
-    currentPageIds.forEach(id => s.add(id))
-    selectedIds.value = Array.from(s)
-  }
-}
-
-// ── Init ─────────────────────────────────────────
+/* Init */
 onMounted(async () => {
   await loadFamilyFeeRecords()
   await loadAllPayments()
 })
 </script>
+
 
 <style scoped>
 @media (max-width: 576px) {

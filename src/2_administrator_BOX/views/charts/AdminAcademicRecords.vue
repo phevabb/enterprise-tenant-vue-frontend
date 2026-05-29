@@ -351,7 +351,7 @@ async function fetchRecords() {
     const res = await get_all_academic_records_ktor()
     records.value = Array.isArray(res.data) ? res.data : []
   } catch (e) {
-    console.error(e)
+
     toast.error('Failed to load academic records')
   } finally {
     loading.value = false
@@ -451,7 +451,7 @@ async function saveRemarks() {
     toast.success('Saved ✅')
     showEdit.value = false
   } catch (e) {
-    console.error(e)
+
     toast.error('Save failed')
   } finally {
     saving.value = false
@@ -481,7 +481,7 @@ async function confirmBulkDelete() {
     showBulkDelete.value = false
 
   } catch (e) {
-    console.error("Bulk delete error: print", e)
+
     toast.error('Bulk delete failed')
   } finally {
     deleting.value = false
@@ -498,7 +498,7 @@ async function confirmDelete() {
     toast.success('Deleted ✅')
     showDelete.value = false
   } catch (e) {
-    console.error("error is print: , " + e)
+
 
     toast.error('Delete failed')
   } finally {

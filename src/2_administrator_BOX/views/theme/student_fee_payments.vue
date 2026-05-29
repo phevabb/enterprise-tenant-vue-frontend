@@ -71,6 +71,7 @@
                 <CTableHeaderCell scope="col">Term</CTableHeaderCell>
                 <CTableHeaderCell scope="col">Academic Year</CTableHeaderCell>
                 <CTableHeaderCell scope="col">Date</CTableHeaderCell>
+
                 <CTableHeaderCell scope="col" class="text-end">Amount (GHS)</CTableHeaderCell>
                 <CTableHeaderCell scope="col" class="text-end">Balance (GHS)</CTableHeaderCell>
                 <CTableHeaderCell scope="col" class="text-end" style="width: 160px">
@@ -129,8 +130,11 @@
                 </CTableDataCell>
 
                 <CTableDataCell>
-                  {{ formatDate(row.date_created || row.dateCreated || row.created_at || row.createdAt) }}
+                  {{ formatDateTime(row.date_created || row.dateCreated || row.created_at || row.createdAt) }}
                 </CTableDataCell>
+
+
+
 
                 <CTableDataCell class="text-end">
                   {{ formatAmount(row.amount) }}
@@ -334,7 +338,7 @@
 <script setup>
 import { ref, computed, reactive, watch, onMounted } from "vue";
 import { useToast } from "vue-toastification";
-import {
+import { receipt_print,
   get_payments_ktor_paginated,
   get_raw_student_fee_records_ktor,
   create_payment_ktor,
@@ -429,6 +433,148 @@ const someSelected = computed(() => {
 /* -------------------------------------------------------
    HELPERS
 ------------------------------------------------------- */
+function forceDownloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob)
+
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  a.style.display = "none"
+  document.body.appendChild(a)
+
+  // ✅ Use setTimeout to make it more reliable on some browsers
+  setTimeout(() => {
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, 0)
+}
+
+async function downloadReceipt(receipt) {
+  const receiptId = receipt?.id
+  const receiptNo = receipt?.receiptNo || receipt?.receipt_no || `receipt-${receiptId}`
+
+  if (!receiptId) {
+    toast.error("Receipt ID missing. Cannot download receipt.")
+    return
+  }
+
+  try {
+    // ✅ Fetch HTML as a Blob
+    const res = await receipt_print(receiptId)
+
+    // Axios returns Blob in res.data
+    const blob = res.data
+    if (!blob || blob.size < 50) {
+      toast.error("Receipt file is empty. Cannot download.")
+      return
+    }
+
+    // ✅ Save as .html
+    forceDownloadBlob(blob, `${receiptNo}.html`)
+    toast.success(`Receipt downloaded ✅ (${receiptNo}.html)`)
+
+  } catch (e) {
+
+
+  }
+}
+
+
+
+async function writeReceiptHtmlToWindow(win, receiptId) {
+  // fetch receipt HTML as text (axios includes auth)
+  const res = await receipt_print(receiptId) // responseType: "text"
+  const html = res?.data
+
+  if (!html || String(html).trim().length < 30) {
+    win.document.open()
+    win.document.write(`<p style="font-family:Arial;padding:18px;color:red;">Receipt returned empty HTML.</p>`)
+    win.document.close()
+    return
+  }
+
+  win.document.open()
+  win.document.write(html)
+  win.document.close()
+  win.focus()
+}
+
+async function openReceiptPrintFromReceipt(receipt) {
+  const id = receipt?.id
+  if (!id) {
+    toast.error("Receipt ID missing. Cannot print.")
+    return
+  }
+
+  // ✅ Open window immediately (avoids popup blockers + blank about:blank)
+  const w = window.open("", "_blank", "noopener,noreferrer")
+  if (!w) {
+    toast.error("Popup blocked. Please allow popups to print receipts.")
+    return
+  }
+
+  // Optional: show loading message immediately
+  w.document.open()
+  w.document.write(`<p style="font-family: Arial; padding: 18px;">Loading receipt...</p>`)
+  w.document.close()
+
+  try {
+    // ✅ Fetch HTML as text using authenticated axios call
+    const res = await receipt_print(id)
+    const html = res?.data
+
+
+
+    if (!html || String(html).trim().length < 30) {
+      w.document.open()
+      w.document.write(`<p style="font-family: Arial; padding: 18px; color: red;">Receipt returned empty HTML.</p>`)
+      w.document.close()
+      return
+    }
+
+    // ✅ Write receipt HTML into the opened tab
+    w.document.open()
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+
+  } catch (e) {
+
+    w.document.open()
+    w.document.write(`<p style="font-family: Arial; padding: 18px; color: red;">Failed to load receipt.</p>`)
+    w.document.close()
+    toast.error("Failed to load receipt for printing.")
+  }
+}
+
+
+
+function extractReceiptFromCreatePaymentResponse(res) {
+  const data = res?.data;
+
+  // Shape A: PaymentResponseDto with embedded receipt
+  if (data?.receipt) return data.receipt;
+
+  // Shape B: CreatePaymentResult wrapper: { response: PaymentResponseDto, sms, ... }
+  if (data?.response?.receipt) return data.response.receipt;
+
+  return null;
+}
+
+function extractPaymentFromCreatePaymentResponse(res) {
+  const data = res?.data;
+
+  // Shape A: PaymentResponseDto itself
+  if (data?.id && data?.amount != null) return data;
+
+  // Shape B: wrapper
+  if (data?.response?.id) return data.response;
+
+  return null;
+}
+
+
 function formatAmount(v) {
   const n = Number(v);
   return Number.isNaN(n)
@@ -635,38 +781,54 @@ function closeFormModal() {
 }
 
 async function submitForm() {
-  if (!validateForm()) return;
-  isSubmitting.value = true;
+  if (!validateForm()) return
+  isSubmitting.value = true
 
   const payload = {
     student_fee_record_id: Number(formPayment.studentFeeRecordId),
     amount: Number(formPayment.amount),
-    // if backend supports explicit date:
-    // date: formPayment.date || new Date().toISOString().split("T")[0],
-  };
+  }
 
   try {
-    await create_payment_ktor(payload);
+    const res = await create_payment_ktor(payload)
 
-    toast.success("Payment recorded successfully.");
-    showFormModal.value = false;
-    resetForm();
+    const receipt = extractReceiptFromCreatePaymentResponse(res)
 
-    clearCache();
-    await loadPayments(currentPage.value, true);
+    if (receipt?.receiptNo) {
+      toast.success(`Payment recorded ✅ Receipt: ${receipt.receiptNo}`)
+    } else {
+      toast.success("Payment recorded successfully ✅")
+    }
+
+    // ✅ AUTO-DOWNLOAD (no popup)
+    if (receipt) {
+      await downloadReceipt(receipt)
+    } else {
+      toast.warning("Payment saved, but no receipt object returned.")
+    }
+
+    showFormModal.value = false
+    resetForm()
+
+    clearCache()
+    await loadPayments(currentPage.value, true)
+
   } catch (err) {
+
+
     formValidationMessage.value =
       err?.response?.data?.message ||
       err?.response?.data?.detail ||
       err?.response?.data ||
       err?.message ||
-      "Failed to record payment.";
+      "Failed to record payment."
 
-    toast.error(formValidationMessage.value);
+    toast.error(formValidationMessage.value)
   } finally {
-    isSubmitting.value = false;
+    isSubmitting.value = false
   }
 }
+``
 
 /* -------------------------------------------------------
    DELETE

@@ -298,7 +298,7 @@ async function loadMeta() {
     selectedTerm.value = t?.id ? String(t.id) : ""
 
   } catch (e) {
-    console.error(e)
+
     toast.error("Failed to load years/terms")
   } finally {
     loadingMeta.value = false
@@ -348,7 +348,7 @@ async function loadChartData() {
       : incoming
 
   } catch (err) {
-    console.error(err)
+
     toast.error(err?.response?.data?.detail || "Could not load performance chart")
     subjects.value = []
   } finally {
