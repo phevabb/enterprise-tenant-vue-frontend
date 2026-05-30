@@ -5,7 +5,7 @@ import axios from 'axios'
 const api = axios.create({
       // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
 
-      baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
+     baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
 
 
 
@@ -179,7 +179,11 @@ export const rawst_ktor_paginated = (page, limit, search) =>
   })
 
 export const get_num_of_students_insignt = () => api.get("student/students/total/");
+
+
+
 export const get_students_grouped_by_class_insignt = () => api.get("student/students/per_class/");
+export const get_students_grouped_by_class_insignt_ktor = () => api.get("student/per-class");
 
 export const create_student = (payload) => api.post("student/create/", payload);
 export const create_student_ktor = (payload) => api.post("student", payload);
@@ -278,7 +282,7 @@ export const get_families_paginated = (page, limit, search) =>
 export const update_family = (id, payload) => api.put(`family-fees/families/${id}/`, payload);
 export const update_family_ktor = (id, payload) =>  api.patch(`family/${id}`, payload);
 
-// FAMILY FEES RECS APIs /////////////////////////////
+// FAMILY FEES RECS APIs ///
 export const get_raw_family_fee_rec = () => api.get("family-fees/raw-family-fee-records");
 export const get_raw_family_fee_rec_ktor = () => api.get("family-fee-record");
 
@@ -315,6 +319,9 @@ export const delete_family_payment_ktor = (id) => api.delete(`family-payment/${i
 
 
 export const get_expected_fees_insight = () => api.get("fees/student-fee-records/expected_fees/");
+
+export const get_expected_fees_insight_ktor = () => api.get("principal/fees/expected_fees");
+
 export const get_collected_vs_pending_insight = () => api.get("fees/student-fee-records/collection_summary/");
 export const percentage_paid_by_class_insight = () => api.get("fees/student-fee-records/unpaid_percentage_by_class/");
 export const students_with_balance_insight = () => api.get("fees/student-fee-records/students_with_balance/");
@@ -474,11 +481,19 @@ export const receipt_print = (id) =>  api.get(`receipts/${id}/pdf`, { responseTy
 
 export const family_receipt_pdf = (id) =>  api.get(`family-receipt/${id}/pdf`, { responseType: "blob" })
 
+// profile picture
+
+export const upload_account_profile_picture_ktor = (accountId, formData) =>
+  api.post(`/profile-picture/${accountId}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
 
 
 
 
-
+export const delete_account_profile_picture_ktor = (accountId) =>  api.delete(`/profile-picture/${accountId}`)
 
 
 

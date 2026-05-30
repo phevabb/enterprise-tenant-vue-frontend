@@ -54,6 +54,12 @@ STEPS
 
 //////////////// todos
 generate receipt DONE
+profile pics DONE
+
+principal dashboard next
 custom sms
-profile pics NEXT
+profile pics on report card
+django advertitsation part
+clear cloudinary of old photos
+
 

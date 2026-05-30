@@ -46,12 +46,12 @@
             <CTableBody>
               <CTableRow v-for="(row, idx) in filteredRecords" :key="row.id">
                 <CTableHeaderCell scope="row">{{ idx + 1 }}</CTableHeaderCell>
-                <CTableDataCell>{{ row.class_name }}</CTableDataCell>
+                <CTableDataCell>{{ row.className }}</CTableDataCell>
                 <CTableDataCell>{{ row.term }}</CTableDataCell>
-                <CTableDataCell>{{ row.academic_year}}</CTableDataCell>
-                <CTableDataCell class="text-end">{{ formatNumber(row.expected_amount) }}</CTableDataCell>
-                <CTableDataCell class="text-end">{{ formatNumber(row.collected_amount) }}</CTableDataCell>
-                <CTableDataCell class="text-end">{{ formatNumber(row.pending_amount) }}</CTableDataCell>
+                <CTableDataCell>{{ row.academicYear}}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatNumber(row.expectedAmount) }}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatNumber(row.collectedAmount) }}</CTableDataCell>
+                <CTableDataCell class="text-end">{{ formatNumber(row.pendingAmount) }}</CTableDataCell>
               </CTableRow>
             </CTableBody>
           </CTable>
@@ -66,7 +66,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { get_expected_fees_insight } from '../../../services/api'
+import { get_expected_fees_insight_ktor } from '../../../services/api'
 
 const isLoading = ref(false)
 const errorMessage = ref('')
@@ -80,7 +80,7 @@ const filteredRecords = computed(() => {
   if (!q) return records.value
 
   return records.value.filter(row => {
-    return String(row?.grade_class_name || '').toLowerCase().includes(q)
+    return String(row?.className || '').toLowerCase().includes(q)
   })
 })
 
@@ -88,7 +88,8 @@ async function loadRecords() {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    const rows = await get_expected_fees_insight()
+    const rows = await get_expected_fees_insight_ktor()
+
 
 
     records.value = rows.data || rows

@@ -100,8 +100,12 @@
                 </CTableHeaderCell>
 
                 <CTableDataCell>
-                  {{ student.user?.fullName || '—' }}
-                </CTableDataCell>
+  <div class="d-flex align-items-center gap-2">
+    <img v-if="student.user.profilePictureUrl" :src="student.user.profilePictureUrl" alt="Profile Picture" class="student-table-avatar" />
+    <div v-else class="student-table-avatar placeholder-avatar">—</div>
+    <span>{{ student.user?.fullName || '—' }}</span>
+  </div>
+</CTableDataCell>
 
                 <CTableDataCell>
                   {{ student.currentNewGradeClass?.name || '—' }}
@@ -226,68 +230,137 @@
     <CModalBody class="modal-body-premium">
       <CTabs variant="pills" class="premium-tabs" :activeItemKey="'student-info'">
         <!-- Student Info -->
-        <CTab title="Student Info" itemKey="student-info">
-          <div class="card-premium">
-            <div class="card-title-premium">
-              <CIcon icon="cil-user" /> Student Information
-            </div>
+        <!-- Student Info -->
+<CTab title="Student Info" itemKey="student-info">
+  <div class="card-premium">
+    <div class="card-title-premium">
+      <CIcon icon="cil-user" /> Student Information
+    </div>
 
-            <div class="row g-4">
-              <div class="col-md-8">
-                <CFormLabel>Full Name <span class="text-danger">*</span></CFormLabel>
-                <CFormInput v-model="form.fullName" :invalid="!form.fullName" />
-              </div>
+    <!-- ✅ Profile Picture Section -->
+    <div class="card-premium mb-4">
+      <div class="card-title-premium">
+        <CIcon icon="cil-image" /> Profile Picture
+      </div>
 
-              <div class="col-md-4">
-                <CFormLabel>Gender <span class="text-danger">*</span></CFormLabel>
-                <CFormSelect v-model="form.gender" :invalid="!form.gender">
-                  <option value="">Select</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </CFormSelect>
-              </div>
+      <div class="d-flex flex-column flex-md-row gap-4 align-items-start">
+        <!-- Preview -->
+        <div class="profile-picture-box">
+          profilePreviewUrl
+            ? <img :src="profilePreviewUrl" alt="Profile Preview" class="profile-picture-preview" />
+            : <div class="profile-picture-placeholder">No Picture</div>
+        </div>
 
-              <div class="col-md-6">
-                <CFormLabel>Current Class <span class="text-danger">*</span></CFormLabel>
-                <CFormSelect v-model="form.currentNewGradeClassId" :invalid="!form.currentNewGradeClassId">
-                  <option :value="null">Select class</option>
-                  <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
-                    {{ cls.label }}
-                  </option>
-                </CFormSelect>
-              </div>
+        <!-- Upload / Delete Controls -->
+        <div class="flex-grow-1 w-100">
+          <CFormLabel>Select Image</CFormLabel>
+          <CFormInput
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            @change="onProfilePictureSelected"
+            :disabled="loading || pictureLoading"
+          />
 
-              <div class="col-md-6">
-  <CFormLabel>Family (Optional)</CFormLabel>
-<CFormSelect v-model="form.family">
-  <option value="">No Family</option>
-  <option
-    v-for="f in familyOptions"
-    :key="f.value"
-    :value="String(f.value)"
-  >
-    {{ f.label }}
-  </option>
-</CFormSelect>
-</div>
-
-              <div class="col-md-6">
-                <CFormLabel>Date of Birth</CFormLabel>
-                <CFormInput type="date" v-model="form.dateOfBirth" />
-              </div>
-
-              <div class="col-md-6">
-                <CFormLabel>Nationality</CFormLabel>
-                <CFormInput v-model="form.nationality" />
-              </div>
-
-              <div class="col-md-6">
-                <CFormLabel>Class Seeking Admission To</CFormLabel>
-                <CFormInput v-model="form.classSeekingAdmissionTo" placeholder="Optional" />
-              </div>
-            </div>
+          <div class="small text-muted mt-2">
+            <template v-if="isEdit">
+              You can upload immediately, or simply save the form with the selected image.
+            </template>
+            <template v-else>
+              Select an image now — it will upload automatically after the student is created.
+            </template>
           </div>
-        </CTab>
+
+          <div class="d-flex gap-2 mt-3 flex-wrap">
+            <CButton
+              color="primary"
+              variant="outline"
+              @click="uploadCurrentProfilePicture(form.id)"
+              :disabled="!isEdit || !form.id || !selectedProfileFile || loading || pictureLoading"
+            >
+              <CSpinner size="sm" v-if="pictureLoading" class="me-1" />
+              Upload Now
+            </CButton>
+
+            <CButton
+              color="danger"
+              variant="outline"
+              @click="removeCurrentProfilePicture(form.id)"
+              :disabled="!isEdit || !form.id || !profilePreviewUrl || loading || pictureLoading"
+            >
+              <CSpinner size="sm" v-if="pictureLoading" class="me-1" />
+              Remove Picture
+            </CButton>
+
+            <CButton
+              color="secondary"
+              variant="outline"
+              @click="clearProfileSelection"
+              :disabled="!selectedProfileFile || loading || pictureLoading"
+            >
+              Clear Selection
+            </CButton>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ✅ Existing Student Fields -->
+    <div class="row g-4">
+      <div class="col-md-8">
+        <CFormLabel>Full Name <span class="text-danger">*</span></CFormLabel>
+        <CFormInput v-model="form.fullName" :invalid="!form.fullName" />
+      </div>
+
+      <div class="col-md-4">
+        <CFormLabel>Gender <span class="text-danger">*</span></CFormLabel>
+        <CFormSelect v-model="form.gender" :invalid="!form.gender">
+          <option value="">Select</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </CFormSelect>
+      </div>
+
+      <div class="col-md-6">
+        <CFormLabel>Current Class <span class="text-danger">*</span></CFormLabel>
+        <CFormSelect v-model="form.currentNewGradeClassId" :invalid="!form.currentNewGradeClassId">
+          <option :value="null">Select class</option>
+          <option v-for="cls in classOptions" :key="cls.value" :value="cls.value">
+            {{ cls.label }}
+          </option>
+        </CFormSelect>
+      </div>
+
+      <div class="col-md-6">
+        <CFormLabel>Family (Optional)</CFormLabel>
+        <CFormSelect v-model="form.family">
+          <option value="">No Family</option>
+          <option
+            v-for="f in familyOptions"
+            :key="f.value"
+            :value="String(f.value)"
+          >
+            {{ f.label }}
+          </option>
+        </CFormSelect>
+      </div>
+
+      <div class="col-md-6">
+        <CFormLabel>Date of Birth</CFormLabel>
+        <CFormInput type="date" v-model="form.dateOfBirth" />
+      </div>
+
+      <div class="col-md-6">
+        <CFormLabel>Nationality</CFormLabel>
+        <CFormInput v-model="form.nationality" />
+      </div>
+
+      <div class="col-md-6">
+        <CFormLabel>Class Seeking Admission To</CFormLabel>
+        <CFormInput v-model="form.classSeekingAdmissionTo" placeholder="Optional" />
+      </div>
+    </div>
+  </div>
+</CTab>
 
         <!-- Parent Info -->
         <CTab title="Parent Info" itemKey="parent-info">
@@ -429,6 +502,10 @@ import autoTable from 'jspdf-autotable'
 
 import Pagination from '@/Pagination.vue'
 import {
+
+upload_account_profile_picture_ktor,
+  delete_account_profile_picture_ktor,
+
   rawst_ktor_paginated,
   get_raw_families_ktor,
   create_student_ktor,
@@ -438,6 +515,9 @@ import {
 } from '@/services/api'
 
 const toast = useToast()
+const pictureLoading = ref(false)
+const selectedProfileFile = ref(null)
+const profilePreviewUrl = ref("")
 
 // ─────────────────────────────────────────────────────────────
 // Pagination state
@@ -515,6 +595,8 @@ const form = reactive({
 
 function resetForm() {
   form.id = null
+  selectedProfileFile.value = null
+profilePreviewUrl.value = ""
   form.fullName = ''
   form.gender = ''
   form.nationality = 'Ghanaian'
@@ -567,6 +649,13 @@ function normalizeStudent(s) {
   const isActive = user.isActive ?? user.is_active ?? true
   const userId = user.userId ?? user.user_id ?? null
 
+  // ✅ important for profile picture
+  const profilePictureUrl =
+    user.profilePictureUrl ??
+    user.profile_picture_url ??
+    user.profilePicture ??
+    null
+
   const cls = s.currentNewGradeClass ?? s.current_new_grade_class ?? null
 
   return {
@@ -578,18 +667,149 @@ function normalizeStudent(s) {
       nationality,
       gender,
       isActive,
-      userId
+      userId,
+      profilePictureUrl
     },
     currentNewGradeClass: cls
   }
 }
-
 // ─────────────────────────────────────────────────────────────
 // Fetch classes/families
 // ─────────────────────────────────────────────────────────────
+
+function clearProfileSelection() {
+  selectedProfileFile.value = null
+  profilePreviewUrl.value = currentStudent.value?.user?.profilePictureUrl || ""
+}
+
+function onProfilePictureSelected(event) {
+  const file = event.target.files?.[0]
+  if (!file) {
+    selectedProfileFile.value = null
+    profilePreviewUrl.value = currentStudent.value?.user?.profilePictureUrl || ""
+    return
+  }
+
+  const allowed = ["image/jpeg", "image/png", "image/webp"]
+  if (!allowed.includes(file.type)) {
+    toast.error("Only JPG, PNG and WEBP images are allowed.")
+    selectedProfileFile.value = null
+    profilePreviewUrl.value = currentStudent.value?.user?.profilePictureUrl || ""
+    return
+  }
+
+  const maxBytes = 5 * 1024 * 1024 // 5MB
+  if (file.size > maxBytes) {
+    toast.error("Image size must not exceed 5MB.")
+    selectedProfileFile.value = null
+    profilePreviewUrl.value = currentStudent.value?.user?.profilePictureUrl || ""
+    return
+  }
+
+  selectedProfileFile.value = file
+  profilePreviewUrl.value = URL.createObjectURL(file)
+}
+
+function updateStudentPictureLocally(accountId, url) {
+  // update current student
+  if (currentStudent.value?.user?.id === accountId) {
+    currentStudent.value.user.profilePictureUrl = url
+  }
+
+  // update table data
+  allStudents.value = allStudents.value.map((s) => {
+    if (s.user?.id === accountId) {
+      return {
+        ...s,
+        user: {
+          ...s.user,
+          profilePictureUrl: url
+        }
+      }
+    }
+    return s
+  })
+}
+
+async function uploadCurrentProfilePicture(accountId, { silent = false } = {}) {
+  if (!accountId) {
+    if (!silent) toast.error("Student account ID is missing.")
+    return null
+  }
+
+  if (!selectedProfileFile.value) {
+    if (!silent) toast.error("Please select an image first.")
+    return null
+  }
+
+  pictureLoading.value = true
+  try {
+    const fd = new FormData()
+    fd.append("file", selectedProfileFile.value)
+
+    const res = await upload_account_profile_picture_ktor(accountId, fd)
+
+    const url =
+      res?.data?.profilePictureUrl ||
+      res?.data?.profile_picture_url ||
+      ""
+
+    updateStudentPictureLocally(accountId, url)
+    profilePreviewUrl.value = url
+    selectedProfileFile.value = null
+
+    if (!silent) toast.success("Profile picture uploaded successfully ✅")
+    return res.data
+  } catch (err) {
+    console.error("Profile picture upload error: print", err)
+    if (!silent) {
+      toast.error(
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        "Failed to upload profile picture."
+      )
+    }
+    return null
+  } finally {
+    pictureLoading.value = false
+  }
+}
+
+async function removeCurrentProfilePicture(accountId) {
+  if (!accountId) {
+    toast.error("Student account ID is missing.")
+    return
+  }
+
+  pictureLoading.value = true
+  try {
+    const k = await delete_account_profile_picture_ktor(accountId)
+
+
+    updateStudentPictureLocally(accountId, "")
+    profilePreviewUrl.value = ""
+    selectedProfileFile.value = null
+
+    toast.success("Profile picture removed successfully ✅")
+  } catch (err) {
+    console.error("Profile picture delete error: prints", err)
+    toast.error(
+      err?.response?.data?.error ||
+      err?.response?.data?.message ||
+      err?.response?.data?.detail ||
+      "Failed to remove profile picture."
+    )
+  } finally {
+    pictureLoading.value = false
+  }
+}
+
+
 async function fetchClasses() {
   try {
     const res = await get_classes_ktor()
+
     classOptions.value = (res.data || []).map(c => ({
       label: c.name,
       value: c.id
@@ -622,7 +842,13 @@ async function loadAllStudents() {
   try {
     const res = await rawst_ktor_paginated(currentPage.value, pageSize, searchTerm.value)
 
+
     const list = res.data?.data || []
+
+
+
+
+
     allStudents.value = list.map(normalizeStudent)
 
     totalPages.value = res.data?.meta?.totalPages || 1
@@ -630,6 +856,7 @@ async function loadAllStudents() {
 
     ensureValidPage()
   } catch (err) {
+
     errorMessage.value = 'Failed to load students'
     toast.error(errorMessage.value, { position: 'top-right' })
   } finally {
@@ -820,6 +1047,9 @@ function openEditModal(student) {
   form.active = !!student.user?.isActive
   form.deactivationReason = student.deactivationReason ?? ''
 
+  selectedProfileFile.value = null
+profilePreviewUrl.value = student.user?.profilePictureUrl || ""
+
   showFormModal.value = true
 }
 
@@ -883,17 +1113,27 @@ async function submitForm() {
     }
 
 
-    if (isEdit.value && currentStudent.value) {
-      await update_student_ktor(currentStudent.value.id, JSON.parse(JSON.stringify(payload)))
-      toast.success('Student updated successfully!')
-    } else {
-      await create_student_ktor(payload)
-      toast.success('Student created successfully!')
-      currentPage.value = 1
-    }
+    let savedStudent = null
 
-    closeFormModal()
-    await loadAllStudents()
+if (isEdit.value && currentStudent.value) {
+  const res = await update_student_ktor(currentStudent.value.id, JSON.parse(JSON.stringify(payload)))
+  savedStudent = normalizeStudent(res?.data || currentStudent.value)
+  toast.success('Student updated successfully!')
+} else {
+  const res = await create_student_ktor(payload)
+  savedStudent = normalizeStudent(res?.data)
+  toast.success('Student created successfully!')
+  currentPage.value = 1
+}
+
+// ✅ If a picture was selected, upload it after save
+const accountId = savedStudent?.user?.id || form.id
+if (selectedProfileFile.value && accountId) {
+  await uploadCurrentProfilePicture(accountId, { silent: true })
+}
+
+closeFormModal()
+await loadAllStudents()
   } catch (err) {
     const serverMsg = err?.response?.data
     toast.error(formatBackendErrors(serverMsg) || 'Failed to save student', { position: 'top-right' })
@@ -996,5 +1236,48 @@ onMounted(async () => {
 <style scoped>
 .bg-gradient-primary {
   background: linear-gradient(90deg, #4e73df, #224abe);
+}
+
+.profile-picture-box {
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.profile-picture-preview {
+  width: 140px;
+  height: 140px;
+  border-radius: 16px;
+  object-fit: cover;
+  border: 1px solid #dbe3ef;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.profile-picture-placeholder {
+  width: 140px;
+  height: 140px;
+  border-radius: 16px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.student-table-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1px solid #dbe3ef;
+}
+
+.placeholder-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #94a3b8;
 }
 </style>

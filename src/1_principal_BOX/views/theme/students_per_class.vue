@@ -57,7 +57,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { get_students_grouped_by_class_insignt } from '../../../services/api'
+import { get_students_grouped_by_class_insignt_ktor } from '../../../services/api'
 
 import { useToast } from 'vue-toastification'
 
@@ -83,12 +83,14 @@ async function loadRecords() {
   isLoading.value = true
   errorMessage.value = ''
   try {
-    const rows = await get_students_grouped_by_class_insignt()
+    const rows = await get_students_grouped_by_class_insignt_ktor()
+
     records.value = rows.data || rows
   } catch (err) {
-    toast.error('Failed to load fee records. Please try again.')
 
-    errorMessage.value = err?.message || 'Failed to load fee records.'
+    toast.error('Failed to load. Please try again.')
+
+    errorMessage.value = err?.message || 'Failed to load.'
   } finally {
     isLoading.value = false
   }
