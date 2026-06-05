@@ -1,38 +1,44 @@
 
-import axios from 'axios'
-
-
-const api = axios.create({
-      // baseURL: 'http://127.0.0.1:8080/api/', // Ktor development serverserver
-
- baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // RAILWAY production (default for production)
-
 
 
 // baseURL: 'http://127.0.0.1:8000/api/', // django development server
-
  // baseURL: 'https://kog-ktor-backend.onrender.com/api/' , // ktor render production
  //baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/', //active
 
+import axios from 'axios'
+
+const api = axios.create({
+  baseURL: 'http://127.0.0.1:8080/api/', // Ktor development server
+
+  // baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // Railway production
 
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
 })
 
+// Helpers
+export function setTenantSlug(slug) {
+  if (slug) {
+    localStorage.setItem('tenantSlug', slug)
+  }
+}
 
+export function getTenantSlug() {
+  return localStorage.getItem('tenantSlug')
+}
 
+export function clearTenantSlug() {
+  // localStorage.removeItem('tenantSlug')
+}
 
 // Helper: normalize to a pathname we can test
 function resolvePath(config) {
   try {
-    // If config.url is relative, URL() will resolve with baseURL
     const url = new URL(config.url, config.baseURL || api.defaults.baseURL)
-    // "/api/auth/login" -> "api/auth/login"
     return url.pathname.replace(/^\/+/, '')
   } catch (e) {
-    // Fallback if URL constructor fails
     return (config.url || '').replace(/^\/+/, '')
   }
 }
@@ -47,21 +53,26 @@ api.interceptors.request.use(
     const path = resolvePath(config)
 
     // ✅ Ktor public endpoints (match your backend routes)
-
     const publicPaths = [
       'api/auth/login',
       'api/auth/login/',
-      // add later if you implement refresh:
+      // add later if needed:
       // 'api/auth/refresh',
       // 'api/auth/refresh/',
     ]
 
     const isPublic = publicPaths.some((p) => path.startsWith(p))
 
+    // ✅ Always attach tenant slug if available
+    const tenantSlug = getTenantSlug()
+    if (tenantSlug) {
+      config.headers['X-Tenant-Slug'] = tenantSlug
+    }
+
+    // ✅ Only attach JWT for protected endpoints
     if (!isPublic) {
       const token = localStorage.getItem('token')
       if (token) {
-        // ✅ JWT Bearer (NOT "Token")
         config.headers.Authorization = `Bearer ${token}`
       }
     }
@@ -77,18 +88,18 @@ api.interceptors.response.use(
     const status = error && error.response ? error.response.status : null
 
     if (status === 401) {
-      // Token invalid/expired => logout client-side
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       localStorage.removeItem('family')
       localStorage.removeItem('staff')
-      // Optionally redirect to login:
+      // Optionally:
       // window.location.href = '/#/login'
     }
 
     return Promise.reject(error)
   }
 )
+
 
 
 
@@ -123,6 +134,11 @@ export const delete_academic_year_ktor = (id) => api.delete(`year/${id}`);
 // term APIs
 export const get_terms = () => api.get("student/terms");
 export const get_terms_ktor = () => api.get("term");
+
+
+
+
+export const get_current_tenant = () => api.get("tenant/me");
 
 export const create_term = (payload) => api.post("student/terms/", payload);
 export const create_term_ktor = (payload) => api.post("term", payload);

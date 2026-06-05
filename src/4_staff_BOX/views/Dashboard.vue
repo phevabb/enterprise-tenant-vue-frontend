@@ -324,6 +324,8 @@ async function preloadSubjectScores(subj) {
       subj
     )
 
+    console.log("Preload scores response: print", res)
+
     const list = res?.data ?? []
 
     // 1) Reset only current subject keys in UI
@@ -347,6 +349,7 @@ async function preloadSubjectScores(subj) {
     toast.info(`Loaded saved scores for ${subjectLabel(subj)}`)
 
   } catch (e) {
+    console.log("the fullll scores error: print", e)
 
     toast.error("Could not preload existing scores")
   }
@@ -485,6 +488,7 @@ onMounted(async () => {
 
     // 5) Resolve subjects list
     const subs = resolveSubjectsForClass(categories, ctx.gradeclassName)
+    console.log("sub print", subs)
     SUBJECTS.splice(0, SUBJECTS.length, ...subs)
     subject.value = SUBJECTS[0] ?? null
 

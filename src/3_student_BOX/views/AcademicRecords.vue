@@ -32,7 +32,8 @@
       <div>
         <!-- Always-visible school name -->
         <h1 class="school-name m-0">
-          King Of Glory Preparatory School
+          {{ tenant?.schoolName || 'School Name' }}
+
         </h1>
 
 
@@ -237,7 +238,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getReportCardByUser_ktor , get_profile_picture,} from '@/services/api'
+import { getReportCardByUser_ktor , get_profile_picture, get_current_tenant} from '@/services/api'
 
 /* ----------------------------------------------------
    PROPS (school branding only)
@@ -252,20 +253,23 @@ const props = defineProps({
   },
 })
 
+const tenant = ref(null)
+
+
 /* ----------------------------------------------------
    SUBJECT LIST
 ---------------------------------------------------- */
-const SUBJECTS = [
-  { key: 'english', label: 'English' },
-  { key: 'maths', label: 'Maths' },
-  { key: 'science', label: 'Science' },
-  { key: 'rme', label: 'RME' },
-  { key: 'ict', label: 'ICT' },
-  { key: 'history', label: 'History' },
-  { key: 'fante', label: 'Fante' },
-  { key: 'creativearts', label: 'Creative Arts' },
-]
-const subjects = SUBJECTS
+// const SUBJECTS = [
+//   { key: 'english', label: 'English' },
+//   { key: 'maths', label: 'Maths' },
+//   { key: 'science', label: 'Science' },
+//   { key: 'rme', label: 'RME' },
+//   { key: 'ict', label: 'ICT' },
+//   { key: 'history', label: 'History' },
+//   { key: 'fante', label: 'Fante' },
+//   { key: 'creativearts', label: 'Creative Arts' },
+// ]
+// const subjects = SUBJECTS
 
 /* ----------------------------------------------------
    STATE
@@ -287,6 +291,15 @@ const profilpic = ref({
 /* ----------------------------------------------------
    FETCH REPORT CARD USING BACKEND API
 ---------------------------------------------------- */
+async function fetchTenant() {
+  try {
+    const response = await get_current_tenant()
+    tenant.value = response.data
+  } catch (err) {
+    tenant.value = null
+  }
+}
+
 async function fetchReportCard() {
   loading.value = true
 
@@ -409,6 +422,7 @@ function toggleTheme() { document.body.classList.toggle('report-dark') }
 ---------------------------------------------------- */
 onMounted(async () => {
   await fetchReportCard()
+  await fetchTenant()
 })
 </script>
 

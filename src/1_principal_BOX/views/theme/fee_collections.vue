@@ -4,7 +4,7 @@
     <CCard class="mb-4">
       <CCardHeader class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2">
         <div>
-          <h5 class="mb-0">Fee Overview </h5>
+          <h5 class="mb-0">Fee Overview 88</h5>
           <small class="text-body-secondary">Projected Collections</small>
         </div>
 
@@ -101,6 +101,7 @@ async function loadRecords() {
   errorMessage.value = ''
   try {
     const rows = await get_collected_vs_pending_insight_ktor()
+    console.log('Fetched errorsss print:', rows)
 
 
 

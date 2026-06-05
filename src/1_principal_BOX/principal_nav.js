@@ -22,12 +22,12 @@ export default [
 
   { component: 'CNavTitle', name: 'Fee Analysis' },
 
-  {
-    component: 'CNavItem',
-    name: 'Expected Fees',
-    to: { name: 'expected_fee' },
-    icon: 'cil-chart-pie',
-  },
+  // {
+  //   component: 'CNavItem',
+  //   name: 'Expected Fees',
+  //   to: { name: 'expected_fee' },
+  //   icon: 'cil-chart-pie',
+  // },
   {
     component: 'CNavItem',
     name: 'Fee Collections',

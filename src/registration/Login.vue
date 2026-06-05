@@ -90,7 +90,7 @@
             <!-- RIGHT: BRANDING -->
             <CCard class="brand-card text-white py-5 border-0 animate-slide">
               <CCardBody class="text-center">
-                <h2 class="brand-title">KING OF GLORY PREP. SCHOOL</h2>
+                <h2 class="brand-title">{{ tenant?.schoolName || 'School Name' }}</h2>
                 <hr class="brand-line" />
                 <p class="brand-text">
                   Simplify school fees.<br />
@@ -137,6 +137,7 @@ function clearAuth() {
   localStorage.removeItem('user')
   localStorage.removeItem('family')
   localStorage.removeItem('staff')
+  // localStorage.removeItem('tenantSlug')
 }
 
 function nextTarget() {
@@ -172,6 +173,7 @@ async function onSubmit() {
     }
 
     const { data } = await login_ktor(payload)
+    console.log('Login response:', data)
 
 
     // Ktor response: { access, role, user }

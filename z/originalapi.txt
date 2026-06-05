@@ -75,6 +75,7 @@ api.interceptors.response.use(
       localStorage.removeItem('user')
       localStorage.removeItem('family')
       localStorage.removeItem('staff')
+    //  localStorage.removeItem('tenantSlug')
       // Optionally: window.location.hash = '#/login'
     }
     return Promise.reject(error)

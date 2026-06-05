@@ -10,9 +10,11 @@ const handleLogout = async () => {
   try {
     await logout()
     localStorage.removeItem('token')
+    // localStorage.removeItem('tenantSlug')
     localStorage.removeItem('user')
     localStorage.removeItem('family')
     localStorage.removeItem('staff')
+
     router.push('/login')
   } catch (error) {
 
