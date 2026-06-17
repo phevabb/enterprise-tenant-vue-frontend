@@ -1,24 +1,18 @@
-
-
-
-// baseURL: 'http://127.0.0.1:8000/api/', // django development server
- // baseURL: 'https://kog-ktor-backend.onrender.com/api/' , // ktor render production
- //baseURL: 'https://feessystem-aidooemmanuelkwame1416-zluuv6f0.leapcell.dev/api/', //active
-
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8080/api/', // Ktor development server
-
-  // baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/', // Railway production
-
+  baseURL: 'http://127.0.0.1:8080/api/', // ✅ Ktor server
+  // baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
 })
 
-// Helpers
+/* =========================
+   TENANT HELPERS
+========================= */
+
 export function setTenantSlug(slug) {
   if (slug) {
     localStorage.setItem('tenantSlug', slug)
@@ -26,14 +20,26 @@ export function setTenantSlug(slug) {
 }
 
 export function getTenantSlug() {
+  // ✅ Prefer URL first (source of truth)
+  const host = window.location.hostname
+  const parts = host.split('.')
+
+  if (parts.length > 1 && parts[0] !== 'localhost') {
+    return parts[0]
+  }
+
+  // ✅ fallback
   return localStorage.getItem('tenantSlug')
 }
 
 export function clearTenantSlug() {
-  // localStorage.removeItem('tenantSlug')
+  localStorage.removeItem('tenantSlug')
 }
 
-// Helper: normalize to a pathname we can test
+/* =========================
+   PATH RESOLVER
+========================= */
+
 function resolvePath(config) {
   try {
     const url = new URL(config.url, config.baseURL || api.defaults.baseURL)
@@ -43,33 +49,37 @@ function resolvePath(config) {
   }
 }
 
+/* =========================
+   REQUEST INTERCEPTOR
+========================= */
+
 api.interceptors.request.use(
   (config) => {
-    // Let the browser set multipart boundary if FormData
+    // ✅ Let browser handle multipart boundaries
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type']
     }
 
     const path = resolvePath(config)
 
-    // ✅ Ktor public endpoints (match your backend routes)
+    // ⚠️ IMPORTANT FIX: remove duplicate "api/"
     const publicPaths = [
-      'api/auth/login',
-      'api/auth/login/',
-      // add later if needed:
-      // 'api/auth/refresh',
-      // 'api/auth/refresh/',
+      'auth/login',
+      'auth/login/',
     ]
 
     const isPublic = publicPaths.some((p) => path.startsWith(p))
 
-    // ✅ Always attach tenant slug if available
-    const tenantSlug = getTenantSlug()
-    if (tenantSlug) {
-      config.headers['X-Tenant-Slug'] = tenantSlug
-    }
+    // ✅ ALWAYS attach tenant (Ktor resolver depends on this)
+   const tenantSlug = getTenantSlug()
 
-    // ✅ Only attach JWT for protected endpoints
+console.log('Attaching tenant slug to request: print', tenantSlug)
+
+if (tenantSlug) {
+  config.headers['X-Tenant-Slug'] = tenantSlug
+}
+
+    // ✅ Attach token ONLY for protected routes
     if (!isPublic) {
       const token = localStorage.getItem('token')
       if (token) {
@@ -82,17 +92,22 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
+/* =========================
+   RESPONSE INTERCEPTOR
+========================= */
+
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    const status = error && error.response ? error.response.status : null
+    const status = error?.response?.status
 
     if (status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       localStorage.removeItem('family')
       localStorage.removeItem('staff')
-      // Optionally:
+
+      // Optional redirect
       // window.location.href = '/#/login'
     }
 
@@ -102,6 +117,7 @@ api.interceptors.response.use(
 
 
 
+export const login_ktor = (payload) => api.post('auth/login', payload)
 
 export const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
 
@@ -376,7 +392,7 @@ export const delete_administrator_ktor = (id) => api.delete(`admin/${id}`);
 
 // AUTH APIs
 
-export const login_ktor = (payload) => api.post('auth/login', payload)
+
 
 
 
