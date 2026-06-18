@@ -111,7 +111,7 @@ async function fetchRecords() {
     }
 
   } catch (e) {
-    console.log("ture error is", e)
+
 
     toast.error('Failed to load class academic records')
   } finally {

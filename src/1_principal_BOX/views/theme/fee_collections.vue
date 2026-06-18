@@ -101,7 +101,7 @@ async function loadRecords() {
   errorMessage.value = ''
   try {
     const rows = await get_collected_vs_pending_insight_ktor()
-    console.log('Fetched errorsss print:', rows)
+
 
 
 
