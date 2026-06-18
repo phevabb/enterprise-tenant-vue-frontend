@@ -1,8 +1,8 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8080/api/', // ✅ Ktor server
-  // baseURL: 'https://kog-ktor-backend-production.up.railway.app/api/',
+  // baseURL: 'http://127.0.0.1:8080/api/', // dev server
+   baseURL: 'https://kogschool.com/enterprise/api/',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -73,7 +73,7 @@ api.interceptors.request.use(
     // ✅ ALWAYS attach tenant (Ktor resolver depends on this)
    const tenantSlug = getTenantSlug()
 
-console.log('Attaching tenant slug to request: print', tenantSlug)
+
 
 if (tenantSlug) {
   config.headers['X-Tenant-Slug'] = tenantSlug
