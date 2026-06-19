@@ -1,8 +1,8 @@
 import axios from 'axios'
 
 const api = axios.create({
-  // baseURL: 'http://127.0.0.1:8080/api/', // dev server
-   baseURL: 'https://kogschool.com/enterprise/api/',
+   baseURL: 'http://127.0.0.1:9001/api/', // dev server
+ //  baseURL: 'https://kogschool.com/enterprise/api/',
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -20,18 +20,23 @@ export function setTenantSlug(slug) {
 }
 
 export function getTenantSlug() {
-  // ✅ Prefer URL first (source of truth)
-  const host = window.location.hostname
-  const parts = host.split('.')
+  // For Vue hash mode URLs like:
+  // http://localhost:3000/#/login?tenant=kogs
 
-  if (parts.length > 1 && parts[0] !== 'localhost') {
-    return parts[0]
+  const hash = window.location.hash || ''
+  const queryString = hash.includes('?') ? hash.split('?')[1] : ''
+  const params = new URLSearchParams(queryString)
+
+  const tenantFromHash = params.get('tenant')
+
+  if (tenantFromHash) {
+    localStorage.setItem('tenantSlug', tenantFromHash)
+    return tenantFromHash
   }
 
-  // ✅ fallback
+  // fallback
   return localStorage.getItem('tenantSlug')
 }
-
 export function clearTenantSlug() {
   localStorage.removeItem('tenantSlug')
 }

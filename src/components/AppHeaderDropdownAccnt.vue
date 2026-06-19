@@ -1,24 +1,35 @@
 <script setup>
-import { logout } from '@/services/api.js'
+import { logout, getTenantSlug } from '@/services/api.js'
 import { useRouter } from 'vue-router'
+
+// or from '@/utils/tenant' if you moved it there
 
 const router = useRouter()
 const itemsCount = 42
 const avatar = 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
 
 const handleLogout = async () => {
-  try {
-    await logout()
-    localStorage.removeItem('token')
-    // localStorage.removeItem('tenantSlug')
-    localStorage.removeItem('user')
-    localStorage.removeItem('family')
-    localStorage.removeItem('staff')
 
-    router.push('/login')
-  } catch (error) {
 
-  }
+try {
+  const tenantSlug = getTenantSlug()
+
+  await logout()
+
+  localStorage.removeItem('token')
+  /// localStorage.removeItem('tenantSlug') // keep this commented if you still want fallback
+  localStorage.removeItem('user')
+  localStorage.removeItem('family')
+  localStorage.removeItem('staff')
+
+  await router.push({
+    path: '/login',
+    query: tenantSlug ? { tenant: tenantSlug } : {},
+  })
+} catch (error) {
+
+}
+
 }
 
 const goToChangePassword = () => {
