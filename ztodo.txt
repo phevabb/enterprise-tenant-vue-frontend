@@ -71,5 +71,10 @@ remove the EMAL IN( login with eaml or id) we login with id only
 
 
 
-admin for calvary complex: 	51831321	9429
+admin for cactus academy: 78869938	9572 (buli)
 
+fix receipt in html
+fix sms(capitalise on mnotify for sending messages)
+fix receipt in .html to .pdf
+fix school logo
+fix the (school name on the login page)

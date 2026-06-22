@@ -188,6 +188,7 @@ async function onSubmit() {
     await router.replace(target)
 
   } catch (e: any) {
+    console.log("error is print", e)
 
     const backendError =
       e?.response?.data?.error ||
