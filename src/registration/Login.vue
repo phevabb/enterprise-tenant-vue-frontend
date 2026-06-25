@@ -240,7 +240,7 @@ async function onSubmit() {
     await router.replace(target)
 
   }  catch (e) {
-    console.log('error is print', e)
+
 
     const status = e?.response?.status
     const responseData = e?.response?.data

@@ -637,7 +637,7 @@ async function onImportExcelSelected(event) {
 
     await loadAllStudents()
   } catch (err) {
-    console.log("error is  print", err)
+
     alert(
       err.response?.data?.message ||
         err.response?.data?.error ||
