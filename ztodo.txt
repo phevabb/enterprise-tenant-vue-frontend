@@ -78,3 +78,6 @@ fix sms(capitalise on mnotify for sending messages)
 fix receipt in .html to .pdf
 fix school logo
 fix the (school name on the login page)
+
+
+fix the small logo on the title page

@@ -1,5 +1,48 @@
 import axios from 'axios'
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const api = axios.create({
    baseURL: 'http://127.0.0.1:9001/api/', // dev server
 //  baseURL: 'https://kogschool.com/enterprise/api/',
@@ -155,6 +198,64 @@ export const delete_academic_year_ktor = (id) => api.delete(`year/${id}`);
 // term APIs
 export const get_terms = () => api.get("student/terms");
 export const get_terms_ktor = () => api.get("term");
+
+// school name
+
+
+
+export const getSchoolName = (tenantSlug) => api.get(`public/tenants/by-slug/${tenantSlug}`);
+
+
+
+
+function getTenantHeaders() {
+  const tenantCode = localStorage.getItem('tenantCode')
+  const tenantSlug = localStorage.getItem('tenantSlug')
+
+  const headers = {}
+
+  if (tenantCode) {
+    headers['X-Tenant-Code'] = tenantCode
+  }
+
+  if (tenantSlug) {
+    headers['X-Tenant-Slug'] = tenantSlug
+  }
+
+  return headers
+}
+
+export function importStudentsExcel(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  return api.post('/student-import/excel', formData, {
+    headers: {
+      ...getTenantHeaders(),
+      // Do not manually set Content-Type for FormData.
+      // Axios will set multipart/form-data with the correct boundary.
+    },
+  })
+}
+
+export function downloadStudentsImportTemplate() {
+  return api.get('/student-import/template', {
+    responseType: 'blob',
+    headers: {
+      ...getTenantHeaders(),
+    },
+  })
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

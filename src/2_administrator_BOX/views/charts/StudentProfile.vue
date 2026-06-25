@@ -1,7 +1,4 @@
 
-
-
-
 <template>
   <CRow>
     <CCol :xs="12">
@@ -39,6 +36,37 @@
               <CIcon icon="cil-user-follow" class="me-1" />
               Add Student
             </CButton>
+
+            <CButton
+  color="info"
+  size="sm"
+  class="text-white"
+  :disabled="loading || importLoading"
+  @click="downloadImportTemplate"
+>
+  <CIcon icon="cil-cloud-download" class="me-1" />
+  Template
+</CButton>
+
+<CButton
+  color="warning"
+  size="sm"
+  class="text-dark"
+  :disabled="loading || importLoading"
+  @click="triggerImportFile"
+>
+  <CSpinner v-if="importLoading" size="sm" class="me-1" />
+  <CIcon v-else icon="cil-cloud-upload" class="me-1" />
+  Import Students
+</CButton>
+
+<input
+  ref="importFileInput"
+  type="file"
+  accept=".xlsx"
+  class="d-none"
+  @change="onImportExcelSelected"
+/>
 
             <CButton
               color="danger"
@@ -82,7 +110,7 @@
                 <CTableHeaderCell>#</CTableHeaderCell>
                 <CTableHeaderCell>Name</CTableHeaderCell>
                 <CTableHeaderCell>Current Class</CTableHeaderCell>
-                <CTableHeaderCell>Dad's Contact</CTableHeaderCell>
+                <CTableHeaderCell>Dad's Contact </CTableHeaderCell>
                 <CTableHeaderCell>Mom's Contact</CTableHeaderCell>
                 <CTableHeaderCell>Discounted</CTableHeaderCell>
                 <CTableHeaderCell class="text-end">Actions</CTableHeaderCell>
@@ -511,13 +539,21 @@ upload_account_profile_picture_ktor,
   create_student_ktor,
   update_student_ktor,
   delete_student_ktor,
-  get_classes_ktor
+  get_classes_ktor,
+
+importStudentsExcel,
+  downloadStudentsImportTemplate,
+
 } from '@/services/api'
 
 const toast = useToast()
 const pictureLoading = ref(false)
 const selectedProfileFile = ref(null)
 const profilePreviewUrl = ref("")
+
+
+const importFileInput = ref(null)
+const importLoading = ref(false)
 
 // ─────────────────────────────────────────────────────────────
 // Pagination state
@@ -555,6 +591,90 @@ const isDeleting = ref(false)
 const showFormModal = ref(false)
 const isEdit = ref(false)
 const currentStudent = ref(null)
+
+
+function triggerImportFile() {
+  const confirmed = window.confirm(
+    'Before importing, make sure all classes already exist.\n\n' +
+      'Your Excel file must use these exact headers:\n' +
+      'fullName, currentClass, contactOfFather, contactOfMother\n\n' +
+      'The currentClass value must match the class name exactly as created in the system.\n\n' +
+      'Example: Class 1, Nursery 2, JHS 1\n\n' +
+      'Continue?'
+  )
+
+  if (!confirmed) return
+
+  importFileInput.value?.click()
+}
+
+async function onImportExcelSelected(event) {
+  const file = event.target.files?.[0]
+
+  if (!file) return
+
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    alert('Please upload an Excel .xlsx file.')
+    event.target.value = ''
+    return
+  }
+
+  importLoading.value = true
+
+  try {
+    const response = await importStudentsExcel(file)
+
+    const imported = response.data?.importedCount || 0
+    const failed = response.data?.failedCount || 0
+
+    alert(
+      `Import completed.\n\nImported: ${imported}\nFailed: ${failed}`
+    )
+
+    if (Array.isArray(response.data?.errors) && response.data.errors.length) {
+      console.table(response.data.errors)
+    }
+
+    await loadAllStudents()
+  } catch (err) {
+    console.log("error is  print", err)
+    alert(
+      err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Unable to import students.'
+    )
+  } finally {
+    importLoading.value = false
+    event.target.value = ''
+  }
+}
+
+async function downloadImportTemplate() {
+  try {
+    const response = await downloadStudentsImportTemplate()
+
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+
+    link.href = url
+    link.download = 'students_import_template.xlsx'
+    link.click()
+
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    alert(
+      err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Unable to download import template.'
+    )
+  }
+}
 
 // ─────────────────────────────────────────────────────────────
 // Form

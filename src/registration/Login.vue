@@ -14,7 +14,7 @@
 
                   <div class="text-center mb-4">
                     <h1 class="title">Login</h1>
-                    <p class="subtitle">Sign in to your account</p>
+                    <p class="subtitle">Sign in to your account </p>
                   </div>
 
                   <CAlert v-if="error" color="danger" class="mb-3 text-center">
@@ -90,7 +90,7 @@
             <!-- RIGHT: BRANDING -->
             <CCard class="brand-card text-white py-5 border-0 animate-slide">
               <CCardBody class="text-center">
-                <h2 class="brand-title">{{ tenant?.schoolName || 'School Name' }}</h2>
+                <h2 class="brand-title">{{ tenant?.schoolName || 'School Name ' }}</h2>
                 <hr class="brand-line" />
                 <p class="brand-text">
                   Simplify school fees.<br />
@@ -111,13 +111,18 @@
 
 <script setup lang="ts">
 import { useToast } from 'vue-toastification'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { login_ktor } from '../services/api'
+import { login_ktor, getSchoolName } from '../services/api'
 
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
+
+
+const tenant = ref<any>(null)
+const tenantLoading = ref(false)
+const tenantError = ref<string | null>(null)
 
 const username = ref('')
 const password = ref('')
@@ -126,11 +131,58 @@ const role = ref<'administrator' | 'principal' | 'staff' | 'student'>('administr
 const loading = ref(false)
 const error = ref<string | null>(null)
 
+
+  function getTenantSlugFromUrl() {
+  const hash = window.location.hash || ''
+  const queryString = hash.includes('?') ? hash.split('?')[1] : ''
+  const params = new URLSearchParams(queryString)
+
+  return params.get('tenant') || ''
+}
+
+
+async function fetchTenantForLoginPage() {
+  tenantError.value = null
+
+  const tenantSlug = getTenantSlugFromUrl()
+
+  if (!tenantSlug) {
+    tenantError.value = 'Tenant was not found in the login URL.'
+    return
+  }
+
+  tenantLoading.value = true
+
+  try {
+    const { data } = await getSchoolName(tenantSlug)
+
+
+    tenant.value = data
+
+    localStorage.setItem('tenantSlug', data.tenantSlug)
+    localStorage.setItem('tenantCode', data.tenantCode)
+    localStorage.setItem('tenantSchoolName', data.schoolName)
+    localStorage.setItem('tenantStatus', data.status)
+  } catch (err: any) {
+    tenantError.value =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.message ||
+      'Unable to load school information.'
+  } finally {
+    tenantLoading.value = false
+  }
+}
+
+
 // ✅ store only what you actually receive from Ktor
 function storeAuth(token: string, user: any) {
   localStorage.setItem('token', token)
   localStorage.setItem('user', JSON.stringify(user))
 }
+onMounted(() => {
+  fetchTenantForLoginPage()
+})
 
 function clearAuth() {
   localStorage.removeItem('token')
@@ -187,22 +239,32 @@ async function onSubmit() {
     const target = nextTarget()
     await router.replace(target)
 
-  } catch (e: any) {
-    console.log("error is print", e)
+  }  catch (e) {
+    console.log('error is print', e)
 
-    const backendError =
-      e?.response?.data?.error ||
-      e?.response?.data?.detail ||
+    const status = e?.response?.status
+    const responseData = e?.response?.data
+
+    let backendError =
+      responseData?.error ||
+      responseData?.message ||
+      responseData?.detail ||
+      (typeof responseData === 'string' ? responseData : null) ||
       e?.message ||
       'Login failed'
+
+    if (status === 402 || backendError === 'Tenant is not active') {
+      backendError =
+        'Your account has been suspended. Please login to your workspace and make the necessary payments to be activated.'
+    }
 
     error.value = backendError
     toast.error(backendError)
     clearAuth()
   } finally {
     loading.value = false
-  }
-}
+  } }
+
 </script>
 
 
