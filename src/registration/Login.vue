@@ -28,7 +28,7 @@
                     </CInputGroupText>
                     <CFormInput
                       v-model="username"
-                      placeholder="Email or ID"
+                      placeholder="ID"
                       autocomplete="username"
                       required
                     />
@@ -90,7 +90,18 @@
             <!-- RIGHT: BRANDING -->
             <CCard class="brand-card text-white py-5 border-0 animate-slide">
               <CCardBody class="text-center">
-                <h2 class="brand-title">{{ tenant?.schoolName || 'School Name ' }}</h2>
+
+              <h2 class="brand-title">
+  <span v-if="tenantLoading">Loading school...</span>
+  <span v-else>{{ tenant?.schoolName || 'School Portal' }}</span>
+</h2>
+
+<p v-if="tenantError" class="tenant-error">
+  {{ tenantError }}
+</p>
+
+
+
                 <hr class="brand-line" />
                 <p class="brand-text">
                   Simplify school fees.<br />
@@ -109,6 +120,11 @@
 </template>
 
 
+
+
+
+
+
 <script setup lang="ts">
 import { useToast } from 'vue-toastification'
 import { ref, onMounted } from 'vue'
@@ -118,7 +134,6 @@ import { login_ktor, getSchoolName } from '../services/api'
 const toast = useToast()
 const router = useRouter()
 const route = useRoute()
-
 
 const tenant = ref<any>(null)
 const tenantLoading = ref(false)
@@ -131,8 +146,32 @@ const role = ref<'administrator' | 'principal' | 'staff' | 'student'>('administr
 const loading = ref(false)
 const error = ref<string | null>(null)
 
+/**
+ * Production:
+ * https://kingofgloryacademy.phenaschool.com/#/login
+ * returns: kingofgloryacademy
+ *
+ * Local/testing:
+ * http://localhost:3000/#/login?tenant=kingofgloryacademy
+ * returns: kingofgloryacademy
+ */
+function getTenantSlugFromHostOrQuery() {
+  const host = window.location.hostname.trim().toLowerCase()
 
-  function getTenantSlugFromUrl() {
+  // Production:
+  // kingofgloryacademy.phenaschool.com
+  if (host.endsWith('.phenaschool.com')) {
+    return host.replace('.phenaschool.com', '')
+  }
+
+  // Local development:
+  // kingofgloryacademy.localhost
+  if (host.endsWith('.localhost')) {
+    return host.replace('.localhost', '')
+  }
+
+  // Old local fallback:
+  // localhost:3000/#/login?tenant=kingofgloryacademy
   const hash = window.location.hash || ''
   const queryString = hash.includes('?') ? hash.split('?')[1] : ''
   const params = new URLSearchParams(queryString)
@@ -144,7 +183,7 @@ const error = ref<string | null>(null)
 async function fetchTenantForLoginPage() {
   tenantError.value = null
 
-  const tenantSlug = getTenantSlugFromUrl()
+  const tenantSlug = getTenantSlugFromHostOrQuery()
 
   if (!tenantSlug) {
     tenantError.value = 'Tenant was not found in the login URL.'
@@ -155,7 +194,6 @@ async function fetchTenantForLoginPage() {
 
   try {
     const { data } = await getSchoolName(tenantSlug)
-
 
     tenant.value = data
 
@@ -175,34 +213,37 @@ async function fetchTenantForLoginPage() {
 }
 
 
-// ✅ store only what you actually receive from Ktor
 function storeAuth(token: string, user: any) {
   localStorage.setItem('token', token)
   localStorage.setItem('user', JSON.stringify(user))
 }
-onMounted(() => {
-  fetchTenantForLoginPage()
-})
 
 function clearAuth() {
   localStorage.removeItem('token')
   localStorage.removeItem('user')
   localStorage.removeItem('family')
   localStorage.removeItem('staff')
-  // localStorage.removeItem('tenantSlug')
 }
 
 function nextTarget() {
   const redirectName = route?.query?.redirect as string | undefined
+
   if (redirectName) {
     const resolved = router.resolve({ name: redirectName })
-    if (resolved?.name) return { name: redirectName }
+
+    if (resolved?.name) {
+      return { name: redirectName }
+    }
   }
 
   let user: any = null
+
   try {
     const raw = localStorage.getItem('user')
-    if (raw) user = JSON.parse(raw)
+
+    if (raw) {
+      user = JSON.parse(raw)
+    }
   } catch {}
 
   if (user?.role === 'administrator') return { name: 'student_fee_records_admin' }
@@ -226,11 +267,11 @@ async function onSubmit() {
 
     const { data } = await login_ktor(payload)
 
-
-
-    // Ktor response: { access, role, user }
     const token = data?.access
-    if (!token) throw new Error('No token received')
+
+    if (!token) {
+      throw new Error('No token received')
+    }
 
     storeAuth(token, data.user)
 
@@ -238,10 +279,7 @@ async function onSubmit() {
 
     const target = nextTarget()
     await router.replace(target)
-
-  }  catch (e) {
-
-
+  } catch (e: any) {
     const status = e?.response?.status
     const responseData = e?.response?.data
 
@@ -263,9 +301,18 @@ async function onSubmit() {
     clearAuth()
   } finally {
     loading.value = false
-  } }
+  }
+}
 
+onMounted(() => {
+  fetchTenantForLoginPage()
+})
 </script>
+
+
+
+
+
 
 
 <style scoped>
@@ -383,5 +430,12 @@ async function onSubmit() {
     border-right: none;
     border-bottom: 1px solid #f0f0f0;
   }
+
+  .tenant-error {
+  margin-top: 10px;
+  color: #ffe4e6;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
 }
 </style>

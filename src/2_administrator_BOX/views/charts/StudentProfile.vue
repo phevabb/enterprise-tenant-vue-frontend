@@ -632,7 +632,7 @@ async function onImportExcelSelected(event) {
     )
 
     if (Array.isArray(response.data?.errors) && response.data.errors.length) {
-      console.table(response.data.errors)
+
     }
 
     await loadAllStudents()
