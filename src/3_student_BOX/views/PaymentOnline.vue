@@ -243,7 +243,7 @@ const payWithPaystack = async () => {
 
   try {
     const handler = window.PaystackPop.setup({
-      key: 'pk_test_a5628172fea1fc91e2744361548513a3a3598252',
+      key: 'pk_live_851550690ca2d39b76b6fadacf0a760db6adf652',
       email: user.value?.email || 'payer@example.com',
       amount: Number(amount.value) * 100,
       currency: 'GHS',
