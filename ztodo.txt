@@ -1,6 +1,6 @@
 to deploy
 ----------
-convert links in api.js
+convert links in api.js   in src/services
 
 
 fix the icon logos on the principal dashboard

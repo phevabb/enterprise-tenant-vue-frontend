@@ -470,9 +470,9 @@ async function downloadReceipt(receipt) {
       return
     }
 
-    // ✅ Save as .html
-    forceDownloadBlob(blob, `${receiptNo}.html`)
-    toast.success(`Receipt downloaded ✅ (${receiptNo}.html)`)
+    // ✅ Save as .pdf
+    forceDownloadBlob(blob, `${receiptNo}.pdf`)
+    toast.success(`Receipt downloaded ✅ (${receiptNo}.pdf)`)
 
   } catch (e) {
 
