@@ -977,7 +977,7 @@ async function loadAllStudents() {
 
   try {
     const res = await rawst_ktor_paginated(currentPage.value, pageSize, searchTerm.value)
-    console.log("res is print", res)
+
 
 
     const list = res.data?.data || []
