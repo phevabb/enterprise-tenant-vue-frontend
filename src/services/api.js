@@ -1,16 +1,7 @@
 import axios from 'axios'
 
-
-
-
-
-
-
-
-
 const api = axios.create({
-  //  baseURL: 'http://127.0.0.1:9001/api/', // local
- baseURL: 'https://tenant-api.phenaschool.com/api/',   // PRODUCTION
+   baseURL: import.meta.env.VITE_TENANT_API_BASE_URL, // PRODUCTION
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -28,8 +19,36 @@ export function setTenantSlug(slug) {
 }
 
 export function getTenantSlug() {
-  // For Vue hash mode URLs like:
-  // http://localhost:3000/#/login?tenant=kogs
+  /**
+   * Production:
+   * https://phevabacademy.phenaschool.com/#/login
+   * returns: phevabacademy
+   */
+  const host = window.location.hostname.trim().toLowerCase()
+
+  if (host.endsWith('.phenaschool.com')) {
+    const slug = host.replace('.phenaschool.com', '')
+
+    if (slug && slug !== 'www') {
+      localStorage.setItem('tenantSlug', slug)
+      return slug
+    }
+  }
+
+  /**
+   * Local development:
+   * http://phevabacademy.localhost:3000/#/login
+   * returns: phevabacademy
+   */
+  if (host.endsWith('.localhost')) {
+    const slug = host.replace('.localhost', '')
+
+    if (slug) {
+      localStorage.setItem('tenantSlug', slug)
+      return slug
+    }
+  }
+
 
   const hash = window.location.hash || ''
   const queryString = hash.includes('?') ? hash.split('?')[1] : ''
@@ -42,11 +61,62 @@ export function getTenantSlug() {
     return tenantFromHash
   }
 
-  // fallback
   return localStorage.getItem('tenantSlug')
 }
+
 export function clearTenantSlug() {
   localStorage.removeItem('tenantSlug')
+}
+
+/* =========================
+   AUTH HELPERS
+========================= */
+
+function clearAuthOnly() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  localStorage.removeItem('family')
+  localStorage.removeItem('staff')
+
+  /**
+   * Do NOT remove tenantSlug / tenantCode here.
+   * Login page still needs them to know which school workspace this is.
+   */
+}
+
+function getErrorMessage(error) {
+  const responseData = error?.response?.data
+
+  return (
+    responseData?.message ||
+    responseData?.error ||
+    responseData?.detail ||
+    (typeof responseData === 'string' ? responseData : '') ||
+    error?.message ||
+    'Something went wrong.'
+  )
+}
+
+function isTenantNotActiveError(error) {
+  const status = error?.response?.status
+  const message = getErrorMessage(error)
+
+  return status === 402 || message === 'Tenant is not active'
+}
+
+function redirectToLoginForSuspendedTenant() {
+  clearAuthOnly()
+
+  localStorage.setItem(
+    'loginErrorMessage',
+    'Your account has been suspended. Please login to your workspace and make the necessary payments to be activated.'
+  )
+
+  const currentHash = window.location.hash || ''
+
+  if (!currentHash.startsWith('#/login')) {
+    window.location.hash = '#/login'
+  }
 }
 
 /* =========================
@@ -68,33 +138,38 @@ function resolvePath(config) {
 
 api.interceptors.request.use(
   (config) => {
-    // ✅ Let browser handle multipart boundaries
+    // Let browser handle multipart boundaries
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type']
     }
 
     const path = resolvePath(config)
 
-    // ⚠️ IMPORTANT FIX: remove duplicate "api/"
     const publicPaths = [
+      'api/auth/login',
       'auth/login',
-      'auth/login/',
+      'api/public/',
+      'public/',
     ]
 
     const isPublic = publicPaths.some((p) => path.startsWith(p))
 
-    // ✅ ALWAYS attach tenant (Ktor resolver depends on this)
-   const tenantSlug = getTenantSlug()
+    // Always attach tenant. Ktor resolver depends on this.
+    const tenantSlug = getTenantSlug()
+    const tenantCode = localStorage.getItem('tenantCode')
 
+    if (tenantSlug) {
+      config.headers['X-Tenant-Slug'] = tenantSlug
+    }
 
+    if (tenantCode) {
+      config.headers['X-Tenant-Code'] = tenantCode
+    }
 
-if (tenantSlug) {
-  config.headers['X-Tenant-Slug'] = tenantSlug
-}
-
-    // ✅ Attach token ONLY for protected routes
+    // Attach token only for protected routes
     if (!isPublic) {
       const token = localStorage.getItem('token')
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
       }
@@ -114,19 +189,41 @@ api.interceptors.response.use(
   (error) => {
     const status = error?.response?.status
 
-    if (status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      localStorage.removeItem('family')
-      localStorage.removeItem('staff')
+    /**
+     * Global suspended tenant handler.
+     */
+    if (isTenantNotActiveError(error)) {
+      redirectToLoginForSuspendedTenant()
+      return Promise.reject(error)
+    }
 
-      // Optional redirect
-      // window.location.href = '/#/login'
+    /**
+     * Normal unauthorized handler.
+     */
+    if (status === 401) {
+      clearAuthOnly()
+
+      localStorage.setItem(
+        'loginErrorMessage',
+        'Your session has expired. Please login again.'
+      )
+
+      const currentHash = window.location.hash || ''
+
+      if (!currentHash.startsWith('#/login')) {
+        window.location.hash = '#/login'
+      }
     }
 
     return Promise.reject(error)
   }
 )
+
+/* =========================
+   AUTH APIs
+========================= */
+
+
 
 
 

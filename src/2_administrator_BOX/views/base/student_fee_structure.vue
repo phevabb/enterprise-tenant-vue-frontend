@@ -291,6 +291,10 @@ import vSelect from "vue3-select";
 import "vue3-select/dist/vue3-select.css";
 
 import { ref, computed, reactive, watch, onMounted } from "vue";
+
+import { useRouter } from 'vue-router'
+const router = useRouter()
+
 import { useToast } from "vue-toastification";
 import Pagination from "@/Pagination.vue";
 
@@ -304,6 +308,30 @@ import {
   update_fee_structure_ktor,
   delete_fee_structure_ktor,
 } from "@/services/api.js";
+
+
+
+function isTenantInactiveError(err) {
+  const status = err?.response?.status
+  const responseData = err?.response?.data
+
+  const message =
+    responseData?.message ||
+    responseData?.error ||
+    responseData?.detail ||
+    (typeof responseData === 'string' ? responseData : '')
+
+  return status === 402 || message === 'Tenant is not active'
+}
+
+function clearTenantAuth() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  localStorage.removeItem('family')
+  localStorage.removeItem('staff')
+}
+
+
 
 /* -------------------------------------------------------
    CONSTANTS
@@ -775,18 +803,35 @@ async function confirmDeleteBulk() {
 ------------------------------------------------------- */
 onMounted(async () => {
   try {
-    isLoading.value = true;
+    isLoading.value = true
 
     await Promise.all([
       loadReferenceData(),
       // fetchUsers(), // uncomment if you need discounted students selector
-    ]);
+    ])
 
-    await loadFeeStructures(1);
+    await loadFeeStructures(1)
+  } catch (err) {
+    console.log('Error during initialization: print', err)
+
+    if (isTenantInactiveError(err)) {
+      clearTenantAuth()
+
+      alert(
+        'Your account has been suspended. Please login to your workspace and make the necessary payments to be activated.'
+      )
+
+      await router.replace({
+        name: 'Login',
+      })
+
+      return
+    }
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-});
+})
+
 </script>
 
 <style scoped>
