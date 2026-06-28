@@ -1,24 +1,44 @@
+// src/navigation/admin_nav.js
 
-// admin_nav.js
-import { cilCreditCard, cilLibrary, cilSchool, cilCalendar, cilAddressBook, cilPeople, cilList, cilSpreadsheet, cilCalculator, cilMoney } from '@coreui/icons'
-
+import {
+  cilAddressBook,
+  cilCalculator,
+  cilCalendar,
+  cilCreditCard,
+  cilEducation,
+  cilGroup,
+  cilLibrary,
+  cilList,
+  cilMoney,
+  cilPeople,
+  cilSchool,
+  cilSpreadsheet,
+  cilUser,
+} from '@coreui/icons'
 
 export default [
-
+  // ================================
+  // Administrator
+  // ================================
   {
-  component: 'CNavItem',
-  name: 'Administrator',
-  to: '#',                // no real link
-  disabled: true,         // disable click
-  icon: null,
-  badge: { color: 'primary', text: 'ADMINISTRATOR' },
-},
+    component: 'CNavItem',
+    name: 'Administrator',
+    to: '#',
+    disabled: true,
+    icon: cilUser,
+    badge: {
+      color: 'primary',
+      text: 'ADMIN',
+    },
+  },
 
-
-
-
-  { component: 'CNavTitle', name: 'Student Fees' },
-
+  // ================================
+  // Student Fees
+  // ================================
+  {
+    component: 'CNavTitle',
+    name: 'Student Fees',
+  },
   {
     component: 'CNavItem',
     name: 'Fee Structure',
@@ -27,30 +47,29 @@ export default [
   },
   {
     component: 'CNavItem',
-    name: 'Payments',
+    name: 'Student Payments',
     to: { name: 'student_fee_payments' },
     icon: cilCreditCard,
   },
   {
     component: 'CNavItem',
     name: 'Student Fee Records',
-    to: { name: 'student_fee_records_admin' }, // removed trailing space
+    to: { name: 'student_fee_records_admin' },
     icon: cilSpreadsheet,
   },
 
-  { component: 'CNavTitle', name: 'Family Fees' },
-
+  // ================================
+  // Family Fees
+  // ================================
+  {
+    component: 'CNavTitle',
+    name: 'Family Fees',
+  },
   {
     component: 'CNavItem',
     name: 'Families',
     to: { name: 'families' },
-    icon: cilPeople,
-  },
-  {
-    component: 'CNavItem',
-    name: 'Family Fee Records',
-    to: { name: 'family_fee_records' },
-    icon: cilCalculator,
+    icon: cilGroup,
   },
   {
     component: 'CNavItem',
@@ -58,9 +77,20 @@ export default [
     to: { name: 'family_fee_payments' },
     icon: cilMoney,
   },
+  {
+    component: 'CNavItem',
+    name: 'Family Fee Records',
+    to: { name: 'family_fee_records' },
+    icon: cilCalculator,
+  },
 
-  { component: 'CNavTitle', name: 'Staff / Student' },
-
+  // ================================
+  // Profiles
+  // ================================
+  {
+    component: 'CNavTitle',
+    name: 'Profiles',
+  },
   {
     component: 'CNavItem',
     name: 'Staff Profiles',
@@ -71,44 +101,26 @@ export default [
     component: 'CNavItem',
     name: 'Student Profiles',
     to: { name: 'studentProfile' },
-    icon: 'cil-user',
+    icon: cilPeople,
   },
 
-
-
-
-
-
-  // Deactivation Section
-
-  // {
-  //   component: 'CNavTitle',
-  //   name: 'Activation',
-  // },
-  //   {
-  //   component: 'CNavItem',
-  //   name: 'Deactivated Students',
-  //   to: { name: 'deactivatedStudents' },
-  //   icon: 'cil-chart-pie',
-  // },
-  //   {
-  //     component: 'CNavItem',
-  //     name: 'Deactivated Families',
-  //     to: { name: 'deactivatedFamilies' },
-  //     icon: 'cil-chart-pie',
-  //   },
-
-
-
-
-
-    // others section
-  { component: 'CNavTitle', name: 'Others' },
-
+  // ================================
+  // Academic Setup
+  // ================================
+  {
+    component: 'CNavTitle',
+    name: 'Academic Setup',
+  },
   {
     component: 'CNavItem',
     name: 'Academic Years',
     to: { name: 'academicYears' },
+    icon: cilCalendar,
+  },
+  {
+    component: 'CNavItem',
+    name: 'Terms',
+    to: { name: 'terms' },
     icon: cilCalendar,
   },
   {
@@ -125,41 +137,40 @@ export default [
   },
   {
     component: 'CNavItem',
-    name: 'Terms',
-    to: { name: 'terms' },
-    icon: cilLibrary,
-  },
-
-  {
-    component: 'CNavItem',
     name: 'Categories',
     to: { name: 'categories' },
-    icon: cilLibrary,
+    icon: cilList,
   },
 
+  // ================================
+  // Academic Records
+  // ================================
+  {
+    component: 'CNavTitle',
+    name: 'Academic Records',
+  },
   {
     component: 'CNavItem',
     name: 'Promotions',
     to: { name: 'promotions' },
-    icon: cilLibrary,
+    icon: cilEducation,
   },
   {
     component: 'CNavItem',
     name: 'Grading Scale',
     to: { name: 'grading_scales' },
-    icon: cilLibrary,
+    icon: cilCalculator,
   },
   {
     component: 'CNavItem',
-    name: 'Subject scores',
+    name: 'Subject Scores',
     to: { name: 'subject_scores' },
-    icon: cilLibrary,
+    icon: cilSpreadsheet,
   },
-{
+  {
     component: 'CNavItem',
     name: 'Academic Records',
     to: { name: 'academic_records' },
     icon: cilLibrary,
   },
-
 ]

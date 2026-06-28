@@ -9,7 +9,7 @@ import axios from 'axios'
 
 
 const api = axios.create({
-  //  baseURL: 'http://127.0.0.1:9001/api/', // dev server
+  //  baseURL: 'http://127.0.0.1:9001/api/', // local
  baseURL: 'https://tenant-api.phenaschool.com/api/',   // PRODUCTION
   headers: {
     'Content-Type': 'application/json',

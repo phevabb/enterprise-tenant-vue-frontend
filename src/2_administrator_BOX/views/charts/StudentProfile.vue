@@ -109,6 +109,9 @@
 
                 <CTableHeaderCell>#</CTableHeaderCell>
                 <CTableHeaderCell>Name</CTableHeaderCell>
+                <CTableHeaderCell>pin</CTableHeaderCell>
+                <CTableHeaderCell>userId</CTableHeaderCell>
+
                 <CTableHeaderCell>Current Class</CTableHeaderCell>
                 <CTableHeaderCell>Dad's Contact </CTableHeaderCell>
                 <CTableHeaderCell>Mom's Contact</CTableHeaderCell>
@@ -127,6 +130,9 @@
                   {{ (currentPage - 1) * pageSize + idx + 1 }}
                 </CTableHeaderCell>
 
+
+
+
                 <CTableDataCell>
   <div class="d-flex align-items-center gap-2">
     <img v-if="student.user.profilePictureUrl" :src="student.user.profilePictureUrl" alt="Profile Picture" class="student-table-avatar" />
@@ -134,6 +140,14 @@
     <span>{{ student.user?.fullName || '—' }}</span>
   </div>
 </CTableDataCell>
+
+<CTableDataCell>
+                  {{ student.user?.pin || '—' }}
+                </CTableDataCell>
+
+                <CTableDataCell>
+                  {{ student.user?.userId || '—' }}
+                </CTableDataCell>
 
                 <CTableDataCell>
                   {{ student.currentNewGradeClass?.name || '—' }}
@@ -762,12 +776,14 @@ function normalizeStudent(s) {
   if (!s) return s
 
   const user = s.user || {}
-  const fullName = user.fullName ?? user.full_name ?? ''
-  const dateOfBirth = user.dateOfBirth ?? user.date_of_birth ?? null
-  const nationality = user.nationality ?? null
-  const gender = user.gender ?? null
-  const isActive = user.isActive ?? user.is_active ?? true
-  const userId = user.userId ?? user.user_id ?? null
+  const pin = user.pin || null
+  const userId = user.userId || null
+  const fullName = user.fullName || user.full_name || ''
+  const dateOfBirth = user.dateOfBirth || user.date_of_birth || null
+  const nationality = user.nationality || null
+  const gender = user.gender || null
+  const isActive = user.isActive || user.is_active || true
+
 
   // ✅ important for profile picture
   const profilePictureUrl =
@@ -961,6 +977,7 @@ async function loadAllStudents() {
 
   try {
     const res = await rawst_ktor_paginated(currentPage.value, pageSize, searchTerm.value)
+    console.log("res is print", res)
 
 
     const list = res.data?.data || []
