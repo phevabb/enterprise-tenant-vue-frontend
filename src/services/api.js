@@ -700,7 +700,7 @@ export const delete_academic_record_ktor = (id) => api.delete(`academic-records/
 
 export const receipt_print = (id) =>  api.get(`receipts/${id}/pdf`, { responseType: "blob" })
 
-export const family_receipt_pdf = (id) =>  api.get(`family-receipt/${id}/pdf`, { responseType: "blob" })
+export const family_receipt_pdf = (id) =>  api.get(`family-receipt/${id}/pdf`, { params: { schoolName: localStorage.getItem('tenantSchoolName') || 'School' }, responseType: "blob" })
 
 // profile picture
 

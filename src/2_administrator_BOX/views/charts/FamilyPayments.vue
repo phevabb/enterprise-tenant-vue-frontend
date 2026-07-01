@@ -220,6 +220,8 @@ import {
   get_raw_family_fee_rec_ktor,
 } from "@/services/api"
 
+const schoolName = localStorage.getItem('tenantSchoolName') || 'School'
+
 const toast = useToast()
 
 /* -----------------------------------------
@@ -427,7 +429,12 @@ async function downloadFamilyReceiptPdfById(receiptId, receiptNo) {
   }
 
   try {
-    const res = await family_receipt_pdf(receiptId) // ✅ blob PDF
+ const receiptSchoolName =
+  localStorage.getItem("tenantSchoolName") ||
+  localStorage.getItem("schoolName") ||
+  "School"
+
+const res = await family_receipt_pdf(receiptId, receiptSchoolName)
     const blob = res.data
 
     if (!blob || blob.size < 50) {
@@ -612,10 +619,17 @@ async function savePayment() {
   isSubmitting.value = true
   formError.value = ""
 
-  const payload = {
-    family_fee_record: Number(form.familyFeeRecordId),
-    amount: Number(form.amount),
-  }
+ const payload = {
+  family_fee_record: Number(form.familyFeeRecordId),
+  amount: Number(form.amount),
+
+  // ✅ Send school name to backend for receipt PDF
+  schoolName: localStorage.getItem('tenantSchoolName') || 'School',
+
+
+}
+
+
 
   try {
     const res = await create_family_payment_ktor(payload)
@@ -635,6 +649,7 @@ async function savePayment() {
 
     showFormModal.value = false
   } catch (err) {
+
 
     const data = err?.response?.data
     let message = "Failed to save payment"

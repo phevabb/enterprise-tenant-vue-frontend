@@ -812,7 +812,7 @@ onMounted(async () => {
 
     await loadFeeStructures(1)
   } catch (err) {
-    console.log('Error during initialization: print', err)
+
 
     if (isTenantInactiveError(err)) {
       clearTenantAuth()
