@@ -35,30 +35,30 @@ export default [
     to: '/fees/student-fee-records ',
     icon: 'cil-pencil',
   },
-  {
-    component: 'CNavTitle',
-    name: 'Family Fees',
-  },
+  // {
+  //   component: 'CNavTitle',
+  //   name: 'Family Fees',
+  // },
 
-  {
-    component: 'CNavItem',
-    name: 'Families',
-    to: '/fees/family',
-    role: ['administrator'],
-    icon: 'cil-chart-pie',
-  },
-  {
-    component: 'CNavItem',
-    name: 'Family Fee Records',
-    to: '/fees/family-fee-records',
-    icon: 'cil-chart-pie',
-  },
-  {
-    component: 'CNavItem',
-    name: 'Family Payments',
-    to: '/fees/family-fee-payments',
-    icon: 'cil-chart-pie',
-  },
+  // {
+  //   component: 'CNavItem',
+  //   name: 'Families',
+  //   to: '/fees/family',
+  //   role: ['administrator'],
+  //   icon: 'cil-chart-pie',
+  // },
+  // {
+  //   component: 'CNavItem',
+  //   name: 'Family Fee Records',
+  //   to: '/fees/family-fee-records',
+  //   icon: 'cil-chart-pie',
+  // },
+  // {
+  //   component: 'CNavItem',
+  //   name: 'Family Payments',
+  //   to: '/fees/family-fee-payments',
+  //   icon: 'cil-chart-pie',
+  // },
 
   {
     component: 'CNavTitle',

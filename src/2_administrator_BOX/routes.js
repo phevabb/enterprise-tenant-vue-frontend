@@ -22,6 +22,14 @@ export const adminRoutes = {
       meta: { roles: ['administrator'] },
     },
 
+     {
+      path: 'bills',
+      name: 'bills',
+      component: () =>
+        import('@/2_administrator_BOX/views/base/BillingManager.vue'),
+      meta: { roles: ['administrator'] },
+    },
+
 {
       path: 'subjects',
       name: 'subjects',
