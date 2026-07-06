@@ -411,44 +411,67 @@ const completedCount = computed(() => {
    WHERE: this uses create_subject_score_ktor (by-staff endpoint)
    =========================== */
 async function confirmPublishAndSend() {
-  sending.value = true
-  try {
-    const subj = subject.value
-    if (!subj) {
-      toast.error("No subject selected")
-      return
-    }
+  const subj = subject.value
 
-    if (!ctx.gradeclassId || !ctx.termId || !ctx.yearId) {
-      toast.error("Missing context: class/term/year")
-      return
-    }
+  if (!subj) {
+    toast.error("No subject selected")
+    return
+  }
 
-    for (const s of students.value) {
+  if (!ctx.gradeclassId || !ctx.termId || !ctx.yearId) {
+    toast.error("Missing context: class/term/year")
+    return
+  }
+
+  const scores = students.value
+    .map((s) => {
       const r = rec(s.id)
-      if (!isComplete(s.id, subj)) continue
 
-      // ✅ Send snake_case keys (works with @JsonNames or @SerialName)
-      await create_subject_score_ktor({
+      return {
         student: s.id,
-        subject: subj,
-        class_score: r[`${subj}_class_score`],
-        exam_score: r[`${subj}_exam_score`]
-      })
+        class_score: r[`${subj}_class_score`] == null
+          ? null
+          : Number(r[`${subj}_class_score`]),
+        exam_score: r[`${subj}_exam_score`] == null
+          ? null
+          : Number(r[`${subj}_exam_score`]),
+      }
+    })
+    .filter((item) => {
+      return item.class_score !== null && item.exam_score !== null
+    })
+
+  if (scores.length !== students.value.length) {
+    toast.error("Please complete all students before publishing.")
+    return
+  }
+
+  sending.value = true
+
+  try {
+    const payload = {
+      subject: subj,
+      scores,
     }
+
+
+
+    await create_subject_score_ktor(payload)
 
     toast.success("✅ Published successfully")
-    // Reload to show server-calculated positions/grades if needed
+
     await preloadSubjectScores(subj)
-
   } catch (err) {
-
-    toast.error("❌ Failed to publish")
+    console.error("Bulk publish failed", err)
+    toast.error(
+      err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        "❌ Failed to publish"
+    )
   } finally {
     sending.value = false
   }
 }
-
 /* ===========================
    (K) INIT
    WHERE: called once on mount

@@ -675,7 +675,7 @@ export const get_teacher_student = () => api.get("staff/teacher-students");
 
 export const assigned_class_ktor = (id) => api.get(`staff/assigned-class/${id}`);
 
-export const create_subject_score_ktor = ( payload) => api.post("subject-scores/by-staff", payload);
+export const create_subject_score_ktor = ( payload) => api.post("subject-scores/by-staff/bulk", payload);
 
 export const create_subject_score = (payload) =>    api.post("academic-records/new-subject-scores/subject-scores/", payload);
 
