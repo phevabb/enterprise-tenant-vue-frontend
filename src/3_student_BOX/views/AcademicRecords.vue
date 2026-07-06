@@ -1,489 +1,578 @@
 <template>
-  <CContainer fluid class="py-4 report-pack-wrapper">
-
-    <!-- PACK HEADER / ACTIONS -->
-    <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+  <CContainer fluid class="py-4 report-table-page">
+    <div class="page-hero mb-4">
       <div>
-        <h3 class="fw-bold m-0">Student Report Pack</h3>
-        <small class="text-muted">All terms for the selected class & year</small>
-      </div>
-      <div class="d-flex gap-2">
+        <p class="eyebrow">Academic Reports</p>
 
-        <button class="btn btn-primary" @click="printAll">
-          <i class="cil-print me-1"></i> Print All
+        <h2 class="m-0">
+          Student Report Cards
+        </h2>
+
+        <p class="text-muted mb-0">
+          View or download report cards term by term.
+        </p>
+      </div>
+
+      <div class="hero-actions">
+        <button
+          style="color: black;"
+          class="btn btn-light"
+          type="button"
+          :disabled="loading"
+          @click="fetchReportCards"
+        >
+          Refresh
+        </button>
+
+        <button
+          class="btn btn-outline-light"
+          type="button"
+          :disabled="loadingPdf || reportCards.length === 0"
+          @click="downloadAllReportCardsPdf"
+        >
+          Download All
         </button>
       </div>
     </div>
 
-    <!-- SHEETS (one per term) -->
-    <div
-      v-for="(rec, idx) in displayRecords"
-      :key="rec.id || idx"
-      class="sheet shadow-lg border-0 rounded-4 mb-5"
-    >
+    <CCard class="border-0 shadow-sm rounded-4 mb-4">
+      <CCardBody>
+        <div class="student-summary">
+          <!-- <div class="avatar-ring">
+  studentProfilePicture || dummyAvatar
+</div> -->
 
-      <!-- SHEET HEADER -->
-<!-- SHEET HEADER -->
-<CCard class="border-0 rounded-4 report-header">
-  <CCardBody class="p-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div>
+            <h4 class="mb-1">
+              {{ studentDisplayName }}
+            </h4>
 
-      <!-- Left: School + Title + Context -->
-      <div>
-        <!-- Always-visible school name -->
-        <h1 class="school-name m-0">
-          {{ tenant?.schoolName || 'School Name' }}
+            <div class="text-muted small">
+              Student User ID:
+              <strong>{{ studentUserId || '—' }}</strong>
+            </div>
 
-        </h1>
+            <div class="text-muted small">
+              School:
+              <strong>{{ schoolDisplayName }}</strong>
+            </div>
 
-
-
-        <div class="text-muted mt-1 small">
-          <span class="me-2">
-            Academic Year:
-            <strong>{{ rec.academicYear?.name || rec.academic_year || '—' }}</strong>
-          </span>
-          <span class="me-2">•</span>
-          <span class="me-2">
-            Term:
-            <strong>{{ rec.term?.name || rec.term || '—' }}</strong>
-          </span>
-          <span class="me-2">•</span>
-          <span>
-            Class:
-            <strong>{{ rec.classLevel?.name || rec.class_level || '—' }}</strong>
-          </span>
-        </div>
-      </div>
-
-      <!-- Right: Student block with Avatar -->
-      <div class="d-flex align-items-center gap-3">
-
-
-
-<div class="avatar-ring">
-  <!-- Real profile picture -->
-  <img
-    v-if="profilpic.profile_picture"
-    :src="profilpic.profile_picture"
-    alt="Profile Picture"
-    class="avatar-img"
-    @error="onImgError"
-  />
-
-  <!-- Fallback avatar -->
-  <img
-    v-else
-    class="avatar-img"
-    :src="avatarSrc(rec)"
-    :alt="rec.student?.name || 'Student'"
-    @error="onImgError"
-  />
-</div>
-
-
-
-
-
-
-        <div class="text-end">
-          <div class="fw-bold fs-5">{{ rec.student?.name || '—' }}</div>
-          <div class="text-muted small">
-             <strong>ACADEMIC REPORT</strong>
-          </div>
-          <div class="text-muted small">
-            Overall Position:
-            <strong>{{ rec.overallPosition ? ordinal(rec.overallPosition) : '—' }}</strong>
-            <span v-if="rec.numberOnRoll"> / {{ rec.numberOnRoll }}</span>
+            <div class="text-muted small">
+              Tenant Code:
+              <strong>{{ tenantCode || '—' }}</strong>
+            </div>
           </div>
         </div>
-      </div>
+      </CCardBody>
+    </CCard>
 
+    <div v-if="errorMessage" class="alert alert-danger">
+      {{ errorMessage }}
     </div>
-  </CCardBody>
-</CCard>
 
-
-
-
-      <!-- SUBJECT TABLE -->
-      <CCard class="border-0 rounded-4 glass-card mt-3">
-        <CCardHeader class="bg-light fw-bold">Academic Performance</CCardHeader>
-        <CCardBody class="p-0">
-
-          <CTable responsive hover class="mb-0 text-center align-middle rc-table">
-            <CTableHead color="light">
-              <CTableRow>
-                <CTableHeaderCell style="width: 44px;">#</CTableHeaderCell>
-                <CTableHeaderCell class="text-start">Subject</CTableHeaderCell>
-                <CTableHeaderCell>Class</CTableHeaderCell>
-                <CTableHeaderCell>Exam</CTableHeaderCell>
-                <CTableHeaderCell>Total</CTableHeaderCell>
-                <CTableHeaderCell>Grade</CTableHeaderCell>
-                <CTableHeaderCell>Interpretation</CTableHeaderCell>
-                <CTableHeaderCell>Position</CTableHeaderCell>
-
-              </CTableRow>
-            </CTableHead>
-
-              <CTableBody>
-                <CTableRow v-for="(s, i) in rec.subjects" :key="i">
-                  <CTableDataCell class="text-muted">{{ i + 1 }}</CTableDataCell>
-
-                  <CTableDataCell class="fw-semibold text-start">
-                    {{ s.subjectName }}
-                  </CTableDataCell>
-
-                  <CTableDataCell>{{ show(s.classScore) }}</CTableDataCell>
-                  <CTableDataCell>{{ show(s.examScore) }}</CTableDataCell>
-                  <CTableDataCell class="fw-bold">{{ show(s.totalScore) }}</CTableDataCell>
-
-                  <CTableDataCell>
-                    <strong>{{ s.gradeCode || '-' }}</strong>
-                  </CTableDataCell>
-
-                  <CTableDataCell>{{ s.interpretation || '-' }}</CTableDataCell>
-
-                  <CTableDataCell>
-                    {{ s.position ? ordinal(s.position) : '-' }}
-                  </CTableDataCell>
-                </CTableRow>
-              </CTableBody>
-
-<CTableFoot>
-  <CTableRow class="fw-bold">
-    <CTableDataCell></CTableDataCell>
-    <CTableDataCell class="text-start">Totals / Average</CTableDataCell>
-
-    <CTableDataCell>{{ sumClass(rec.subjects) }}</CTableDataCell>
-    <CTableDataCell>{{ sumExam(rec.subjects) }}</CTableDataCell>
-    <CTableDataCell>{{ rec.rawScoreTotal }}</CTableDataCell>
-
-    <CTableDataCell>—</CTableDataCell>
-    <CTableDataCell class="text-muted">
-      Avg: {{ avgTotal(rec.subjects).toFixed(1) }}
-    </CTableDataCell>
-    <CTableDataCell>—</CTableDataCell>
-  </CTableRow>
-</CTableFoot>
-
-          </CTable>
-
-
-        </CCardBody>
-      </CCard>
-
-      <!-- SUMMARY ROW -->
-      <CRow class="mt-3">
-        <CCol md="4" class="mb-3">
-          <CCard class="shadow-sm border-0 text-center rounded-4">
-            <CCardBody>
-              <div class="text-muted">Attendance</div>
-              <div class="fs-4 fw-bold">{{ show(rec.attendance) }}</div>
-            </CCardBody>
-          </CCard>
-        </CCol>
-        <CCol md="4" class="mb-3">
-          <CCard class="shadow-sm border-0 text-center rounded-4">
-            <CCardBody>
-              <div class="text-muted">Number on Roll</div>
-              <div class="fs-4 fw-bold">{{ show(rec.numberOnRoll) }}</div>
-            </CCardBody>
-          </CCard>
-        </CCol>
-        <CCol md="4" class="mb-3">
-          <CCard class="shadow-sm border-0 text-center rounded-4">
-            <CCardBody>
-              <div class="text-muted">Conduct</div>
-              <div class="fs-4 fw-bold">{{ show(rec.conduct) }}</div>
-            </CCardBody>
-          </CCard>
-        </CCol>
-      </CRow>
-
-      <!-- REMARKS / PROMO -->
-      <CRow class="mt-1">
-        <CCol md="8" class="mb-3">
-          <CCard class="shadow-sm border-0 rounded-4 h-100">
-            <CCardHeader class="bg-light fw-bold">Remarks</CCardHeader>
-            <CCardBody>
-              <p class="mb-2"><strong>Attitude:</strong> {{ rec.attitude || '-' }}</p>
-              <p class="mb-2"><strong>Interest:</strong> {{ rec.interest || '-' }}</p>
-              <p class="mb-2"><strong>Teacher's Remarks:</strong> {{ rec.teacherRemarks || '-' }}</p>
-              <p class="mb-0"><strong>Head Teacher's Remarks:</strong> {{ rec.headTeacherRemarks || '-' }}</p>
-            </CCardBody>
-          </CCard>
-        </CCol>
-        <CCol md="4" class="mb-3">
-          <CCard class="shadow-sm border-0 rounded-4 h-100">
-            <CCardHeader class="bg-light fw-bold">Promotion / Next Term</CCardHeader>
-            <CCardBody>
-              <p class="mb-2"><strong>Promoted To:</strong> {{ rec.promotedTo || '-' }}</p>
-              <p class="mb-0"><strong>Next Term Begins:</strong> {{ rec.nextTermBegins || '-' }}</p>
-            </CCardBody>
-          </CCard>
-        </CCol>
-      </CRow>
-
-      <!-- PAGE FOOTER -->
-      <div class="d-flex justify-content-between text-muted small mt-3 sheet-footer">
-
-
-      </div>
+    <div v-if="successMessage" class="alert alert-success">
+      {{ successMessage }}
     </div>
-    <!-- /sheet -->
 
+    <CCard class="border-0 shadow-sm rounded-4">
+      <CCardHeader class="bg-white border-0 py-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <h5 class="fw-bold m-0">
+              Available Report Cards
+            </h5>
+
+            <small class="text-muted">
+              {{ reportCards.length }} term report(s) found
+            </small>
+          </div>
+
+          <input
+            v-model.trim="searchText"
+            class="form-control search-input"
+            type="text"
+            placeholder="Search year, term, class..."
+          />
+        </div>
+      </CCardHeader>
+
+      <CCardBody class="p-0">
+        <div v-if="loading" class="empty-state">
+          Loading report cards...
+        </div>
+
+        <CTable
+          v-else
+          responsive
+          hover
+          class="mb-0 align-middle report-table"
+        >
+          <CTableHead color="light">
+            <CTableRow>
+              <CTableHeaderCell>#</CTableHeaderCell>
+              <CTableHeaderCell>Academic Year</CTableHeaderCell>
+              <CTableHeaderCell>Term</CTableHeaderCell>
+              <CTableHeaderCell>Class</CTableHeaderCell>
+              <CTableHeaderCell>Total</CTableHeaderCell>
+              <CTableHeaderCell>Average</CTableHeaderCell>
+              <CTableHeaderCell>Position</CTableHeaderCell>
+              <CTableHeaderCell>Subjects</CTableHeaderCell>
+
+              <CTableHeaderCell>Actions</CTableHeaderCell>
+            </CTableRow>
+          </CTableHead>
+
+          <CTableBody>
+            <CTableRow
+              v-for="(report, index) in filteredReportCards"
+              :key="report.id"
+            >
+              <CTableDataCell class="text-muted">
+                {{ index + 1 }}
+              </CTableDataCell>
+
+              <CTableDataCell>
+                <strong>{{ report.academicYearName }}</strong>
+              </CTableDataCell>
+
+              <CTableDataCell>
+                {{ report.termName }}
+              </CTableDataCell>
+
+              <CTableDataCell>
+                {{ report.className }}
+              </CTableDataCell>
+
+              <CTableDataCell>
+                <strong>{{ show(report.rawScoreTotal) }}</strong>
+              </CTableDataCell>
+
+              <CTableDataCell>
+                {{ Number(report.averageScore || 0).toFixed(1) }}
+              </CTableDataCell>
+
+              <CTableDataCell>
+                {{ report.overallPosition ? ordinal(report.overallPosition) : '—' }}
+                <span v-if="report.numberOnRoll">
+                  / {{ report.numberOnRoll }}
+                </span>
+              </CTableDataCell>
+
+              <CTableDataCell>
+                {{ report.subjectCount || 0 }}
+              </CTableDataCell>
+
+              <!-- <CTableDataCell>
+                <span class="badge bg-success">
+                  Ready
+                </span>
+              </CTableDataCell> -->
+
+              <CTableDataCell>
+                <div class="d-flex gap-2 flex-wrap">
+                  <!-- <button
+                    class="btn btn-sm btn-primary"
+                    type="button"
+                    :disabled="loadingPdf"
+                    @click="openTermPdf(report)"
+                  >
+                    View
+                  </button> -->
+
+                  <button
+                    class="btn btn-sm btn-outline-primary"
+                    type="button"
+                    :disabled="loadingPdf"
+                    @click="downloadTermPdf(report)"
+                  >
+                    Download
+                  </button>
+                </div>
+              </CTableDataCell>
+            </CTableRow>
+
+            <CTableRow v-if="filteredReportCards.length === 0">
+              <CTableDataCell colspan="10" class="empty-state">
+                No report cards found.
+              </CTableDataCell>
+            </CTableRow>
+          </CTableBody>
+        </CTable>
+      </CCardBody>
+    </CCard>
   </CContainer>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { getReportCardByUser_ktor , get_profile_picture, get_current_tenant} from '@/services/api'
+import { computed, onMounted, ref } from 'vue'
+import {
+  getReportCardsByUser_ktor,
+  getReportCardPdfPackByUser_ktor,
+  getReportCardTermPdfByUser_ktor,
+} from '@/services/api'
 
-/* ----------------------------------------------------
-   PROPS (school branding only)
----------------------------------------------------- */
-const props = defineProps({
-  school: {
-    type: Object,
-    default: () => ({
-      name: '',
-      logoUrl: '',
-    }),
-  },
+const loading = ref(false)
+const loadingPdf = ref(false)
+
+const errorMessage = ref('')
+const successMessage = ref('')
+const studentProfilePictureUrl = ref('')
+const student = ref(null)
+const reportCards = ref([])
+const searchText = ref('')
+
+const dummyAvatar =
+  'data:image/svg+xml;base64,' +
+  btoa(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="140" height="140">
+      <rect width="140" height="140" fill="#d1d5db"/>
+      <circle cx="70" cy="56" r="26" fill="white"/>
+      <rect x="22" y="90" width="96" height="34" rx="17" fill="white"/>
+    </svg>
+  `)
+
+const tenantCode = computed(() => {
+  return localStorage.getItem('tenantCode') || ''
 })
 
-const tenant = ref(null)
+const schoolDisplayName = computed(() => {
+  return (
+    localStorage.getItem('tenantSchoolName') ||
+    localStorage.getItem('xSchoolName') ||
+    localStorage.getItem('schoolName') ||
+    'School Name'
+  )
+})
 
+const studentUserId = computed(() => {
+  return (
+    student.value?.userId ||
+    student.value?.user_id ||
+    student.value?.id ||
+    null
+  )
+})
 
-/* ----------------------------------------------------
-   SUBJECT LIST
----------------------------------------------------- */
-// const SUBJECTS = [
-//   { key: 'english', label: 'English' },
-//   { key: 'maths', label: 'Maths' },
-//   { key: 'science', label: 'Science' },
-//   { key: 'rme', label: 'RME' },
-//   { key: 'ict', label: 'ICT' },
-//   { key: 'history', label: 'History' },
-//   { key: 'fante', label: 'Fante' },
-//   { key: 'creativearts', label: 'Creative Arts' },
-// ]
-// const subjects = SUBJECTS
+const studentDisplayName = computed(() => {
+  return (
+    reportCards.value?.[0]?.studentName ||
+    student.value?.fullName ||
+    student.value?.full_name ||
+    student.value?.name ||
+    'Student'
+  )
+})
 
-/* ----------------------------------------------------
-   STATE
----------------------------------------------------- */
-const loading = ref(true)
-const displayRecords = ref([])          // MULTI-TERM RECORD DATA
-const student = ref(null)               // THE LOGGED-IN STUDENT
+const studentProfilePicture = computed(() => {
+  return studentProfilePictureUrl.value || dummyAvatar
+})
 
-/* ----------------------------------------------------
-   LOAD STUDENT FROM LOCALSTORAGE
----------------------------------------------------- */
+const filteredReportCards = computed(() => {
+  const search = searchText.value.toLowerCase()
 
+  if (!search) {
+    return reportCards.value
+  }
 
-const profilpic = ref({
-  profile_picture: "",
+  return reportCards.value.filter((report) => {
+    return [
+      report.academicYearName,
+      report.termName,
+      report.className,
+      report.studentName,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(search)
+  })
+})
 
-});
-
-/* ----------------------------------------------------
-   FETCH REPORT CARD USING BACKEND API
----------------------------------------------------- */
-async function fetchTenant() {
+function loadStudentFromLocalStorage() {
   try {
-    const response = await get_current_tenant()
-    tenant.value = response.data
-  } catch (err) {
-    tenant.value = null
+    const stored = localStorage.getItem('user')
+    student.value = stored ? JSON.parse(stored) : null
+  } catch {
+    student.value = null
   }
 }
 
-async function fetchReportCard() {
-  loading.value = true
+function validateBeforeRequest() {
+  errorMessage.value = ''
+  successMessage.value = ''
 
-const stored = localStorage.getItem('user')
-    const stu = JSON.parse(stored)
-
-  student.value = stu
-
-  if (!stu?.id) {
-
-    loading.value = false
-    return
+  if (!studentUserId.value) {
+    errorMessage.value = 'Student user ID not found.'
+    return false
   }
 
+  const code = localStorage.getItem('tenantCode')
+  const slug = localStorage.getItem('tenantSlug')
+
+  if (!code && !slug) {
+    errorMessage.value =
+      'Tenant information is missing. Please login again.'
+    return false
+  }
+
+  return true
+}
+
+async function fetchReportCards() {
+  if (!validateBeforeRequest()) return
+
+  loading.value = true
+
   try {
-
-    const response = await getReportCardByUser_ktor(stu.userId)
-
-
-    profilpic.value.profile_picture = response?.data[0]?.student?.profilePictureUrl || ''
+    const response = await getReportCardsByUser_ktor(studentUserId.value)
 
 
 
+    reportCards.value = Array.isArray(response.data)
+      ? response.data
+      : []
+
+    studentProfilePictureUrl.value =
+      reportCards.value?.[0]?.profilePictureUrl || ''
+  } catch (error) {
 
 
+    reportCards.value = []
+    studentProfilePictureUrl.value = ''
 
-
-
-  displayRecords.value = (Array.isArray(response.data) ? response.data : [response.data])
-  .map(record => ({
-    ...record,
-    student: {
-      ...record.student,
-      full_name: stu?.full_name || '',
-      indexNo: stu?.user_id|| '' ,
-
-    }
-  }))
-
-  } catch (err) {
-
-    displayRecords.value = []               // FAIL SAFE
+    errorMessage.value =
+      error?.response?.data?.message ||
+      error?.response?.data ||
+      'Unable to load report cards.'
   } finally {
     loading.value = false
   }
 }
+async function fetchPdfBlob(requestFn) {
+  loadingPdf.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
 
-/* ----------------------------------------------------
-   COMPUTED HELPERS
----------------------------------------------------- */
-function show(v) { return v === null || v === undefined ? '-' : v }
+  try {
+    const response = await requestFn()
 
-function ordinal(n) {
-  const num = Number(n)
-  if (!num) return '-'
-  const s = ['th', 'st', 'nd', 'rd'], v = num % 100
-  return num + (s[(v - 20) % 10] || s[v] || s[0])
+    return new Blob([response.data], {
+      type: 'application/pdf',
+    })
+  } catch (error) {
+
+    // return null
+  } finally {
+    loadingPdf.value = false
+  }
 }
 
-function gradeColor(g) {
-  return { A: 'success', B: 'info', C: 'primary', D: 'warning', E: 'danger' }[g] || 'secondary'
+async function openTermPdf(report) {
+  const blob = await fetchPdfBlob(() =>
+    getReportCardTermPdfByUser_ktor(studentUserId.value, report.id)
+  )
+
+  if (!blob) return
+
+  const url = window.URL.createObjectURL(blob)
+  const pdfWindow = window.open(url, '_blank')
+
+  if (!pdfWindow) {
+    errorMessage.value = 'Popup blocked. Please allow popups to view the PDF.'
+  }
 }
 
-function sumClass(subjects) {
-  if (!Array.isArray(subjects)) return 0;
-  return subjects.reduce((acc, s) => acc + (s.classScore || 0), 0);
+async function downloadTermPdf(report) {
+  const blob = await fetchPdfBlob(() =>
+    getReportCardTermPdfByUser_ktor(studentUserId.value, report.id)
+  )
+
+  if (!blob) return
+
+  const url = window.URL.createObjectURL(blob)
+
+  const fileName = `report-card-${studentUserId.value}-${slugify(report.academicYearName)}-${slugify(report.termName)}.pdf`
+
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+
+  window.URL.revokeObjectURL(url)
+
+  successMessage.value = 'Report card PDF downloaded.'
 }
 
-function sumExam(subjects) {
-  if (!Array.isArray(subjects)) return 0;
-  return subjects.reduce((acc, s) => acc + (s.examScore || 0), 0);
+async function downloadAllReportCardsPdf() {
+  const blob = await fetchPdfBlob(() =>
+    getReportCardPdfPackByUser_ktor(studentUserId.value)
+  )
+
+  if (!blob) return
+
+  const url = window.URL.createObjectURL(blob)
+
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `report-card-pack-${studentUserId.value}.pdf`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+
+  window.URL.revokeObjectURL(url)
+
+  successMessage.value = 'Report card pack downloaded.'
 }
 
-function sumTotal(subjects) {
-  if (!Array.isArray(subjects)) return 0;
-  return subjects.reduce((acc, s) => acc + (s.totalScore || 0), 0);
+function show(value) {
+  return value === null || value === undefined || value === ''
+    ? '—'
+    : value
 }
 
-function avgTotal(subjects) {
-  if (!Array.isArray(subjects) || subjects.length === 0) return 0;
-  return sumTotal(subjects) / subjects.length;
+function ordinal(value) {
+  const numberValue = Number(value)
+
+  if (!numberValue) {
+    return '—'
+  }
+
+  const suffixes = ['th', 'st', 'nd', 'rd']
+  const v = numberValue % 100
+
+  return numberValue + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0])
 }
 
-function avgGrade(rec) {
-  const t = avgTotal(rec)
-  if (t >= 85) return 'A'
-  if (t >= 70) return 'B'
-  if (t >= 50) return 'C'
-  if (t >= 30) return 'D'
-  return 'E'
+function slugify(value) {
+  return String(value || 'report')
+    .toLowerCase()
+    .replace(/[^\w]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
-/* ----------------------------------------------------
-   AVATAR HANDLING
----------------------------------------------------- */
-const dummyAvatar =
-  "data:image/svg+xml;base64," +
-  btoa(`<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'>
-    <rect width='140' height='140' fill='#d1d5db'/>
-    <circle cx='70' cy='56' r='26' fill='white'/>
-    <rect x='22' y='90' width='96' height='34' rx='17' fill='white'/>
-  </svg>`)
-
-function avatarSrc(rec) {
-  return rec.student?.photo_url || rec.student?.avatar || dummyAvatar
-}
-function onImgError(e) {
-  if (e?.target) e.target.src = dummyAvatar
+function onImgError(event) {
+  if (event?.target) {
+    event.target.src = dummyAvatar
+  }
 }
 
-/* ----------------------------------------------------
-   GLOBAL ACTIONS
----------------------------------------------------- */
-const today = new Date().toLocaleDateString()
-function printAll() { window.print() }
-function toggleTheme() { document.body.classList.toggle('report-dark') }
-
-/* ----------------------------------------------------
-   MOUNT
----------------------------------------------------- */
-onMounted(async () => {
-  await fetchReportCard()
-  await fetchTenant()
+onMounted(() => {
+  loadStudentFromLocalStorage()
+  fetchReportCards()
 })
 </script>
 
-
-
-
 <style scoped>
-.report-pack-wrapper :deep(.card) { border-radius: 18px; }
-
-.report-header{
-  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+.report-table-page {
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.07), transparent 32%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  min-height: 100vh;
 }
 
-.glass-card{
-  background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(0,0,0,0.04);
+.page-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.5rem;
+  border-radius: 24px;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.5), transparent 34%),
+    linear-gradient(135deg, #020617, #1e293b);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
 }
 
-/* Avatar ring */
-.avatar-ring{
-  width: 70px; height: 70px; border-radius: 50%;
-  padding: 2px; background: linear-gradient(135deg, #60a5fa, #22c55e);
-}
-.avatar-img{
-  width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
-  display: block; background: #fff;
-}
-
-/* Sheet wrapper + print paging */
-.sheet{
-  padding: 16px;
-  background: #f8fafc;
-}
-.sheet-footer{ padding: 0 4px; }
-
-/* Page break on print */
-@media print {
-  .no-print{ display: none !important; }
-  .sheet{ page-break-after: always; }
-  .sheet:last-child{ page-break-after: auto; }
-  .report-header{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-}
-
-.school-name {
+.page-hero h2 {
+  color: #ffffff;
   font-weight: 900;
-  letter-spacing: 0.5px;
-  line-height: 1.1;
-  font-size: clamp(20px, 2.6vw, 28px);
-  background: linear-gradient(90deg, #0f172a, #334155);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  margin-bottom: 4px;
 }
 
-
-.badge strong {
-  font-weight: 700 !important;
+.page-hero .text-muted {
+  color: #cbd5e1 !important;
 }
 
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: #93c5fd;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
 
-/* Existing styles … keep your avatar, report-header, etc. */
+.hero-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.student-summary {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar-ring {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  padding: 2px;
+  background: linear-gradient(135deg, #60a5fa, #22c55e);
+  flex-shrink: 0;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+  object-fit: cover;
+  background: #ffffff;
+}
+
+.search-input {
+  max-width: 320px;
+}
+
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.report-table th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #475569;
+}
+
+.report-table td {
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .page-hero {
+    align-items: flex-start;
+  }
+
+  .hero-actions,
+  .hero-actions .btn {
+    width: 100%;
+  }
+
+  .search-input {
+    max-width: 100%;
+  }
+
+  .student-summary {
+    align-items: flex-start;
+  }
+}
 </style>

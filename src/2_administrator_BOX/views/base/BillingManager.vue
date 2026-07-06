@@ -246,13 +246,13 @@
                 </div>
 
                 <div class="template-actions" @click.stop>
-                  <button class="mini-action" type="button" @click="editTemplate(template)">
+                  <!-- <button class="mini-action" type="button" @click="editTemplate(template)">
                     Edit
-                  </button>
+                  </button> -->
 
-                  <button class="mini-action" type="button" @click="toggleTemplate(template)">
+                  <!-- <button class="mini-action" type="button" @click="toggleTemplate(template)">
                     {{ template.isActive ? 'Disable' : 'Enable' }}
-                  </button>
+                  </button> -->
 
                   <button class="mini-action danger" type="button" @click="deleteTemplate(template)">
                     Delete
@@ -593,7 +593,7 @@
     <td>
       <strong>{{ bill.billNumber }}</strong>
       <small>{{ bill.billTemplateName || `Template ${bill.billTemplateId}` }}</small>
-      <small>Bill ID: {{ bill.id }}</small>
+      <!-- <small>Bill ID: {{ bill.id }}</small> -->
     </td>
 
     <td>

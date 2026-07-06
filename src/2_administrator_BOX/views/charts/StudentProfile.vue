@@ -260,6 +260,154 @@
     </CModalFooter>
   </CModal>
 
+  <CModal
+  :visible="showImportInstructionsModal"
+  @close="showImportInstructionsModal = false"
+  size="lg"
+>
+  <CModalHeader class="bg-warning">
+    <CModalTitle>
+      Import Students
+    </CModalTitle>
+  </CModalHeader>
+
+  <CModalBody>
+    <p>
+      Before importing, make sure all classes already exist.
+    </p>
+
+    <div class="alert alert-info mb-3">
+      <strong>Your Excel file must use these exact headers:</strong>
+
+      <div class="mt-2">
+        <code>
+          fullName, currentClass, contactOfFather, contactOfMother
+        </code>
+      </div>
+    </div>
+
+    <p>
+      The <strong>currentClass</strong> value must match the class
+      name exactly as created in the system.
+    </p>
+
+    <div class="alert alert-secondary mb-0">
+      <strong>Examples:</strong>
+
+      <ul class="mb-0 mt-2">
+        <li>Class 1</li>
+        <li>Nursery 2</li>
+        <li>JHS 1</li>
+      </ul>
+    </div>
+  </CModalBody>
+
+  <CModalFooter>
+    <CButton
+      color="secondary"
+      variant="outline"
+      @click="showImportInstructionsModal = false"
+    >
+      Cancel
+    </CButton>
+
+    <CButton
+      color="warning"
+      @click="proceedWithImport"
+    >
+      Continue
+    </CButton>
+  </CModalFooter>
+</CModal>
+
+<CModal
+  :visible="showImportResultModal"
+  @close="showImportResultModal = false"
+  size="lg"
+>
+  <CModalHeader
+    :class="importResult.failed ? 'bg-warning' : 'bg-success text-white'"
+  >
+    <CModalTitle>
+      Import Results
+    </CModalTitle>
+  </CModalHeader>
+
+  <CModalBody>
+    <p>{{ importResult.message }}</p>
+
+    <div class="row text-center mb-3">
+      <div class="col">
+        <h4 class="text-success">
+          {{ importResult.imported }}
+        </h4>
+        <small>Imported</small>
+      </div>
+
+      <div class="col">
+        <h4 class="text-danger">
+          {{ importResult.failed }}
+        </h4>
+        <small>Failed</small>
+      </div>
+    </div>
+
+    <div
+      v-if="importResult.errors?.length"
+      class="alert alert-danger"
+      style="max-height:300px;overflow:auto"
+    >
+      <strong>Errors</strong>
+
+      <ul class="mb-0 mt-2">
+
+
+        <div
+  v-if="importResult.errors?.length"
+  class="mt-3"
+>
+  <h6 class="text-danger mb-3">
+    Failed Rows ({{ importResult.errors.length }})
+  </h6>
+
+  <div
+    style="max-height:350px;overflow-y:auto"
+    class="border rounded p-3"
+  >
+    <div
+      v-for="(error, index) in importResult.errors"
+      :key="index"
+      class="mb-2 p-2 border-start border-danger border-4 bg-light rounded"
+    >
+      <div class="fw-semibold text-danger">
+        Row {{ error.rowNumber }}
+      </div>
+
+      <div class="text-muted">
+        {{ error.message }}
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+      </ul>
+    </div>
+  </CModalBody>
+
+  <CModalFooter>
+    <CButton style="color: white;"
+      color="primary"
+      @click="showImportResultModal = false"
+    >
+      Close
+    </CButton>
+  </CModalFooter>
+</CModal>
+
+
   <!-- Student Form Modal -->
   <CModal :visible="showFormModal" @close="closeFormModal" size="xl" class="student-modal-premium">
     <CModalHeader class="modal-header-premium">
@@ -565,6 +713,17 @@ const pictureLoading = ref(false)
 const selectedProfileFile = ref(null)
 const profilePreviewUrl = ref("")
 
+const showImportInstructionsModal = ref(false)
+const showImportResultModal = ref(false)
+
+const importResult = reactive({
+  imported: 0,
+  failed: 0,
+  message: '',
+  errors: []
+})
+
+
 
 const importFileInput = ref(null)
 const importLoading = ref(false)
@@ -608,17 +767,11 @@ const currentStudent = ref(null)
 
 
 function triggerImportFile() {
-  const confirmed = window.confirm(
-    'Before importing, make sure all classes already exist.\n\n' +
-      'Your Excel file must use these exact headers:\n' +
-      'fullName, currentClass, contactOfFather, contactOfMother\n\n' +
-      'The currentClass value must match the class name exactly as created in the system.\n\n' +
-      'Example: Class 1, Nursery 2, JHS 1\n\n' +
-      'Continue?'
-  )
+  showImportInstructionsModal.value = true
+}
 
-  if (!confirmed) return
-
+function proceedWithImport() {
+  showImportInstructionsModal.value = false
   importFileInput.value?.click()
 }
 
@@ -628,7 +781,7 @@ async function onImportExcelSelected(event) {
   if (!file) return
 
   if (!file.name.toLowerCase().endsWith('.xlsx')) {
-    alert('Please upload an Excel .xlsx file.')
+    toast.error('Please upload an Excel .xlsx file.')
     event.target.value = ''
     return
   }
@@ -641,23 +794,28 @@ async function onImportExcelSelected(event) {
     const imported = response.data?.importedCount || 0
     const failed = response.data?.failedCount || 0
 
-    alert(
-      `Import completed.\n\nImported: ${imported}\nFailed: ${failed}`
-    )
+    // ✅ Show result in modal instead of alert
+    importResult.imported = imported
+    importResult.failed = failed
+    importResult.errors = response.data?.errors || []
+    importResult.message = 'Import completed.'
 
-    if (Array.isArray(response.data?.errors) && response.data.errors.length) {
-
-    }
+    showImportResultModal.value = true
 
     await loadAllStudents()
-  } catch (err) {
 
-    alert(
+  } catch (err) {
+    importResult.imported = 0
+    importResult.failed = 0
+    importResult.errors = []
+
+    importResult.message =
       err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
-        'Unable to import students.'
-    )
+      err.response?.data?.error ||
+      err.message ||
+      'Unable to import students.'
+
+    showImportResultModal.value = true
   } finally {
     importLoading.value = false
     event.target.value = ''
@@ -681,12 +839,12 @@ async function downloadImportTemplate() {
 
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    alert(
-      err.response?.data?.message ||
-        err.response?.data?.error ||
-        err.message ||
-        'Unable to download import template.'
-    )
+    toast.error(
+  err.response?.data?.message ||
+  err.response?.data?.error ||
+  err.message ||
+  'Unable to download import template.'
+)
   }
 }
 

@@ -138,7 +138,6 @@ function resolvePath(config) {
 
 api.interceptors.request.use(
   (config) => {
-    // Let browser handle multipart boundaries
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type']
     }
@@ -154,9 +153,18 @@ api.interceptors.request.use(
 
     const isPublic = publicPaths.some((p) => path.startsWith(p))
 
-    // Always attach tenant. Ktor resolver depends on this.
     const tenantSlug = getTenantSlug()
     const tenantCode = localStorage.getItem('tenantCode')
+    const tenantSchoolName = localStorage.getItem('tenantSchoolName')
+
+    /**
+     * IMPORTANT:
+     * Your backend route currently requires X-Tenant-Schema.
+     * So make sure this value is stored after login/current tenant fetch.
+     */
+    const tenantSchema =
+      localStorage.getItem('xTenantSchema') ||
+      localStorage.getItem('tenantSchema')
 
     if (tenantSlug) {
       config.headers['X-Tenant-Slug'] = tenantSlug
@@ -166,7 +174,14 @@ api.interceptors.request.use(
       config.headers['X-Tenant-Code'] = tenantCode
     }
 
-    // Attach token only for protected routes
+    if (tenantSchema) {
+      config.headers['X-Tenant-Schema'] = tenantSchema
+    }
+
+    if (tenantSchoolName) {
+      config.headers['X-School-Name'] = tenantSchoolName
+    }
+
     if (!isPublic) {
       const token = localStorage.getItem('token')
 
@@ -179,6 +194,35 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 )
+
+
+export const getReportCardPdfByUser_ktor = (userId) =>
+  api.get(`report/cards/student/${userId}/pdf`, {
+    responseType: 'blob',
+    headers: {
+      Accept: 'application/pdf',
+    },
+  })
+
+  export const getReportCardsByUser_ktor = (userId) =>
+  api.get(`report/cards/student/${userId}`)
+
+export const getReportCardPdfPackByUser_ktor = (userId) =>
+  api.get(`report/cards/student/${userId}/pdf`, {
+    responseType: 'blob',
+    headers: {
+      Accept: 'application/pdf',
+    },
+  })
+
+export const getReportCardTermPdfByUser_ktor = (userId, reportCardId) =>
+  api.get(`report/cards/student/${userId}/terms/${reportCardId}/pdf`, {
+    responseType: 'blob',
+    headers: {
+      Accept: 'application/pdf',
+    },
+  })
+
 
 /* =========================
    RESPONSE INTERCEPTOR
@@ -669,7 +713,21 @@ export const patch_academic_remarks = (id, payload) => api.patch(`academic-recor
 
 // report card
 
-export const getReportCardByUser_ktor = (userId) =>  api.get(`student-academic-report-cards/user/${userId}`);  // → /api/report-card/user/<id>/
+
+
+// export const getReportCardDataByUser_ktor = (userId) =>
+//   api.get(`report/cards/student/${userId}`)
+
+
+// export const getReportCardPdfByUser_ktor = (userId) =>
+//   api.get(`report/cards/student/${userId}/pdf`, {
+//     responseType: 'blob',
+//     headers: {
+//       Accept: 'application/pdf',
+//     },
+//   })
+
+// export const getReportCardByUser_ktor = (userId) =>  api.get(`student-academic-report-cards/user/${userId}`);  // → /api/report-card/user/<id>/
 
 // performance chart
 
