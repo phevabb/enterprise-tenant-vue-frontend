@@ -64,24 +64,37 @@
 
                   <!-- Buttons -->
                   <CRow class="align-items-center">
-                    <CCol xs="6">
-                      <CButton
-                        type="submit"
-                        color="dark"
-                        class="px-4 py-2 text-white rounded-pill w-100 fw-semibold animate-scale"
-                        :disabled="loading"
-                      >
-                        <CSpinner v-if="loading" size="sm" class="me-2" />
-                        Login
-                      </CButton>
-                    </CCol>
+  <CCol xs="6">
+    <CButton
+      type="submit"
+      color="dark"
+      class="px-4 py-2 text-white rounded-pill w-100 fw-semibold animate-scale"
+      :disabled="loading"
+    >
+      <CSpinner v-if="loading" size="sm" class="me-2" />
+      Login
+    </CButton>
+  </CCol>
 
-                    <CCol xs="6" class="text-end">
-                      <router-link to="/reset-password" class="forgot-link">
-                        Forgot password?
-                      </router-link>
-                    </CCol>
-                  </CRow>
+  <CCol xs="6" class="text-end">
+    <router-link to="/reset-password" class="forgot-link">
+      Forgot password?
+    </router-link>
+  </CCol>
+</CRow>
+
+<!-- Registration Link -->
+<CRow class="mt-3">
+  <CCol class="text-center">
+    <span class="text-muted">Not registered?</span>
+    <a
+      href="https://phenaschool.com/auth/register"
+      class="register-link ms-1 fw-semibold"
+    >
+      Create an account
+    </a>
+  </CCol>
+</CRow>
 
                 </CForm>
               </CCardBody>
@@ -431,6 +444,16 @@ onMounted(() => {
     border-bottom: 1px solid #f0f0f0;
   }
 
+.register-link {
+  color: #212529;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.register-link:hover {
+  color: #000;
+  text-decoration: underline;
+}
   .tenant-error {
   margin-top: 10px;
   color: #ffe4e6;

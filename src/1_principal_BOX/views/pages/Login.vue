@@ -29,15 +29,31 @@
                     />
                   </CInputGroup>
                   <CRow>
-                    <CCol :xs="6">
-                      <CButton color="primary" class="px-4"> Login </CButton>
-                    </CCol>
-                    <CCol :xs="6" class="text-right">
-                      <CButton color="link" class="px-0">
-                        Forgot password?
-                      </CButton>
-                    </CCol>
-                  </CRow>
+  <CCol :xs="6">
+    <CButton color="primary" class="px-4">
+      Login
+    </CButton>
+  </CCol>
+
+  <CCol :xs="6" class="text-end">
+    <CButton color="link" class="px-0">
+      Forgot password?
+    </CButton>
+  </CCol>
+</CRow>
+
+<!-- Registration Link -->
+<CRow class="mt-3">
+  <CCol class="text-center">
+    <span class="text-muted">Not registered?</span>
+    <a
+      href="https://phenaschool.com/auth/register"
+      class="register-link ms-1 fw-semibold"
+    >
+      Create an account
+    </a>
+  </CCol>
+</CRow>
                 </CForm>
               </CCardBody>
             </CCard>
