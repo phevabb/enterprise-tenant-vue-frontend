@@ -83,7 +83,7 @@
             <th class="text-no-wrap">Class</th>
             <th class="text-no-wrap">Exam</th>
             <th class="text-right text-no-wrap">Total</th>
-            <th class="text-center text-no-wrap">Grade</th>
+
             <th class="text-center text-no-wrap">Status</th>
           </tr>
         </thead>
@@ -133,9 +133,7 @@
               {{ rec(stu.id)[`${subject}_total_score`] ?? "—" }}
             </td>
 
-            <td class="text-center">
-              {{ rec(stu.id)[`${subject}_grade`] ?? "—" }}
-            </td>
+
 
             <td class="text-center">
               <v-chip

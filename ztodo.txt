@@ -53,3 +53,8 @@ fix the (school name on the login page)
 
 
 fix the small logo on the title page
+
+
+password: 5502
+id: 56634704
+local phevab academy admin
