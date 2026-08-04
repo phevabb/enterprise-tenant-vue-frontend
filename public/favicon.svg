@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="psmGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="256" height="256" rx="48" fill="url(#psmGradient)"/>
+
+  <!-- Graduation Cap -->
+  <path
+    d="M128 50L45 90L128 130L211 90L128 50Z"
+    fill="white"
+  />
+
+  <path
+    d="M70 105V145C70 165 95 180 128 180C161 180 186 165 186 145V105"
+    fill="none"
+    stroke="white"
+    stroke-width="10"
+    stroke-linecap="round"
+  />
+
+  <!-- PSM -->
+  <text
+    x="128"
+    y="225"
+    text-anchor="middle"
+    fill="white"
+    font-family="Arial, sans-serif"
+    font-size="42"
+    font-weight="700"
+  >
+    PSM
+  </text>
+</svg>
