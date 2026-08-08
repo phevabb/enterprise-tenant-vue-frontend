@@ -36,14 +36,14 @@ export default [
   },
 
 
-  { component: 'CNavTitle', name: 'Add Admin' },
+  // { component: 'CNavTitle', name: 'Add Admin' },
 
-  {
-    component: 'CNavItem',
-    name: 'Add Administrator',
-    to: { name: 'add_admin' },
-    icon: 'cil-chart-pie',
-  },
+  // {
+  //   component: 'CNavItem',
+  //   name: 'Add Administrator',
+  //   to: { name: 'add_admin' },
+  //   icon: 'cil-chart-pie',
+  // },
 
 
 
