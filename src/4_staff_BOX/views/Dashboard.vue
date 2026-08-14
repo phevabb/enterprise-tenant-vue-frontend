@@ -460,7 +460,7 @@ async function confirmPublishAndSend() {
 
     await preloadSubjectScores(subj)
   } catch (err) {
-    // console.error("Bulk publish failed", err)
+
     toast.error(
       err?.response?.data?.detail ||
         err?.response?.data?.message ||
