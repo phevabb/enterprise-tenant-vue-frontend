@@ -189,4 +189,14 @@ export default [
     to: { name: 'bills' },
     icon: cilCreditCard,
   },
+  {
+    component: 'CNavTitle',
+    name: 'Announcements',
+  },
+  {
+    component: 'CNavItem',
+    name: 'Announcements',
+    to: { name: 'announcements' },
+    icon: cilAddressBook ,
+  },
 ]

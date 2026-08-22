@@ -1,4 +1,5 @@
 import axios from 'axios'
+import tenantInternalApi from './tenantInternalApi.js'
 
 const api = axios.create({
    baseURL: import.meta.env.VITE_TENANT_API_BASE_URL, // PRODUCTION
@@ -224,6 +225,94 @@ export const getReportCardTermPdfByUser_ktor = (userId, reportCardId) =>
   })
 
 
+  export function getAnnouncementClasses(
+  tenantCode
+) {
+  return;
+}
+
+export function getAnnouncementPreview(
+  payload
+) {
+  return;
+}
+
+
+
+export function sendParentAnnouncement(
+  payload
+) {
+  return tenantInternalApi.post(
+    'internal/sms/sms/announcements/send',
+    payload,
+    {
+      headers: {
+        'X-Tenant-Code':
+          payload.tenantCode,
+      },
+    }
+  )
+}
+
+
+export function getAnnouncementHistory(
+  tenantCode
+) {
+  return tenantInternalApi.get(
+    `internal/sms/sms/announcements/history/${
+      encodeURIComponent(tenantCode)
+    }`,
+    {
+      headers: {
+        'X-Tenant-Code':
+          tenantCode,
+      },
+    }
+  )
+}
+
+
+
+
+
+export function getClientSmsWallet(
+  tenantCode
+) {
+  return tenantInternalApi.get(
+    `internal/sms/sms/wallet/balance/by-tenant/${encodeURIComponent(tenantCode)}`,
+    {
+      headers: {
+        'X-Tenant-Code': tenantCode,
+      },
+    }
+
+  )
+}
+
+
+
+
+
+export function getLatestSenderId(
+  tenantCode
+) {
+  return tenantInternalApi.get(
+    `internal/sms/sms/sender-id/by-tenant/${encodeURIComponent(tenantCode)}`,
+    {
+      headers: {
+        'X-Tenant-Code': tenantCode,
+      },
+    }
+  )
+}
+
+
+
+
+
+
+
+
 /* =========================
    RESPONSE INTERCEPTOR
 ========================= */
@@ -278,6 +367,25 @@ export const DEFAULT_AVATAR = 'https://cdn-icons-png.flaticon.com/512/149/149071
 // Classes APIs
 export const get_classes = () => api.get("student/classes");
 export const get_classes_ktor = () => api.get("grade-class");
+
+
+
+
+
+export const get_classes_with_student_count = () => {
+
+  const tenantCode =
+    localStorage.getItem('tenantCode') || ''
+
+  return api.get(
+    'classes/new/with-student-count',
+    {
+      headers: {
+        'X-Tenant-Code': tenantCode,
+      },
+    }
+  )
+}
 
 export const create_class = (payload) => api.post("student/classes/", payload);
 export const create_class_ktor = (payload) => api.post("grade-class", payload);

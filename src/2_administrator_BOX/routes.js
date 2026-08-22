@@ -30,6 +30,14 @@ export const adminRoutes = {
       meta: { roles: ['administrator'] },
     },
 
+    {
+      path: 'announcements',
+      name: 'announcements',
+      component: () =>
+        import('@/2_administrator_BOX/views/base/Announcements.vue'),
+      meta: { roles: ['administrator'] },
+    },
+
 {
       path: 'subjects',
       name: 'subjects',
