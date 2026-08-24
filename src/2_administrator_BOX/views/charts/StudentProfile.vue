@@ -260,9 +260,15 @@
     </CModalFooter>
   </CModal>
 
-  <CModal
+
+
+
+
+
+
+<CModal
   :visible="showImportInstructionsModal"
-  @close="showImportInstructionsModal = false"
+  @close="closeImportInstructionsModal"
   size="lg"
 >
   <CModalHeader class="bg-warning">
@@ -277,7 +283,9 @@
     </p>
 
     <div class="alert alert-info mb-3">
-      <strong>Your Excel file must use these exact headers:</strong>
+      <strong>
+        Your Excel file must use these exact headers:
+      </strong>
 
       <div class="mt-2">
         <code>
@@ -287,12 +295,12 @@
     </div>
 
     <p>
-      The <strong>currentClass</strong> value must match the class
-      name exactly as created in the system.
+      The <strong>currentClass</strong> value must match the class name
+      exactly as created in the system.
     </p>
 
-    <div class="alert alert-secondary mb-0">
-      <strong>Examples:</strong>
+    <div class="alert alert-secondary">
+      <strong>Class examples:</strong>
 
       <ul class="mb-0 mt-2">
         <li>Class 1</li>
@@ -300,25 +308,106 @@
         <li>JHS 1</li>
       </ul>
     </div>
+
+    <div class="admission-sms-card mt-4">
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <div class="fw-bold text-primary">
+            <CIcon icon="cil-envelope-closed" class="me-2" />
+            Admission SMS for Imported Students
+          </div>
+
+          <div class="small text-muted mt-1">
+            Send the same admission message to the father's contact of
+            every successfully imported student.
+          </div>
+        </div>
+
+        <CFormSwitch
+          v-model="importSms.sendAdmissionSms"
+          label="Send SMS"
+          color="success"
+        />
+      </div>
+
+      <div
+        v-if="importSms.sendAdmissionSms"
+        class="mt-3"
+      >
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <CFormLabel class="mb-0">
+            Admission SMS Message
+            <span class="text-danger">*</span>
+          </CFormLabel>
+
+          <CButton
+            color="primary"
+            variant="outline"
+            size="sm"
+            type="button"
+            @click="useSuggestedImportAdmissionMessage"
+          >
+            Use Suggested Message
+          </CButton>
+        </div>
+
+        <CFormTextarea
+          v-model="importSms.admissionSmsMessage"
+          rows="4"
+          maxlength="480"
+          placeholder="Enter the admission message for imported students."
+          :invalid="
+            importSms.sendAdmissionSms &&
+            !importSms.admissionSmsMessage.trim()
+          "
+        />
+
+        <div class="d-flex justify-content-between mt-2">
+          <small class="text-muted">
+            SMS will be sent only after each student is successfully created.
+          </small>
+
+          <small
+            :class="
+              importSms.admissionSmsMessage.length >= 480
+                ? 'text-danger fw-semibold'
+                : 'text-muted'
+            "
+          >
+            {{ importSms.admissionSmsMessage.length }} / 480
+          </small>
+        </div>
+
+        <div class="alert alert-warning py-2 px-3 mt-3 mb-0">
+          The school must have an approved Sender ID and sufficient SMS
+          credits. Students will still be imported when an SMS cannot be sent.
+        </div>
+      </div>
+    </div>
   </CModalBody>
 
   <CModalFooter>
     <CButton
       color="secondary"
       variant="outline"
-      @click="showImportInstructionsModal = false"
+      @click="closeImportInstructionsModal"
     >
       Cancel
     </CButton>
 
     <CButton
       color="warning"
+      :disabled="
+        importSms.sendAdmissionSms &&
+        !importSms.admissionSmsMessage.trim()
+      "
       @click="proceedWithImport"
     >
       Continue
     </CButton>
   </CModalFooter>
 </CModal>
+
 
 <CModal
   :visible="showImportResultModal"
@@ -552,6 +641,9 @@
   </div>
 </CTab>
 
+
+
+
         <!-- Parent Info -->
         <CTab title="Parent Info" itemKey="parent-info">
           <div class="card-premium">
@@ -601,6 +693,88 @@
               </div>
             </div>
 
+
+            <div
+  v-if="!isEdit"
+  class="admission-sms-card mt-4"
+>
+  <div class="d-flex justify-content-between align-items-start gap-3">
+    <div>
+      <div class="fw-bold text-primary">
+        <CIcon icon="cil-envelope-closed" class="me-2" />
+        Admission SMS
+      </div>
+
+      <div class="small text-muted mt-1">
+        Send an admission confirmation SMS to the father's contact after
+        the student is successfully created.
+      </div>
+    </div>
+
+    <CFormSwitch
+      v-model="form.sendAdmissionSms"
+      label="Send SMS"
+      color="success"
+    />
+  </div>
+
+  <div
+    v-if="form.sendAdmissionSms"
+    class="mt-3"
+  >
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+      <CFormLabel class="mb-0">
+        Admission SMS Message
+        <span class="text-danger">*</span>
+      </CFormLabel>
+
+      <CButton
+        color="primary"
+        variant="outline"
+        size="sm"
+        type="button"
+        @click="useSuggestedAdmissionMessage"
+      >
+        Use Suggested Message
+      </CButton>
+    </div>
+
+    <CFormTextarea
+      v-model="form.admissionSmsMessage"
+      rows="4"
+      maxlength="480"
+      placeholder="Enter the admission message to send to the father's contact."
+      :invalid="
+        form.sendAdmissionSms &&
+        !form.admissionSmsMessage.trim()
+      "
+    />
+
+    <div class="d-flex justify-content-between mt-2">
+      <small class="text-muted">
+        This SMS will be sent only to the father's contact.
+      </small>
+
+      <small
+        :class="
+          form.admissionSmsMessage.length >= 480
+            ? 'text-danger fw-semibold'
+            : 'text-muted'
+        "
+      >
+        {{ form.admissionSmsMessage.length }} / 480
+      </small>
+    </div>
+
+    <div
+      v-if="!form.contactOfFather.trim()"
+      class="alert alert-warning py-2 px-3 mt-3 mb-0"
+    >
+      Enter the father's contact before enabling the admission SMS.
+    </div>
+  </div>
+</div>
+
             <div class="mt-4 card-switch-premium">
               <CFormSwitch
                 v-model="form.isDiscountedStudent"
@@ -610,6 +784,10 @@
             </div>
           </div>
         </CTab>
+
+
+
+
 
         <!-- Health Info -->
         <CTab title="Health Info" itemKey="health-info">
@@ -771,36 +949,99 @@ function triggerImportFile() {
 }
 
 function proceedWithImport() {
+  if (
+    importSms.sendAdmissionSms &&
+    !importSms.admissionSmsMessage.trim()
+  ) {
+    toast.error(
+      'Enter the admission SMS message before proceeding.'
+    )
+
+    return
+  }
+
   showImportInstructionsModal.value = false
   importFileInput.value?.click()
 }
 
 async function onImportExcelSelected(event) {
-  const file = event.target.files?.[0]
+  const file =
+    event.target.files?.[0]
 
-  if (!file) return
+  if (!file) {
+    return
+  }
 
-  if (!file.name.toLowerCase().endsWith('.xlsx')) {
-    toast.error('Please upload an Excel .xlsx file.')
+  if (
+    !file.name
+      .toLowerCase()
+      .endsWith('.xlsx')
+  ) {
+    toast.error(
+      'Please upload an Excel .xlsx file.'
+    )
+
     event.target.value = ''
+
+    return
+  }
+
+  if (
+    importSms.sendAdmissionSms &&
+    !importSms.admissionSmsMessage.trim()
+  ) {
+    toast.error(
+      'Enter the admission SMS message before importing.'
+    )
+
+    event.target.value = ''
+
     return
   }
 
   importLoading.value = true
 
   try {
-    const response = await importStudentsExcel(file)
+    const response =
+      await importStudentsExcel(
+        file,
+        {
+          sendAdmissionSms:
+            importSms.sendAdmissionSms,
 
-    const imported = response.data?.importedCount || 0
-    const failed = response.data?.failedCount || 0
+          admissionSmsMessage:
+            importSms.sendAdmissionSms
+              ? importSms.admissionSmsMessage.trim()
+              : null,
+        }
+      )
 
-    // ✅ Show result in modal instead of alert
-    importResult.imported = imported
-    importResult.failed = failed
-    importResult.errors = response.data?.errors || []
-    importResult.message = 'Import completed.'
+    const imported =
+      response.data?.importedCount || 0
 
-    showImportResultModal.value = true
+    const failed =
+      response.data?.failedCount || 0
+
+    importResult.imported =
+      imported
+
+    importResult.failed =
+      failed
+
+    importResult.errors =
+      response.data?.errors || []
+
+    importResult.message =
+      'Import completed.'
+
+    showImportResultModal.value =
+      true
+
+    importSms.sendAdmissionSms =
+      false
+
+    importSms.admissionSmsMessage =
+      ''
 
     await loadAllStudents()
 
@@ -815,7 +1056,9 @@ async function onImportExcelSelected(event) {
       err.message ||
       'Unable to import students.'
 
-    showImportResultModal.value = true
+    showImportResultModal.value =
+      true
+
   } finally {
     importLoading.value = false
     event.target.value = ''
@@ -882,8 +1125,26 @@ const form = reactive({
   nationalityOfMother: '',
 
   active: true,
-  deactivationReason: ''
+  deactivationReason: '',
+
+
+  sendAdmissionSms: false,
+  admissionSmsMessage: '',
 })
+
+
+
+
+const suggestedAdmissionMessage =
+  'Your ward has successfully been admitted to our school. Welcome to our school community.'
+
+const importSms = reactive({
+  sendAdmissionSms: false,
+  admissionSmsMessage: '',
+})
+
+
+
 
 function resetForm() {
   form.id = null
@@ -919,6 +1180,24 @@ profilePreviewUrl.value = ""
 
   form.active = true
   form.deactivationReason = ''
+
+  form.sendAdmissionSms = false
+  form.admissionSmsMessage = ''
+}
+
+
+function useSuggestedAdmissionMessage() {
+  form.admissionSmsMessage =
+    suggestedAdmissionMessage
+}
+
+function useSuggestedImportAdmissionMessage() {
+  importSms.admissionSmsMessage =
+    suggestedAdmissionMessage
+}
+
+function closeImportInstructionsModal() {
+  showImportInstructionsModal.value = false
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1356,86 +1635,354 @@ function closeFormModal() {
 // ─────────────────────────────────────────────────────────────
 // Submit (Create / Update)
 // ─────────────────────────────────────────────────────────────
+
+
+
 async function submitForm() {
+
+
   loading.value = true
 
   try {
-    if (!form.fullName.trim()) return toast.error('Full Name is required')
-    if (!form.gender) return toast.error('Gender is required')
-    if (!form.contactOfFather.trim() && !form.contactOfMother.trim()) {
-      return toast.error('At least one parent contact is required')
+    if (!form.fullName.trim()) {
+
+
+      toast.error(
+        'Full Name is required'
+      )
+
+      return
     }
-    if (!form.currentNewGradeClassId) return toast.error('Current class is required')
+
+    if (!form.gender) {
+
+      toast.error(
+        'Gender is required'
+      )
+
+      return
+    }
+
+    if (!form.contactOfFather.trim()) {
+
+
+      toast.error(
+        "Father's contact is required"
+      )
+
+      return
+    }
+
+    if (!form.currentNewGradeClassId) {
+
+
+      toast.error(
+        'Current class is required'
+      )
+
+      return
+    }
+
+    if (
+      !isEdit.value &&
+      form.sendAdmissionSms &&
+      !form.admissionSmsMessage.trim()
+    ) {
+
+
+      toast.error(
+        'Admission SMS message is required when Admission SMS is enabled.'
+      )
+
+      return
+    }
 
     const payload = {
       user: {
-        id: form.id ?? undefined,
-        fullName: form.fullName.trim(),
-        gender: form.gender,
-        nationality: form.nationality.trim() || 'Ghanaian',
-        dateOfBirth: form.dateOfBirth || null,
-        isActive: form.active,
-        role: 'student',
-        isStaff: false
+        id:
+          form.id ?? undefined,
+
+        fullName:
+          form.fullName.trim(),
+
+        gender:
+          form.gender,
+
+        nationality:
+          form.nationality.trim() ||
+          'Ghanaian',
+
+        dateOfBirth:
+          form.dateOfBirth || null,
+
+        isActive:
+          Boolean(
+            form.active
+          ),
+
+        role:
+          'student',
+
+        isStaff:
+          false,
       },
-      currentNewGradeClassId: Number(form.currentNewGradeClassId) || null,
-      family: form.family === '' ? null : Number(form.family),
 
-      classSeekingAdmissionTo: form.classSeekingAdmissionTo || '',
-      isDiscountedStudent: !!form.isDiscountedStudent,
-      isImmunized: !!form.isImmunized,
+      currentNewGradeClassId:
+        Number(
+          form.currentNewGradeClassId
+        ) || null,
 
+      family:
+        !form.family ||
+        Number(form.family) <= 0
+          ? null
+          : Number(form.family),
 
-      allergicFoods: form.allergicFoods.trim() || null,
+      classSeekingAdmissionTo:
+        form.classSeekingAdmissionTo
+          ?.trim() || '',
 
-      lastSchoolAttended: form.lastSchoolAttended.trim() || null,
-      houseNumber: form.houseNumber.trim() || null,
-      otherRelatedInfo: form.otherRelatedInfo.trim() || null,
+      isDiscountedStudent:
+        Boolean(
+          form.isDiscountedStudent
+        ),
 
-      nameOfFather: form.nameOfFather.trim() || null,
-      occupationOfFather: form.occupationOfFather.trim() || null,
-      nationalityOfFather: form.nationalityOfFather.trim() || null,
-      contactOfFather: form.contactOfFather.trim() || null,
+      isImmunized:
+        Boolean(
+          form.isImmunized
+        ),
 
-      nameOfMother: form.nameOfMother.trim() || null,
-      occupationOfMother: form.occupationOfMother.trim() || null,
-      nationalityOfMother: form.nationalityOfMother.trim() || null,
-      contactOfMother: form.contactOfMother.trim() || null,
+      hasAllergies:
+        Boolean(
+          form.hasAllergies
+        ),
 
-      deactivationReason: !form.active
-        ? (form.deactivationReason.trim() || 'Not specified')
-        : null
+      allergicFoods:
+        form.hasAllergies
+          ? form.allergicFoods.trim() ||
+            null
+          : null,
+
+      lastSchoolAttended:
+        form.lastSchoolAttended.trim() ||
+        null,
+
+      houseNumber:
+        form.houseNumber.trim() ||
+        null,
+
+      otherRelatedInfo:
+        form.otherRelatedInfo.trim() ||
+        null,
+
+      nameOfFather:
+        form.nameOfFather.trim() ||
+        null,
+
+      occupationOfFather:
+        form.occupationOfFather.trim() ||
+        null,
+
+      nationalityOfFather:
+        form.nationalityOfFather.trim() ||
+        null,
+
+      contactOfFather:
+        form.contactOfFather.trim(),
+
+      nameOfMother:
+        form.nameOfMother.trim() ||
+        null,
+
+      occupationOfMother:
+        form.occupationOfMother.trim() ||
+        null,
+
+      nationalityOfMother:
+        form.nationalityOfMother.trim() ||
+        null,
+
+      contactOfMother:
+        form.contactOfMother.trim() ||
+        null,
+
+      deactivationReason:
+        !form.active
+          ? form.deactivationReason.trim() ||
+            'Not specified'
+          : null,
+
+      sendAdmissionSms:
+        !isEdit.value &&
+        Boolean(
+          form.sendAdmissionSms
+        ),
+
+      admissionSmsMessage:
+        !isEdit.value &&
+        form.sendAdmissionSms
+          ? form.admissionSmsMessage.trim()
+          : null,
     }
 
 
+
     let savedStudent = null
+    let saveResponse = null
 
-if (isEdit.value && currentStudent.value) {
-  const res = await update_student_ktor(currentStudent.value.id, JSON.parse(JSON.stringify(payload)))
-  savedStudent = normalizeStudent(res?.data || currentStudent.value)
-  toast.success('Student updated successfully!')
-} else {
-  const res = await create_student_ktor(payload)
-  savedStudent = normalizeStudent(res?.data)
-  toast.success('Student created successfully!')
-  currentPage.value = 1
-}
+    if (
+      isEdit.value &&
+      currentStudent.value
+    ) {
+      const studentProfileId =
+        Number(
+          currentStudent.value.id
+        )
 
-// ✅ If a picture was selected, upload it after save
-const accountId = savedStudent?.user?.id || form.id
-if (selectedProfileFile.value && accountId) {
-  await uploadCurrentProfilePicture(accountId, { silent: true })
-}
 
-closeFormModal()
-await loadAllStudents()
+      saveResponse =
+        await update_student_ktor(
+          studentProfileId,
+          JSON.parse(
+            JSON.stringify(payload)
+          )
+        )
+
+
+
+      savedStudent =
+        normalizeStudent(
+          saveResponse?.data ||
+          currentStudent.value
+        )
+
+
+
+      toast.success(
+        'Student updated successfully!'
+      )
+    } else {
+
+
+      saveResponse =
+        await create_student_ktor(
+          JSON.parse(
+            JSON.stringify(payload)
+          )
+        )
+
+
+      savedStudent =
+        normalizeStudent(
+          saveResponse?.data
+        )
+
+
+
+      currentPage.value = 1
+
+      toast.success(
+        payload.sendAdmissionSms
+          ? 'Student created successfully. Admission SMS is being processed.'
+          : 'Student created successfully!'
+      )
+    }
+
+    const accountId =
+      savedStudent?.user?.id ||
+      saveResponse?.data?.user?.id ||
+      saveResponse?.data?.accountId ||
+      saveResponse?.data?.userId ||
+      form.id ||
+      null
+
+
+
+    if (
+      selectedProfileFile.value &&
+      accountId
+    ) {
+
+
+      const pictureResponse =
+        await uploadCurrentProfilePicture(
+          accountId,
+          {
+            silent: true,
+          }
+        )
+
+
+
+      if (!pictureResponse) {
+
+      }
+    } else if (
+      selectedProfileFile.value &&
+      !accountId
+    ) {
+
+    }
+
+
+
+    showFormModal.value = false
+    currentStudent.value = null
+    isEdit.value = false
+
+
+
+    await loadAllStudents()
+
+
+    resetForm()
+
+
   } catch (err) {
-    const serverMsg = err?.response?.data
-    toast.error(formatBackendErrors(serverMsg) || 'Failed to save student', { position: 'top-right' })
+
+
+
+
+
+    const backendErrors =
+      err?.response?.data?.errors ||
+      err?.response?.data?.error ||
+      err?.response?.data?.message ||
+      err?.response?.data ||
+      null
+
+    const formattedErrors =
+      typeof backendErrors === 'string'
+        ? backendErrors
+        : formatBackendErrors(
+            backendErrors
+          )
+
+
+
+    toast.error(
+      formattedErrors ||
+      err?.message ||
+      'Failed to save student. Please check the form and try again.',
+      {
+        position:
+          'top-right',
+      }
+    )
   } finally {
     loading.value = false
+
+
   }
 }
+
+
+
+
+
+
+
+
 
 // ─────────────────────────────────────────────────────────────
 // Delete (Single + Bulk)
@@ -1529,6 +2076,42 @@ onMounted(async () => {
 
 
 <style scoped>
+
+
+
+
+.admission-sms-card {
+  padding: 18px;
+  border: 1px solid #b6d4fe;
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      135deg,
+      #f5f9ff,
+      #eef6ff
+    );
+}
+
+.admission-sms-card textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 .bg-gradient-primary {
   background: linear-gradient(90deg, #4e73df, #224abe);
 }

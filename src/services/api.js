@@ -439,18 +439,116 @@ function getTenantHeaders() {
   return headers
 }
 
-export function importStudentsExcel(file) {
-  const formData = new FormData()
-  formData.append('file', file)
+export function importStudentsExcel(
+  file,
+  options = {}
+) {
+  if (!(file instanceof File)) {
 
-  return api.post('/student-import/excel', formData, {
-    headers: {
-      ...getTenantHeaders(),
-      // Do not manually set Content-Type for FormData.
-      // Axios will set multipart/form-data with the correct boundary.
-    },
-  })
+
+    return Promise.reject(
+      new Error(
+        'A valid Excel file is required.'
+      )
+    )
+  }
+
+  const sendAdmissionSms =
+    Boolean(
+      options.sendAdmissionSms
+    )
+
+  const admissionSmsMessage =
+    sendAdmissionSms
+      ? String(
+          options.admissionSmsMessage || ''
+        ).trim()
+      : ''
+
+  if (
+    sendAdmissionSms &&
+    !admissionSmsMessage
+  ) {
+
+
+    return Promise.reject(
+      new Error(
+        'Admission SMS message is required when Admission SMS is enabled.'
+      )
+    )
+  }
+
+  const formData =
+    new FormData()
+
+  formData.append(
+    'file',
+    file,
+    file.name
+  )
+
+  formData.append(
+    'sendAdmissionSms',
+    String(
+      sendAdmissionSms
+    )
+  )
+
+  if (sendAdmissionSms) {
+    formData.append(
+      'admissionSmsMessage',
+      admissionSmsMessage
+    )
+  }
+
+
+  for (
+    const [key, value]
+    of formData.entries()
+  ) {
+    if (value instanceof File) {
+
+    } else {
+
+    }
+  }
+
+  return api
+    .post(
+      'student/import-students',
+      formData
+    )
+    .then((response) => {
+
+
+      return response
+    })
+    .catch((error) => {
+
+
+
+
+
+
+
+      throw error
+    })
 }
+
+
+
+// export function importStudentsExcel(file) {
+//   const formData = new FormData()
+//   formData.append('file', file)
+
+//   return api.post('/student-import/excel', formData, {
+//     headers: {
+//       ...getTenantHeaders(),
+//       // Do not manually set Content-Type for FormData.
+//       // Axios will set multipart/form-data with the correct boundary.
+//     },
+//   })
+// }
 
 export function downloadStudentsImportTemplate() {
   return api.get('/student-import/template', {
@@ -972,6 +1070,22 @@ export const updateCategory_ktor = (id, payload) =>  api.put(`categories/${id}`,
 export const deleteCategory_ktor = (id) =>  api.delete(`categories/${id}`);
 
 export const getCategoriesSubject = () =>  api.get("academic-records/new-subject-categories/subject-categories");
+
+
+
+// export function getStudentsByClass(classId) {
+//   return apiClient.get(
+//     `/students/by-class/${classId}`
+//   )
+// }
+
+
+
+
+export const getStudentsByClass = (classId) =>  api.get(`classes/new/${classId}/students`);
+
+
+
 
 // ✅ Fetch single category
 

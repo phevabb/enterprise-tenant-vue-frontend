@@ -1,3 +1,6 @@
+
+
+
 <template>
   <div class="announcement-page">
 
@@ -93,51 +96,76 @@
           </div>
         </div>
 
-        <div class="field">
-          <label>Send Announcement To</label>
+        <div class="field audience-field">
+  <label>Send Announcement To</label>
 
-          <div class="audience-options">
+  <div class="audience-options">
+    <button
+      type="button"
+      class="audience-option"
+      :class="{
+        selected: form.audienceType === 'all_parents'
+      }"
+      @click="selectAudience('all_parents')"
+    >
+      <span class="audience-icon">
+        <i class="pi pi-users"></i>
+      </span>
 
-            <button
-              type="button"
-              class="audience-option"
-              :class="{ selected: form.audienceType === 'all_parents' }"
-              @click="selectAudience('all_parents')"
-            >
-              <span class="audience-icon">
-                <i class="pi pi-users"></i>
-              </span>
+      <span class="audience-content">
+        <strong>All Parents</strong>
 
-              <span>
-                <strong>All Parents</strong>
+        <small>
+          Send to every active parent contact.
+        </small>
+      </span>
+    </button>
 
-                <small>
-                  Send to every active parent contact.
-                </small>
-              </span>
-            </button>
+    <button
+      type="button"
+      class="audience-option"
+      :class="{
+        selected: form.audienceType === 'specific_classes'
+      }"
+      @click="selectAudience('specific_classes')"
+    >
+      <span class="audience-icon">
+        <i class="pi pi-sitemap"></i>
+      </span>
 
-            <button
-              type="button"
-              class="audience-option"
-              :class="{ selected: form.audienceType === 'specific_classes' }"
-              @click="selectAudience('specific_classes')"
-            >
-              <span class="audience-icon">
-                <i class="pi pi-sitemap"></i>
-              </span>
+      <span class="audience-content">
+        <strong>Specific Classes</strong>
 
-              <span>
-                <strong>Specific Classes</strong>
+        <small>
+          Send only to parents from selected classes.
+        </small>
+      </span>
+    </button>
 
-                <small>
-                  Send only to parents from selected classes.
-                </small>
-              </span>
-            </button>
+    <button
+      type="button"
+      class="audience-option"
+      :class="{
+        selected: form.audienceType === 'specific_students'
+      }"
+      @click="selectAudience('specific_students')"
+    >
+      <span class="audience-icon">
+        <i class="pi pi-user"></i>
+      </span>
 
-          </div>
-        </div>
+      <span class="audience-content">
+        <strong>Specific Students</strong>
+
+        <small>
+          Send to the parents of selected students.
+        </small>
+      </span>
+    </button>
+  </div>
+</div>
+
+
 
         <div
           v-if="form.audienceType === 'specific_classes'"
@@ -223,6 +251,218 @@
             Select at least one class.
           </small>
         </div>
+
+
+        <div
+  v-if="form.audienceType === 'specific_students'"
+  class="field"
+>
+  <label for="student-class">
+    Select Class
+  </label>
+
+  <select
+    id="student-class"
+    v-model="form.studentClassId"
+    :disabled="classesLoading || studentsLoading"
+    @change="handleStudentClassChange"
+  >
+    <option :value="null">
+      Select a class
+    </option>
+
+    <option
+      v-for="classItem in classes"
+      :key="classItem.id"
+      :value="Number(classItem.id)"
+    >
+      {{ classItem.name }}
+    </option>
+  </select>
+
+  <small class="field-help">
+    Select a class to display its students.
+  </small>
+        </div>
+
+
+
+
+<div
+  v-if="form.audienceType === 'specific_students'"
+  class="field student-class-field"
+>
+  <div class="student-class-header">
+    <span class="student-class-icon">
+      <i class="pi pi-sitemap"></i>
+    </span>
+
+    <div>
+      <label for="student-class">
+        Choose a Class First
+      </label>
+
+      <small>
+        Select a class to load and display its students.
+      </small>
+    </div>
+  </div>
+
+  <div class="student-class-select-wrapper">
+    <i class="pi pi-building select-leading-icon"></i>
+
+    <select
+      id="student-class"
+      v-model="form.studentClassId"
+      class="student-class-select"
+      :disabled="classesLoading || studentsLoading"
+      @change="handleStudentClassChange"
+    >
+      <option :value="null" disabled>
+        Select a class
+      </option>
+
+      <option
+        v-for="classItem in classes"
+        :key="classItem.id"
+        :value="Number(classItem.id)"
+      >
+        {{ classItem.name }}
+        ({{ Number(classItem.studentCount || 0).toLocaleString() }} students)
+      </option>
+    </select>
+
+    <i class="pi pi-chevron-down select-arrow"></i>
+  </div>
+
+  <div
+    v-if="classesLoading"
+    class="class-select-status"
+  >
+    <i class="pi pi-spin pi-spinner"></i>
+
+    Loading available classes...
+  </div>
+
+  <div
+    v-else-if="!form.studentClassId"
+    class="class-select-notice"
+  >
+    <i class="pi pi-info-circle"></i>
+
+    <span>
+      Choose a class above before selecting students.
+    </span>
+  </div>
+</div>
+
+<div
+  v-if="
+    form.audienceType === 'specific_students' &&
+    form.studentClassId
+  "
+  class="field student-list-field"
+>
+  <div class="field-heading">
+    <div>
+      <label>Select Students</label>
+
+      <small class="field-help">
+        Tick one or more students whose parents should receive the announcement.
+      </small>
+    </div>
+
+    <button
+      v-if="students.length"
+      type="button"
+      class="text-btn"
+      @click="toggleAllStudents"
+    >
+      {{
+        allStudentsSelected
+          ? 'Clear All'
+          : 'Select All'
+      }}
+    </button>
+  </div>
+
+  <div
+    v-if="studentsLoading"
+    class="small-state"
+  >
+    <i class="pi pi-spin pi-spinner"></i>
+    Loading students...
+  </div>
+
+  <div
+    v-else-if="students.length === 0"
+    class="small-state"
+  >
+    No active students were found in this class.
+  </div>
+
+  <div
+    v-else
+    class="student-selection-list"
+  >
+    <label
+      v-for="student in students"
+      :key="student.id"
+      class="class-option"
+      :class="{
+        selected: form.studentIds.includes(
+          Number(student.id)
+        )
+      }"
+    >
+      <input
+        v-model="form.studentIds"
+        type="checkbox"
+        :value="Number(student.id)"
+        @change="normalizeSelectedStudentIds"
+      >
+
+      <span class="checkbox-box">
+        <i
+          v-if="
+            form.studentIds.includes(
+              Number(student.id)
+            )
+          "
+          class="pi pi-check"
+        ></i>
+      </span>
+
+      <span>
+        <strong>
+          {{ student.fullName }}
+        </strong>
+
+        <small>
+          {{
+            student.admissionNumber
+              ? `Admission No: ${student.admissionNumber}`
+              : 'Student'
+          }}
+        </small>
+      </span>
+    </label>
+  </div>
+
+  <small
+    v-if="
+      !studentsLoading &&
+      students.length > 0 &&
+      form.studentIds.length === 0
+    "
+    class="field-help student-selection-help"
+  >
+    <i class="pi pi-info-circle"></i>
+    Select at least one student.
+  </small>
+</div>
+
+
 
         <div class="field">
           <div class="field-heading">
@@ -404,8 +644,12 @@
   </small>
 
   <small v-else-if="!hasValidAudience">
-    Select at least one class.
-  </small>
+  {{
+    form.audienceType === 'specific_students'
+      ? 'Select a class and at least one student.'
+      : 'Select at least one class.'
+  }}
+</small>
 
   <small v-else-if="form.message.trim().length === 0">
     Enter an announcement message.
@@ -792,6 +1036,7 @@ import {
   getClientSmsWallet,
   getLatestSenderId,
   sendParentAnnouncement,
+  getStudentsByClass,
 } from '@/services/api.js'
 
 const toast =
@@ -857,6 +1102,13 @@ function formatSelectedClasses(
 const classes =
   ref([])
 
+
+  const students =
+  ref([])
+
+const studentsLoading =
+  ref(false)
+
 const announcements =
   ref([])
 
@@ -885,9 +1137,124 @@ const form =
   reactive({
     audienceType: 'all_parents',
     classIds: [],
+    studentClassId: null,
+    studentIds: [],
     message: '',
     description: '',
   })
+
+  const loadStudentsByClass =
+  async (classId) => {
+
+    const normalizedClassId =
+      Number(classId)
+
+    if (
+      !Number.isInteger(normalizedClassId) ||
+      normalizedClassId <= 0
+    ) {
+      students.value = []
+      form.studentIds = []
+
+      return
+    }
+
+    try {
+      studentsLoading.value = true
+
+      students.value = []
+      form.studentIds = []
+
+      const response =
+        await getStudentsByClass(
+          normalizedClassId
+        )
+
+      students.value =
+        Array.isArray(response.data)
+          ? response.data
+              .map((student) => {
+                return {
+                  ...student,
+
+                  id:
+                    Number(student.id),
+
+                  fullName:
+                    student.fullName ||
+                    student.name ||
+                    student.user?.fullName ||
+                    'Unnamed student',
+                }
+              })
+              .filter((student) => {
+                return (
+                  Number.isInteger(student.id) &&
+                  student.id > 0
+                )
+              })
+          : []
+
+    } catch (error) {
+
+
+      students.value = []
+      form.studentIds = []
+
+      toast.error(
+        error?.response?.data?.message ||
+        'Failed to load students.'
+      )
+    } finally {
+      studentsLoading
+.value = false
+    }
+  }
+
+
+  async function handleStudentClassChange() {
+  form.studentIds = []
+
+  await loadStudentsByClass(
+    form.studentClassId
+  )
+}
+
+
+const allStudentsSelected =
+  computed(() => {
+
+    return (
+      students.value.length > 0 &&
+      form.studentIds.length ===
+        students.value.length
+    )
+  })
+
+function toggleAllStudents() {
+  if (allStudentsSelected.value) {
+    form.studentIds = []
+
+    return
+  }
+
+  form.studentIds =
+    students.value.map((student) => {
+      return Number(student.id)
+    })
+}
+
+function normalizeSelectedStudentIds() {
+  form.studentIds =
+    [...new Set(form.studentIds)]
+      .map(Number)
+      .filter((id) => {
+        return (
+          Number.isInteger(id) &&
+          id > 0
+        )
+      })
+}
 
 const totalStudentCount =
   computed(() => {
@@ -946,7 +1313,33 @@ const recipientCount =
       return totalStudentCount.value
     }
 
-    return selectedClassStudentCount.value
+
+
+    if (
+
+form.audienceType ===
+
+'specific_classes'
+
+) {
+
+return selectedClassStudentCount.value
+
+}
+if (
+
+form.audienceType ===
+
+'specific_students'
+
+) {
+
+return form.studentIds.length
+}
+
+
+
+    return 0
   })
 
 const messageLength =
@@ -1022,8 +1415,29 @@ const hasValidAudience =
       return true
     }
 
-    return form.classIds.length > 0
+    if (
+      form.audienceType ===
+      'specific_classes'
+    ) {
+      return form.classIds.length > 0
+    }
+
+    if (
+      form.audienceType ===
+      'specific_students'
+    ) {
+      return (
+        Number(form.studentClassId) > 0 &&
+        form.studentIds.length > 0
+      )
+    }
+
+    return false
   })
+
+
+
+
 
 const hasInsufficientBalance =
   computed(() => {
@@ -1052,6 +1466,9 @@ const allClassesSelected =
     )
   })
 
+
+
+
 const audienceLabel =
   computed(() => {
 
@@ -1060,6 +1477,37 @@ const audienceLabel =
       'all_parents'
     ) {
       return 'All Parents'
+    }
+
+    if (
+      form.audienceType ===
+      'specific_students'
+    ) {
+      if (form.studentIds.length === 0) {
+        return 'No students selected'
+      }
+
+      const selectedIds =
+        form.studentIds.map(Number)
+
+      const selectedNames =
+        students.value
+          .filter((student) => {
+            return selectedIds.includes(
+              Number(student.id)
+            )
+          })
+          .map((student) => {
+            return student.fullName
+          })
+
+      if (selectedNames.length <= 2) {
+        return selectedNames.join(', ')
+      }
+
+      return `${
+        selectedNames.slice(0, 2).join(', ')
+      } and ${selectedNames.length - 2} more`
     }
 
     if (form.classIds.length === 0) {
@@ -1072,13 +1520,11 @@ const audienceLabel =
     const names =
       classes.value
         .filter((classItem) => {
-
           return selectedIds.includes(
             Number(classItem.id)
           )
         })
         .map((classItem) => {
-
           return classItem.name
         })
 
@@ -1197,11 +1643,26 @@ function formatDateTime(value) {
 }
 
 function selectAudience(type) {
-
-  form.audienceType =
-    type
+  form.audienceType = type
 
   if (type === 'all_parents') {
+    form.classIds = []
+    form.studentClassId = null
+    form.studentIds = []
+    students.value = []
+
+    return
+  }
+
+  if (type === 'specific_classes') {
+    form.studentClassId = null
+    form.studentIds = []
+    students.value = []
+
+    return
+  }
+
+  if (type === 'specific_students') {
     form.classIds = []
   }
 }
@@ -1261,18 +1722,20 @@ function closeSendConfirmation() {
 }
 
 function resetForm() {
-
   form.audienceType =
     'all_parents'
 
   form.classIds = []
+  form.studentClassId = null
+  form.studentIds = []
   form.message = ''
   form.description = ''
+
+  students.value = []
 
   confirmationVisible.value =
     false
 }
-
 const loadClasses =
   async () => {
 
@@ -1294,10 +1757,7 @@ const loadClasses =
       const response =
         await get_classes_with_student_count()
 
-      console.log(
-        'Classes with student counts:',
-        response.data
-      )
+
 
       classes.value =
         Array.isArray(response.data)
@@ -1330,10 +1790,7 @@ const loadClasses =
 
     } catch (error) {
 
-      console.error(
-        'Failed to load classes:',
-        error
-      )
+
 
       classes.value = []
 
@@ -1370,10 +1827,7 @@ const loadWallet =
           tenantCode
         )
 
-      console.log(
-        'SMS wallet response:',
-        response.data
-      )
+
 
       smsBalance.value =
         Number(
@@ -1383,10 +1837,7 @@ const loadWallet =
 
     } catch (error) {
 
-      console.error(
-        'Failed to load SMS wallet:',
-        error
-      )
+
 
       smsBalance.value = 0
 
@@ -1421,10 +1872,7 @@ const loadSenderId =
           tenantCode
         )
 
-      console.log(
-        'Sender ID response:',
-        response.data
-      )
+
 
       const data =
         response.data
@@ -1454,10 +1902,6 @@ const loadSenderId =
 
     } catch (error) {
 
-      console.error(
-        'Failed to load sender ID:',
-        error
-      )
 
       senderId.value = ''
 
@@ -1499,10 +1943,7 @@ const loadAnnouncementHistory =
 
     } catch (error) {
 
-      console.error(
-        'Failed to load announcement history:',
-        error
-      )
+
 
       announcements.value = []
 
@@ -1543,25 +1984,33 @@ const sendAnnouncement =
       sending.value = true
 
       const response =
-        await sendParentAnnouncement({
-          tenantCode,
+  await sendParentAnnouncement({
+    tenantCode,
 
-          audienceType:
-            form.audienceType,
+    audienceType:
+      form.audienceType,
 
-          classIds:
-            form.audienceType ===
-            'specific_classes'
-              ? form.classIds
-              : [],
+    classIds:
+      form.audienceType ===
+      'specific_classes'
+        ? form.classIds
+        : [],
 
-          message:
-            form.message.trim(),
+    studentIds:
+      form.audienceType ===
+      'specific_students'
+        ? form.studentIds
+        : [],
 
-          description:
-            form.description.trim() ||
-            null,
-        })
+    message:
+      form.message.trim(),
+
+    description:
+      form.description.trim() ||
+      null,
+  })
+
+
 
       if (!response.data?.success) {
 
@@ -1587,10 +2036,7 @@ const sendAnnouncement =
 
     } catch (error) {
 
-      console.error(
-        'Failed to send announcement:',
-        error
-      )
+
 
       toast.error(
         error?.response?.data
@@ -1629,7 +2075,168 @@ onMounted(
 )
 </script>
 
+
+
+
+
+
 <style scoped>
+
+
+.student-class-field {
+  padding: 20px;
+  border: 2px solid #3b82f6;
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      135deg,
+      #eff6ff 0%,
+      #ffffff 100%
+    );
+  box-shadow:
+    0 8px 24px rgba(59, 130, 246, 0.1);
+}
+
+.student-class-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.student-class-header label {
+  display: block;
+  margin-bottom: 4px;
+  color: #172554;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.student-class-header small {
+  display: block;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.student-class-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 19px;
+  box-shadow:
+    0 6px 14px rgba(37, 99, 235, 0.25);
+}
+
+.student-class-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.student-class-select {
+  width: 100%;
+  min-height: 56px;
+  padding:
+    0 48px
+    0 48px;
+  border: 2px solid #bfdbfe;
+  border-radius: 13px;
+  outline: none;
+  appearance: none;
+  background: #ffffff;
+  color: #172554;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.student-class-select:hover:not(:disabled) {
+  border-color: #60a5fa;
+}
+
+.student-class-select:focus {
+  border-color: #2563eb;
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.14);
+}
+
+.student-class-select:disabled {
+  cursor: not-allowed;
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.select-leading-icon {
+  position: absolute;
+  top: 50%;
+  left: 17px;
+  z-index: 2;
+  color: #2563eb;
+  font-size: 18px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.select-arrow {
+  position: absolute;
+  top: 50%;
+  right: 17px;
+  z-index: 2;
+  color: #2563eb;
+  font-size: 14px;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.class-select-notice,
+.class-select-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.class-select-notice {
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.class-select-status {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.student-list-field {
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.student-selection-help {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: #b45309;
+}
+
 
 .history-card {
   padding: 20px;
@@ -2154,6 +2761,13 @@ onMounted(
   justify-content: space-between;
   gap: 12px;
 }
+
+
+
+
+
+
+
 
 .audience-options {
   display: grid;

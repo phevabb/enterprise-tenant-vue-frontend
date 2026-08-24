@@ -139,7 +139,7 @@ async function fetchClasses() {
   try {
     const response = await get_classes();
 
-    console.log('Loaded classes: print 22', response);
+
 
     const response_for_staff = await get_staff();
 
