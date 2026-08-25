@@ -318,9 +318,11 @@
           </div>
 
           <div class="small text-muted mt-1">
-            Send the same admission message to the father's contact of
-            every successfully imported student.
-          </div>
+  The admission SMS will automatically include the student's name, user ID,
+  temporary PIN, admission date, date of birth, current class, parents'
+  phone numbers, and the school's login URL. The custom message entered
+  below will be added before these details.
+</div>
         </div>
 
         <CFormSwitch
@@ -706,9 +708,13 @@
       </div>
 
       <div class="small text-muted mt-1">
-        Send an admission confirmation SMS to the father's contact after
-        the student is successfully created.
-      </div>
+  Send an admission confirmation SMS to the father's contact after the
+  student is successfully created. The student's default information,
+  including the name, user ID, PIN, admission date, date of birth,
+  current class, parent contacts, and school login URL, will automatically
+  be included in the message. Any custom message entered below will appear
+  before these details.
+</div>
     </div>
 
     <CFormSwitch
