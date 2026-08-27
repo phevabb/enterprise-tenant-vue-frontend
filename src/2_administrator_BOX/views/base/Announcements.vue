@@ -96,75 +96,190 @@
           </div>
         </div>
 
-        <div class="field audience-field">
-  <label>Send Announcement To</label>
 
-  <div class="audience-options">
-    <button
-      type="button"
-      class="audience-option"
-      :class="{
-        selected: form.audienceType === 'all_parents'
-      }"
-      @click="selectAudience('all_parents')"
-    >
-      <span class="audience-icon">
-        <i class="pi pi-users"></i>
-      </span>
 
-      <span class="audience-content">
-        <strong>All Parents</strong>
 
-        <small>
-          Send to every active parent contact.
-        </small>
-      </span>
-    </button>
+          <div class="field audience-field">
+            <label>
+              Send SMS To
+            </label>
 
-    <button
-      type="button"
-      class="audience-option"
-      :class="{
-        selected: form.audienceType === 'specific_classes'
-      }"
-      @click="selectAudience('specific_classes')"
-    >
-      <span class="audience-icon">
-        <i class="pi pi-sitemap"></i>
-      </span>
+            <div class="audience-options">
+              <button
+                type="button"
+                class="audience-option"
+                :class="{
+                  selected:
+                    form.audienceType ===
+                    'all_parents'
+                }"
+                @click="
+                  selectAudience(
+                    'all_parents'
+                  )
+                "
+              >
+                <span class="audience-icon">
+                  <i class="pi pi-users"></i>
+                </span>
 
-      <span class="audience-content">
-        <strong>Specific Classes</strong>
+                <span class="audience-content">
+                  <strong>
+                    All Parents
+                  </strong>
 
-        <small>
-          Send only to parents from selected classes.
-        </small>
-      </span>
-    </button>
+                  <small>
+                    Send to every active parent contact.
+                  </small>
+                </span>
+              </button>
 
-    <button
-      type="button"
-      class="audience-option"
-      :class="{
-        selected: form.audienceType === 'specific_students'
-      }"
-      @click="selectAudience('specific_students')"
-    >
-      <span class="audience-icon">
-        <i class="pi pi-user"></i>
-      </span>
+              <button
+                type="button"
+                class="audience-option"
+                :class="{
+                  selected:
+                    form.audienceType ===
+                    'specific_classes'
+                }"
+                @click="
+                  selectAudience(
+                    'specific_classes'
+                  )
+                "
+              >
+                <span class="audience-icon">
+                  <i class="pi pi-sitemap"></i>
+                </span>
 
-      <span class="audience-content">
-        <strong>Specific Students</strong>
+                <span class="audience-content">
+                  <strong>
+                    Specific Classes
+                  </strong>
 
-        <small>
-          Send to the parents of selected students.
-        </small>
-      </span>
-    </button>
-  </div>
-</div>
+                  <small>
+                    Send to parents in selected classes.
+                  </small>
+                </span>
+              </button>
 
+              <button
+                type="button"
+                class="audience-option"
+                :class="{
+                  selected:
+                    form.audienceType ===
+                    'specific_students'
+                }"
+                @click="
+                  selectAudience(
+                    'specific_students'
+                  )
+                "
+              >
+                <span class="audience-icon">
+                  <i class="pi pi-user"></i>
+                </span>
+
+                <span class="audience-content">
+                  <strong>
+                    Specific Students
+                  </strong>
+
+                  <small>
+                    Send to parents of selected students.
+                  </small>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                class="audience-option"
+                :class="{
+                  selected:
+                    form.audienceType ===
+                    'all_staff'
+                }"
+                @click="
+                  selectAudience(
+                    'all_staff'
+                  )
+                "
+              >
+                <span class="audience-icon staff">
+                  <i class="pi pi-briefcase"></i>
+                </span>
+
+                <span class="audience-content">
+                  <strong>
+                    All Staff
+                  </strong>
+
+                  <small>
+                    Send to every active staff contact.
+                  </small>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                class="audience-option"
+                :class="{
+                  selected:
+                    form.audienceType ===
+                    'specific_staff'
+                }"
+                @click="
+                  selectAudience(
+                    'specific_staff'
+                  )
+                "
+              >
+                <span class="audience-icon staff">
+                  <i class="pi pi-user-plus"></i>
+                </span>
+
+                <span class="audience-content">
+                  <strong>
+                    Specific Staff
+                  </strong>
+
+                  <small>
+                    Select individual staff recipients.
+                  </small>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                class="audience-option"
+                :class="{
+                  selected:
+                    form.audienceType ===
+                    'custom_numbers'
+                }"
+                @click="
+                  selectAudience(
+                    'custom_numbers'
+                  )
+                "
+              >
+                <span class="audience-icon custom">
+                  <i class="pi pi-phone"></i>
+                </span>
+
+                <span class="audience-content">
+                  <strong>
+                    Custom Number
+                  </strong>
+
+                  <small>
+                    Enter one or more recipient numbers.
+                  </small>
+                </span>
+              </button>
+            </div>
+          </div>
 
 
         <div
@@ -461,6 +576,274 @@
     Select at least one student.
   </small>
 </div>
+
+
+
+<div
+  v-if="
+    form.audienceType ===
+    'specific_staff'
+  "
+  class="field staff-selection-field"
+>
+  <div class="field-heading">
+    <div>
+      <label for="staff-search">
+        Select Staff
+      </label>
+
+      <small class="field-help">
+        Choose one or more staff members to receive the SMS.
+      </small>
+    </div>
+
+    <button
+      v-if="filteredStaffMembers.length"
+      type="button"
+      class="text-btn"
+      @click="toggleAllStaff"
+    >
+      {{
+        allFilteredStaffSelected
+          ? 'Clear All'
+          : 'Select All'
+      }}
+    </button>
+  </div>
+
+  <div class="staff-search">
+    <i class="pi pi-search"></i>
+
+    <input
+      id="staff-search"
+      v-model.trim="staffSearch"
+      type="search"
+      autocomplete="off"
+      placeholder="Search by staff name, position, or phone number"
+    >
+  </div>
+
+  <div
+    v-if="staffLoading"
+    class="small-state"
+  >
+    <i class="pi pi-spin pi-spinner"></i>
+
+    Loading staff members...
+  </div>
+
+  <div
+    v-else-if="
+      filteredStaffMembers.length === 0
+    "
+    class="small-state"
+  >
+    No matching active staff members were found.
+  </div>
+
+
+
+
+<div
+  v-else
+  class="staff-selection-list"
+>
+  <label
+    v-for="
+      staffMember in
+      filteredStaffMembers
+    "
+    :key="staffMember.id"
+    class="staff-option"
+    :class="{
+      selected:
+        form.staffIds.includes(
+          Number(staffMember.id)
+        ),
+      unavailable:
+        !staffMember.phoneNumber
+    }"
+  >
+    <input
+      v-model="form.staffIds"
+      type="checkbox"
+      :value="
+        Number(
+          staffMember.id
+        )
+      "
+      :disabled="
+        !staffMember.phoneNumber
+      "
+      @change="
+        normalizeSelectedStaffIds
+      "
+    >
+
+    <span
+      class="checkbox-box"
+      :class="{
+        checked:
+          form.staffIds.includes(
+            Number(staffMember.id)
+          )
+      }"
+      aria-hidden="true"
+    >
+      <i
+        v-if="
+          form.staffIds.includes(
+            Number(staffMember.id)
+          )
+        "
+        class="pi pi-check"
+      ></i>
+    </span>
+
+    <span class="staff-avatar">
+      {{
+        getInitials(
+          staffMember.fullName
+        )
+      }}
+    </span>
+
+    <span class="staff-option-details">
+      <strong>
+        {{ staffMember.fullName }}
+      </strong>
+
+      <small>
+        {{
+          staffMember.position ||
+          staffMember.role ||
+          'Staff'
+        }}
+      </small>
+
+      <span>
+        <i class="pi pi-phone"></i>
+
+        {{
+          staffMember.phoneNumber ||
+          'No phone number'
+        }}
+      </span>
+    </span>
+
+    <span
+      v-if="
+        !staffMember.phoneNumber
+      "
+      class="missing-phone-badge"
+    >
+      No number
+    </span>
+  </label>
+</div>
+
+
+  <small
+    v-if="
+      !staffLoading &&
+      filteredStaffMembers.length > 0 &&
+      form.staffIds.length === 0
+    "
+    class="field-help selection-warning"
+  >
+    <i class="pi pi-info-circle"></i>
+
+    Select at least one staff member.
+  </small>
+</div>
+
+
+
+<div
+  v-if="
+    form.audienceType ===
+    'custom_numbers'
+  "
+  class="field custom-number-field"
+>
+  <div class="custom-number-heading">
+    <span class="custom-number-icon">
+      <i class="pi pi-phone"></i>
+    </span>
+
+    <div>
+      <label for="custom-numbers">
+        Recipient Phone Numbers
+      </label>
+
+      <small>
+        Enter one phone number per line or separate numbers with commas.
+      </small>
+    </div>
+  </div>
+
+  <textarea
+    id="custom-numbers"
+    v-model="form.customNumbers"
+    rows="5"
+    maxlength="2000"
+    placeholder="Example:
+0241234567
+0557654321"
+    @input="scheduleEstimate"
+  ></textarea>
+
+  <div class="custom-number-summary">
+    <span>
+      <i class="pi pi-mobile"></i>
+
+      {{ validCustomNumbers.length }}
+      valid
+      {{
+        validCustomNumbers.length === 1
+          ? 'number'
+          : 'numbers'
+      }}
+    </span>
+
+    <span
+      v-if="
+        invalidCustomNumbers.length > 0
+      "
+      class="invalid-number-count"
+    >
+      <i class="pi pi-exclamation-triangle"></i>
+
+      {{ invalidCustomNumbers.length }}
+      invalid
+    </span>
+  </div>
+
+  <div
+    v-if="
+      invalidCustomNumbers.length > 0
+    "
+    class="invalid-number-list"
+  >
+    <strong>
+      Check these numbers:
+    </strong>
+
+    <span>
+      {{
+        invalidCustomNumbers.join(
+          ', '
+        )
+      }}
+    </span>
+  </div>
+
+  <small class="field-help">
+    Ghana numbers such as 0241234567 and 233241234567 are accepted.
+  </small>
+</div>
+
+
 
 
 
@@ -815,10 +1198,7 @@
     No announcements have been sent yet.
   </div>
 
- <div
-  v-else
-  class="compact-history-wrapper"
->
+<div class="compact-table-wrapper">
   <table class="compact-history-table">
     <thead>
       <tr>
@@ -829,6 +1209,9 @@
         <th>Classes</th>
         <th>Description</th>
         <th>Message</th>
+        <th class="copy-header">
+          Copy
+        </th>
       </tr>
     </thead>
 
@@ -837,7 +1220,7 @@
         v-for="announcement in announcements"
         :key="announcement.id"
       >
-        <td class="date-column">
+        <td class="date-column" style=" text-align: left;">
           {{
             formatDateOnly(
               announcement.createdAt
@@ -845,19 +1228,20 @@
           }}
         </td>
 
-        <td class="recipient-column">
+        <td class="recipient-column" style=" text-align: left;" >
           <span class="recipient-badge">
             <i class="pi pi-users"></i>
 
             {{
               Number(
-                announcement.recipientCount || 0
+                announcement.recipientCount ||
+                0
               ).toLocaleString()
             }}
           </span>
         </td>
 
-        <td class="status-column">
+        <td class="status-column" style=" text-align: left;">
           <span
             class="status-pill compact-status-pill"
             :class="
@@ -870,18 +1254,31 @@
           </span>
         </td>
 
-        <td>
-          <span class="audience-badge">
-            {{
-              announcement.audienceType ===
-              'all_parents'
-                ? 'All Parents'
-                : 'Specific Classes'
-            }}
-          </span>
-        </td>
 
-        <td class="classes-column">
+
+
+
+
+       <td class="audience-column" style="text-align: left;">
+  <span
+    class="audience-badge"
+    style="display: inline-block; text-align: left;"
+    :class="normalizeAudienceType(announcement.audienceType)"
+  >
+    {{
+      formatAnnouncementAudience(announcement)
+    }}
+  </span>
+</td>
+
+
+
+
+
+
+
+
+        <td  style=" text-align: left;" class="classes-column">
           <span
             class="compact-cell-text"
             :title="
@@ -902,11 +1299,13 @@
           <span
             class="compact-cell-text"
             :title="
-              announcement.description || '-'
+              announcement.description ||
+              '-'
             "
           >
             {{
-              announcement.description || '-'
+              announcement.description ||
+              '-'
             }}
           </span>
         </td>
@@ -914,15 +1313,116 @@
         <td class="message-column">
           <span
             class="compact-message-text"
-            :title="announcement.message"
+            :title="
+              announcement.message ||
+              ''
+            "
           >
-            {{ announcement.message }}
+            {{
+              announcement.message ||
+              '-'
+            }}
           </span>
+        </td>
+
+        <td class="copy-column">
+          <button
+            type="button"
+            class="copy-message-btn"
+            :class="{
+              copied:
+                Number(
+                  copiedAnnouncementId
+                ) ===
+                Number(
+                  announcement.id
+                )
+            }"
+            :disabled="
+              !announcement.message ||
+              Number(
+                copyingAnnouncementId
+              ) ===
+              Number(
+                announcement.id
+              )
+            "
+            :title="
+              Number(
+                copiedAnnouncementId
+              ) ===
+              Number(
+                announcement.id
+              )
+                ? 'Copied'
+                : 'Copy message'
+            "
+            :aria-label="
+              Number(
+                copiedAnnouncementId
+              ) ===
+              Number(
+                announcement.id
+              )
+                ? 'Announcement message copied'
+                : 'Copy announcement message'
+            "
+            @click="
+              copyAnnouncementMessage(
+                announcement
+              )
+            "
+          >
+            <i
+              class="pi"
+              :class="
+                Number(
+                  copyingAnnouncementId
+                ) ===
+                Number(
+                  announcement.id
+                )
+                  ? 'pi-spin pi-spinner'
+                  : Number(
+                      copiedAnnouncementId
+                    ) ===
+                    Number(
+                      announcement.id
+                    )
+                    ? 'pi-check'
+                    : 'pi-copy'
+              "
+            ></i>
+
+            <span>
+              {{
+                Number(
+                  copiedAnnouncementId
+                ) ===
+                Number(
+                  announcement.id
+                )
+                  ? 'Copied'
+                  : 'Copy'
+              }}
+            </span>
+          </button>
+        </td>
+      </tr>
+
+      <tr v-if="announcements.length === 0">
+        <td
+          colspan="8"
+          class="empty-announcements-cell"
+        >
+          No announcement history is available.
         </td>
       </tr>
     </tbody>
   </table>
 </div>
+
+
 
 </section>
 
@@ -1021,6 +1521,7 @@
 <script setup>
 import {
   computed,
+  onBeforeUnmount,
   onMounted,
   reactive,
   ref,
@@ -1037,6 +1538,8 @@ import {
   getLatestSenderId,
   sendParentAnnouncement,
   getStudentsByClass,
+
+  get_staff_ktor,
 } from '@/services/api.js'
 
 const toast =
@@ -1072,32 +1575,309 @@ const toast =
   )
 }
 
+
+
+
+function normalizeAudienceType(
+  value
+) {
+  return String(
+    value ||
+    ''
+  )
+    .trim()
+    .toLowerCase()
+    .replace(
+      /_/g,
+      '-'
+    )
+}
+
+function formatAnnouncementAudience(
+  announcement
+) {
+  const savedAudienceLabel =
+    String(
+      announcement?.audienceLabel ||
+      ''
+    ).trim()
+
+  const audienceType =
+    String(
+      announcement?.audienceType ||
+      ''
+    )
+      .trim()
+      .toLowerCase()
+
+  if (
+    savedAudienceLabel &&
+    !(
+      savedAudienceLabel ===
+        'Selected Classes' &&
+      audienceType !==
+        'specific_classes'
+    )
+  ) {
+    return savedAudienceLabel
+  }
+
+  const recipientCount =
+    Number(
+      announcement?.recipientCount ||
+      0
+    )
+
+  switch (audienceType) {
+    case 'all_parents':
+      return 'All Parents'
+
+    case 'specific_classes':
+      return 'Specific Classes'
+
+    case 'specific_students':
+      return 'Specific Students'
+
+    case 'all_staff':
+      return 'All Staff'
+
+    case 'specific_staff':
+      return 'Specific Staff'
+
+    case 'custom_numbers':
+      return recipientCount === 1
+        ? '1 Custom Number'
+        : `${recipientCount} Custom Numbers`
+
+    default:
+      return 'SMS'
+  }}
+
+
+async function copyAnnouncementMessage(
+  announcement
+) {
+  const announcementId =
+    Number(announcement?.id)
+
+  const message =
+    String(
+      announcement?.message ||
+      ''
+    ).trim()
+
+  if (!message) {
+    toast.warning(
+      'There is no message to copy.'
+    )
+
+    return
+  }
+
+  if (
+    copyingAnnouncementId.value !==
+    null
+  ) {
+    return
+  }
+
+  try {
+    copyingAnnouncementId.value =
+      announcementId
+
+    if (
+      navigator.clipboard &&
+      window.isSecureContext
+    ) {
+      await navigator.clipboard.writeText(
+        message
+      )
+    } else {
+      copyTextWithFallback(
+        message
+      )
+    }
+
+    copiedAnnouncementId.value =
+      announcementId
+
+    toast.success(
+      'Copied'
+    )
+
+    if (copiedResetTimer.value) {
+      clearTimeout(
+        copiedResetTimer.value
+      )
+    }
+
+    copiedResetTimer.value =
+      setTimeout(() => {
+        copiedAnnouncementId.value =
+          null
+
+        copiedResetTimer.value =
+          null
+      }, 2000)
+  } catch (error) {
+
+
+    toast.error(
+      'Unable to copy the message.'
+    )
+  } finally {
+    copyingAnnouncementId.value =
+      null
+  }
+}
+
+
+
+function copyTextWithFallback(
+  value
+) {
+  const temporaryTextArea =
+    document.createElement(
+      'textarea'
+    )
+
+  temporaryTextArea.value =
+    value
+
+  temporaryTextArea.setAttribute(
+    'readonly',
+    ''
+  )
+
+  temporaryTextArea.style.position =
+    'fixed'
+
+  temporaryTextArea.style.top =
+    '-9999px'
+
+  temporaryTextArea.style.left =
+    '-9999px'
+
+  temporaryTextArea.style.opacity =
+    '0'
+
+  document.body.appendChild(
+    temporaryTextArea
+  )
+
+  temporaryTextArea.focus()
+  temporaryTextArea.select()
+
+  const copied =
+    document.execCommand(
+      'copy'
+    )
+
+  document.body.removeChild(
+    temporaryTextArea
+  )
+
+  if (!copied) {
+    throw new Error(
+      'The browser rejected the copy operation.'
+    )
+  }
+}
+
+
+onBeforeUnmount(() => {
+  if (copiedResetTimer.value) {
+    clearTimeout(
+      copiedResetTimer.value
+    )
+
+    copiedResetTimer.value =
+      null
+  }
+})
+
+
+
+const staffMembers =
+  ref([])
+
+const staffLoading =
+  ref(false)
+
+const staffSearch =
+  ref('')
+
+
 function formatSelectedClasses(
   announcement
 ) {
+  const audienceType =
+    String(
+      announcement?.audienceType ||
+      ''
+    )
+      .trim()
+      .toLowerCase()
 
   if (
-    announcement.audienceType ===
+    audienceType ===
     'all_parents'
   ) {
     return 'All Classes'
   }
 
   if (
-    Array.isArray(
-      announcement.selectedClassNames
-    ) &&
-    announcement.selectedClassNames
-      .length > 0
+    audienceType ===
+    'specific_classes'
   ) {
-    return announcement
-      .selectedClassNames
-      .join(', ')
+    if (
+      Array.isArray(
+        announcement
+          ?.selectedClassNames
+      ) &&
+      announcement
+        .selectedClassNames
+        .length > 0
+    ) {
+      return announcement
+        .selectedClassNames
+        .join(', ')
+    }
+
+    return 'Selected Classes'
   }
 
-  return announcement.audienceLabel ||
-    'Selected Classes'
+  if (
+    audienceType ===
+    'specific_students'
+  ) {
+    return 'Selected Students'
+  }
+
+  if (
+    audienceType ===
+    'all_staff'
+  ) {
+    return 'Not applicable'
+  }
+
+  if (
+    audienceType ===
+    'specific_staff'
+  ) {
+    return 'Not applicable'
+  }
+
+  if (
+    audienceType ===
+    'custom_numbers'
+  ) {
+    return 'Not applicable'
+  }
+
+  return '-'
 }
+
 
 const classes =
   ref([])
@@ -1133,15 +1913,50 @@ const senderIdStatus =
 const smsBalance =
   ref(0)
 
+
+  const copyingAnnouncementId =
+  ref(null)
+
+const copiedAnnouncementId =
+  ref(null)
+
+const copiedResetTimer =
+  ref(null)
+
+
+
+
 const form =
   reactive({
-    audienceType: 'all_parents',
-    classIds: [],
-    studentClassId: null,
-    studentIds: [],
-    message: '',
-    description: '',
+    audienceType:
+      'all_parents',
+
+    classIds:
+      [],
+
+    studentClassId:
+      null,
+
+    studentIds:
+      [],
+
+    staffIds:
+      [],
+
+    customNumbers:
+      '',
+
+    message:
+      '',
+
+    description:
+      '',
   })
+
+
+
+
+
 
   const loadStudentsByClass =
   async (classId) => {
@@ -1218,6 +2033,421 @@ const form =
   await loadStudentsByClass(
     form.studentClassId
   )
+}
+
+
+
+const filteredStaffMembers =
+  computed(() => {
+    const searchValue =
+      staffSearch.value
+        .trim()
+        .toLowerCase()
+
+    if (!searchValue) {
+      return staffMembers.value
+    }
+
+    return staffMembers.value.filter(
+      (staffMember) => {
+        return [
+          staffMember.fullName,
+          staffMember.position,
+          staffMember.role,
+          staffMember.phoneNumber,
+        ]
+          .filter(Boolean)
+          .some((value) => {
+            return String(value)
+              .toLowerCase()
+              .includes(searchValue)
+          })
+      }
+    )
+  })
+
+const selectableStaffMembers =
+  computed(() => {
+    return filteredStaffMembers.value
+      .filter((staffMember) => {
+        return Boolean(
+          String(
+            staffMember.phoneNumber ||
+            ''
+          ).trim()
+        )
+      })
+  })
+
+const allFilteredStaffSelected =
+  computed(() => {
+    const selectableIds =
+      selectableStaffMembers.value
+        .map((staffMember) => {
+          return Number(
+            staffMember.id
+          )
+        })
+
+    if (
+      selectableIds.length === 0
+    ) {
+      return false
+    }
+
+    return selectableIds.every(
+      (staffId) => {
+        return form.staffIds.includes(
+          staffId
+        )
+      }
+    )
+  })
+
+
+
+  const enteredCustomNumbers =
+  computed(() => {
+    return String(
+      form.customNumbers ||
+      ''
+    )
+      .split(
+        /[\n,;]+/
+      )
+      .map((phoneNumber) => {
+        return phoneNumber.trim()
+      })
+      .filter(Boolean)
+  })
+
+const validCustomNumbers =
+  computed(() => {
+    const normalizedNumbers =
+      enteredCustomNumbers.value
+        .map((phoneNumber) => {
+          return normalizePhoneNumber(
+            phoneNumber
+          )
+        })
+        .filter(Boolean)
+
+    return [
+      ...new Set(
+        normalizedNumbers
+      ),
+    ]
+  })
+
+const invalidCustomNumbers =
+  computed(() => {
+    return enteredCustomNumbers.value
+      .filter((phoneNumber) => {
+        return !normalizePhoneNumber(
+          phoneNumber
+        )
+      })
+  })
+
+function normalizePhoneNumber(value) {
+  let phoneNumber = String(value || '')
+    .trim()
+    .replace(/[\s()-]/g, '');
+
+  // Remove leading +
+  if (phoneNumber.startsWith('+')) {
+    phoneNumber = phoneNumber.slice(1);
+  }
+
+  // Convert 00XXXXXXXXX to XXXXXXXXX
+  if (phoneNumber.startsWith('00')) {
+    phoneNumber = phoneNumber.slice(2);
+  }
+
+  // Convert Ghana local format:
+  // 0246875311 -> 233246875311
+  if (
+    phoneNumber.startsWith('0') &&
+    phoneNumber.length === 10 &&
+    /^0[0-9]{9}$/.test(phoneNumber)
+  ) {
+    phoneNumber = `233${phoneNumber.slice(1)}`;
+  }
+
+  // Validate Ghana international format
+  if (!/^233[0-9]{9}$/.test(phoneNumber)) {
+    return null;
+  }
+
+  return phoneNumber;
+}
+
+function normalizeSelectedStaffIds() {
+  form.staffIds = [
+    ...new Set(
+      form.staffIds
+        .map(Number)
+        .filter((staffId) => {
+          return (
+            Number.isInteger(
+              staffId
+            ) &&
+            staffId > 0
+          )
+        })
+    ),
+  ]
+}
+
+function toggleAllStaff() {
+  const selectableIds =
+    selectableStaffMembers.value
+      .map((staffMember) => {
+        return Number(
+          staffMember.id
+        )
+      })
+
+  if (
+    allFilteredStaffSelected.value
+  ) {
+    form.staffIds =
+      form.staffIds.filter(
+        (staffId) => {
+          return !selectableIds.includes(
+            Number(staffId)
+          )
+        }
+      )
+
+    return
+  }
+
+  form.staffIds = [
+    ...new Set([
+      ...form.staffIds.map(
+        Number
+      ),
+
+      ...selectableIds,
+    ]),
+  ]
+}
+
+function getInitials(
+  value
+) {
+  return String(
+    value ||
+    'Staff'
+  )
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => {
+      return part
+        .charAt(0)
+        .toUpperCase()
+    })
+    .join('')
+}
+
+
+
+
+async function loadStaffMembers() {
+  try {
+    staffLoading.value =
+      true
+
+    const response =
+      await get_staff_ktor()
+
+
+
+    const responseData =
+      response?.data
+
+    const records =
+      Array.isArray(responseData)
+        ? responseData
+        : Array.isArray(
+            responseData?.items
+          )
+          ? responseData.items
+          : Array.isArray(
+              responseData?.staff
+            )
+            ? responseData.staff
+            : Array.isArray(
+                responseData?.data
+              )
+              ? responseData.data
+              : []
+
+    staffMembers.value =
+      records
+        .map((staffMember) => {
+          const user =
+            staffMember?.user ||
+            {}
+
+          const assignedClass =
+            staffMember?.assignedClass ||
+            null
+
+          const staffId =
+            Number(
+              staffMember?.id ||
+              staffMember?.staffId ||
+              0
+            )
+
+          const accountId =
+            Number(
+              user?.id ||
+              staffMember?.accountId ||
+              0
+            )
+
+          const fullName =
+            String(
+              user?.fullName ||
+              staffMember?.fullName ||
+              staffMember?.name ||
+              'Unnamed staff'
+            ).trim()
+
+          const phoneNumber =
+            String(
+              staffMember?.tel ||
+              staffMember?.phoneNumber ||
+              staffMember?.phone ||
+              staffMember?.contact ||
+              ''
+            ).trim()
+
+          const role =
+            String(
+              user?.role ||
+              staffMember?.role ||
+              'staff'
+            )
+              .trim()
+              .toLowerCase()
+
+          const isActive =
+            user?.isActive !== false
+
+          return {
+            ...staffMember,
+
+            id:
+              staffId,
+
+            staffId:
+              staffId,
+
+            accountId:
+              accountId,
+
+            userId:
+              String(
+                user?.userId ||
+                ''
+              ).trim(),
+
+            fullName:
+              fullName,
+
+            phoneNumber:
+              phoneNumber,
+
+            tel:
+              phoneNumber,
+
+            role:
+              role,
+
+            isActive:
+              isActive,
+
+            gender:
+              String(
+                user?.gender ||
+                ''
+              ).trim(),
+
+            dateOfBirth:
+              user?.dateOfBirth ||
+              null,
+
+            profilePictureUrl:
+              user?.profilePictureUrl ||
+              null,
+
+            profilePicturePublicId:
+              user?.profilePicturePublicId ||
+              null,
+
+            assignedClassId:
+              Number(
+                assignedClass?.id ||
+                staffMember?.assignedClassId ||
+                0
+              ) || null,
+
+            assignedClassName:
+              String(
+                assignedClass?.name ||
+                staffMember?.assignedClassName ||
+                ''
+              ).trim(),
+
+            position:
+              String(
+                staffMember?.position ||
+                staffMember?.jobTitle ||
+                role ||
+                'Staff'
+              ).trim(),
+          }
+        })
+        .filter((staffMember) => {
+          return (
+            Number.isInteger(
+              staffMember.id
+            ) &&
+            staffMember.id > 0 &&
+            staffMember.isActive === true &&
+            staffMember.role ===
+              'staff'
+          )
+        })
+        .sort((first, second) => {
+          return first.fullName
+            .localeCompare(
+              second.fullName
+            )
+        })
+
+
+
+
+  } catch (error) {
+    staffMembers.value = []
+
+
+    toast.error(
+      error?.response?.data
+        ?.message ||
+      error?.message ||
+      'Failed to load staff members.'
+    )
+  } finally {
+    staffLoading.value =
+      false
+  }
 }
 
 
@@ -1305,7 +2535,6 @@ const selectedClassStudentCount =
 
 const recipientCount =
   computed(() => {
-
     if (
       form.audienceType ===
       'all_parents'
@@ -1313,34 +2542,77 @@ const recipientCount =
       return totalStudentCount.value
     }
 
-
+    if (
+      form.audienceType ===
+      'specific_classes'
+    ) {
+      return selectedClassStudentCount.value
+    }
 
     if (
+      form.audienceType ===
+      'specific_students'
+    ) {
+      return form.studentIds.length
+    }
 
-form.audienceType ===
+    if (
+      form.audienceType ===
+      'all_staff'
+    ) {
+      return staffMembers.value.filter(
+        (staffMember) => {
+          return Boolean(
+            normalizePhoneNumber(
+              staffMember.phoneNumber
+            )
+          )
+        }
+      ).length
+    }
 
-'specific_classes'
+    if (
+      form.audienceType ===
+      'specific_staff'
+    ) {
+      const selectedIds =
+        form.staffIds.map(
+          Number
+        )
 
-) {
+      return staffMembers.value.filter(
+        (staffMember) => {
+          return (
+            selectedIds.includes(
+              Number(
+                staffMember.id
+              )
+            ) &&
+            Boolean(
+              normalizePhoneNumber(
+                staffMember.phoneNumber
+              )
+            )
+          )
+        }
+      ).length
+    }
 
-return selectedClassStudentCount.value
-
-}
-if (
-
-form.audienceType ===
-
-'specific_students'
-
-) {
-
-return form.studentIds.length
-}
-
-
+    if (
+      form.audienceType ===
+      'custom_numbers'
+    ) {
+      return validCustomNumbers.value
+        .length
+    }
 
     return 0
   })
+
+
+
+
+
 
 const messageLength =
   computed(() => {
@@ -1405,9 +2677,12 @@ const senderIdStatusClass =
     )
   })
 
+
+
+
+
 const hasValidAudience =
   computed(() => {
-
     if (
       form.audienceType ===
       'all_parents'
@@ -1419,7 +2694,9 @@ const hasValidAudience =
       form.audienceType ===
       'specific_classes'
     ) {
-      return form.classIds.length > 0
+      return (
+        form.classIds.length > 0
+      )
     }
 
     if (
@@ -1427,17 +2704,46 @@ const hasValidAudience =
       'specific_students'
     ) {
       return (
-        Number(form.studentClassId) > 0 &&
+        Number(
+          form.studentClassId
+        ) > 0 &&
         form.studentIds.length > 0
+      )
+    }
+
+    if (
+      form.audienceType ===
+      'all_staff'
+    ) {
+      return (
+        recipientCount.value > 0
+      )
+    }
+
+    if (
+      form.audienceType ===
+      'specific_staff'
+    ) {
+      return (
+        form.staffIds.length > 0 &&
+        recipientCount.value > 0
+      )
+    }
+
+    if (
+      form.audienceType ===
+      'custom_numbers'
+    ) {
+      return (
+        validCustomNumbers.value
+          .length > 0 &&
+        invalidCustomNumbers.value
+          .length === 0
       )
     }
 
     return false
   })
-
-
-
-
 
 const hasInsufficientBalance =
   computed(() => {
@@ -1467,11 +2773,8 @@ const allClassesSelected =
   })
 
 
-
-
 const audienceLabel =
   computed(() => {
-
     if (
       form.audienceType ===
       'all_parents'
@@ -1481,61 +2784,57 @@ const audienceLabel =
 
     if (
       form.audienceType ===
+      'specific_classes'
+    ) {
+      return `${
+        form.classIds.length
+      } selected classes`
+    }
+
+    if (
+      form.audienceType ===
       'specific_students'
     ) {
-      if (form.studentIds.length === 0) {
-        return 'No students selected'
-      }
-
-      const selectedIds =
-        form.studentIds.map(Number)
-
-      const selectedNames =
-        students.value
-          .filter((student) => {
-            return selectedIds.includes(
-              Number(student.id)
-            )
-          })
-          .map((student) => {
-            return student.fullName
-          })
-
-      if (selectedNames.length <= 2) {
-        return selectedNames.join(', ')
-      }
-
       return `${
-        selectedNames.slice(0, 2).join(', ')
-      } and ${selectedNames.length - 2} more`
+        form.studentIds.length
+      } selected students`
     }
 
-    if (form.classIds.length === 0) {
-      return 'No classes selected'
+    if (
+      form.audienceType ===
+      'all_staff'
+    ) {
+      return 'All Staff'
     }
 
-    const selectedIds =
-      form.classIds.map(Number)
-
-    const names =
-      classes.value
-        .filter((classItem) => {
-          return selectedIds.includes(
-            Number(classItem.id)
-          )
-        })
-        .map((classItem) => {
-          return classItem.name
-        })
-
-    if (names.length <= 2) {
-      return names.join(', ')
+    if (
+      form.audienceType ===
+      'specific_staff'
+    ) {
+      return `${
+        form.staffIds.length
+      } selected staff`
     }
 
-    return `${
-      names.slice(0, 2).join(', ')
-    } and ${names.length - 2} more`
+    if (
+      form.audienceType ===
+      'custom_numbers'
+    ) {
+      return `${
+        validCustomNumbers.value
+          .length
+      } custom numbers`
+    }
+
+    return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`
   })
+
+
+
+
+
+
+
 
 const canOpenConfirmation =
   computed(() => {
@@ -1642,31 +2941,21 @@ function formatDateTime(value) {
   return date.toLocaleString()
 }
 
-function selectAudience(type) {
-  form.audienceType = type
+function selectAudience(
+  type
+) {
+  form.audienceType =
+    type
 
-  if (type === 'all_parents') {
-    form.classIds = []
-    form.studentClassId = null
-    form.studentIds = []
-    students.value = []
+  form.classIds = []
+  form.studentClassId = null
+  form.studentIds = []
+  form.staffIds = []
+  form.customNumbers = ''
 
-    return
-  }
-
-  if (type === 'specific_classes') {
-    form.studentClassId = null
-    form.studentIds = []
-    students.value = []
-
-    return
-  }
-
-  if (type === 'specific_students') {
-    form.classIds = []
-  }
+  students.value = []
+  staffSearch.value = ''
 }
-
 function toggleAllClasses() {
 
   if (allClassesSelected.value) {
@@ -1728,14 +3017,22 @@ function resetForm() {
   form.classIds = []
   form.studentClassId = null
   form.studentIds = []
+  form.staffIds = []
+  form.customNumbers = ''
   form.message = ''
   form.description = ''
 
   students.value = []
+  staffSearch.value = ''
 
   confirmationVisible.value =
     false
 }
+
+
+
+
+
 const loadClasses =
   async () => {
 
@@ -1983,9 +3280,10 @@ const sendAnnouncement =
 
       sending.value = true
 
-      const response =
+     const response =
   await sendParentAnnouncement({
-    tenantCode,
+    tenantCode:
+      tenantCode,
 
     audienceType:
       form.audienceType,
@@ -1993,13 +3291,31 @@ const sendAnnouncement =
     classIds:
       form.audienceType ===
       'specific_classes'
-        ? form.classIds
+        ? form.classIds.map(
+            Number
+          )
         : [],
 
     studentIds:
       form.audienceType ===
       'specific_students'
-        ? form.studentIds
+        ? form.studentIds.map(
+            Number
+          )
+        : [],
+
+    staffIds:
+      form.audienceType ===
+      'specific_staff'
+        ? form.staffIds.map(
+            Number
+          )
+        : [],
+
+    customNumbers:
+      form.audienceType ===
+      'custom_numbers'
+        ? validCustomNumbers.value
         : [],
 
     message:
@@ -2009,7 +3325,6 @@ const sendAnnouncement =
       form.description.trim() ||
       null,
   })
-
 
 
       if (!response.data?.success) {
@@ -2070,6 +3385,7 @@ onMounted(
       loadWallet(),
       loadSenderId(),
       loadAnnouncementHistory(),
+      loadStaffMembers(),
     ])
   }
 )
@@ -2081,6 +3397,435 @@ onMounted(
 
 
 <style scoped>
+
+
+.staff-option {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.staff-option:hover:not(.unavailable) {
+  border-color: #93c5fd;
+  background: #f8fbff;
+  transform: translateY(-1px);
+}
+
+.staff-option.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow:
+    0 0 0 2px rgb(37 99 235 / 8%);
+}
+
+.staff-option.unavailable {
+  cursor: not-allowed;
+  opacity: 0.58;
+  background: #f8fafc;
+}
+
+.staff-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checkbox-box {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 1.35rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 0.4rem;
+  background: #ffffff;
+  color: transparent;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.checkbox-box.checked,
+.staff-option.selected .checkbox-box {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow:
+    0 0 0 3px rgb(37 99 235 / 12%);
+  transform: scale(1.03);
+}
+
+.checkbox-box .pi {
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.staff-option.unavailable .checkbox-box {
+  border-color: #dbe3ef;
+  background: #e2e8f0;
+  color: #94a3b8;
+}
+
+.staff-option:focus-within {
+  outline: 3px solid rgb(37 99 235 / 18%);
+  outline-offset: 2px;
+}
+
+
+
+.compact-history-table th.audience-column,
+.compact-history-table td.audience-column,
+.audience-column {
+  text-align: left;
+}
+
+.audience-column .audience-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+
+
+
+
+.audience-icon.staff {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+.audience-icon.custom {
+  background: #ecfdf3;
+  color: #15803d;
+}
+
+.staff-selection-field,
+.custom-number-field {
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #fbfcfe;
+}
+
+.staff-search {
+  position: relative;
+  margin-top: 0.8rem;
+}
+
+.staff-search > i {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  color: #94a3b8;
+  transform: translateY(-50%);
+}
+
+.staff-search input {
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0.7rem 0.85rem 0.7rem 2.5rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 0.8rem;
+  outline: none;
+  background: #ffffff;
+}
+
+.staff-search input:focus {
+  border-color: #2563eb;
+  box-shadow:
+    0 0 0 3px rgb(37 99 235 / 10%);
+}
+
+.staff-selection-list {
+  max-height: 24rem;
+  display: grid;
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+  overflow-y: auto;
+}
+
+.staff-option {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.staff-option.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.staff-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.staff-avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 2.4rem;
+  border-radius: 0.75rem;
+  background: #ede9fe;
+  color: #7c3aed;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.staff-option-details {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.staff-option-details strong {
+  overflow: hidden;
+  color: #1e293b;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.staff-option-details small {
+  margin-top: 0.12rem;
+  color: #64748b;
+  font-size: 0.65rem;
+}
+
+.staff-option-details > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.65rem;
+}
+
+.missing-phone-badge {
+  padding: 0.3rem 0.45rem;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+.custom-number-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.8rem;
+}
+
+.custom-number-icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 2.4rem;
+  border-radius: 0.75rem;
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.custom-number-heading > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.custom-number-heading label {
+  margin: 0;
+}
+
+.custom-number-heading small {
+  margin-top: 0.15rem;
+  color: #64748b;
+  font-size: 0.68rem;
+}
+
+.custom-number-field textarea {
+  width: 100%;
+  padding: 0.8rem;
+  resize: vertical;
+  border: 1px solid #dbe3ef;
+  border-radius: 0.85rem;
+  outline: none;
+  background: #ffffff;
+  line-height: 1.55;
+}
+
+.custom-number-field textarea:focus {
+  border-color: #2563eb;
+  box-shadow:
+    0 0 0 3px rgb(37 99 235 / 10%);
+}
+
+.custom-number-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+  color: #15803d;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.invalid-number-count {
+  color: #dc2626;
+}
+
+.invalid-number-list {
+  margin-top: 0.65rem;
+  padding: 0.7rem;
+  border: 1px solid #fecaca;
+  border-radius: 0.75rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.invalid-number-list strong {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.selection-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.65rem;
+  color: #d97706;
+}
+
+@media (max-width: 900px) {
+  .audience-options {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+
+  .staff-selection-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .audience-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
+.copy-header,
+.copy-column {
+  width: 7rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.copy-message-btn {
+  min-width: 5.5rem;
+  min-height: 2.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 0.7rem;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+  box-shadow:
+    0 2px 7px rgb(15 23 42 / 6%);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.copy-message-btn:hover:not(:disabled) {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow:
+    0 5px 12px rgb(37 99 235 / 12%);
+}
+
+.copy-message-btn.copied {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #15803d;
+  box-shadow:
+    0 4px 10px rgb(22 163 74 / 10%);
+}
+
+.copy-message-btn:focus-visible {
+  outline: 3px solid rgb(37 99 235 / 18%);
+  outline-offset: 2px;
+}
+
+.copy-message-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+  box-shadow: none;
+}
+
+.copy-message-btn .pi {
+  font-size: 0.78rem;
+}
+
 
 
 .student-class-field {

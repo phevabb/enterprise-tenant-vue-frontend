@@ -1166,9 +1166,6 @@ export function getConversationMessages(
     }
   )
 }
-export function getStaffAssignedClasses() {
-  // return
-}
 
 
 
@@ -1567,7 +1564,11 @@ export async function assignAdminComplaint(
 
 
 
-
+export async function getSmsStaffMembers() {
+  return tenantInternalApi.get(
+    '/sms/staff'
+  )
+}
 
 
 // ✅ Fetch single category

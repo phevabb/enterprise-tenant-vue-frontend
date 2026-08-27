@@ -2540,10 +2540,7 @@ function applyDeletedMessage(
     !Number.isInteger(messageId) ||
     messageId <= 0
   ) {
-    console.error(
-      '[ParentChat] Invalid deletion event:',
-      data
-    )
+
 
     return
   }
@@ -2737,22 +2734,6 @@ async function deleteSelectedMessage() {
           responseData?.errorMessage ||
           responseData?.error
 
-    console.error(
-      '[ParentChat] Message deletion failed:',
-      {
-        messageId:
-          messageId,
-
-        status:
-          error?.response?.status,
-
-        responseData:
-          responseData,
-
-        error:
-          error,
-      }
-    )
 
     toast.error(
       backendMessage ||
