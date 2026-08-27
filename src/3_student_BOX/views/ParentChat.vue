@@ -2015,42 +2015,52 @@ async function markConversationRead() {
 }
 
 function getWebSocketUrl() {
-  const apiBaseUrl =
-    import.meta.env
-      .VITE_API_BASE_URL ||
-    'http://127.0.0.1:9001'
-
-  const websocketBaseUrl =
-    apiBaseUrl
+  const configuredWebSocketUrl =
+    String(
+      import.meta.env
+        .VITE_WEBSOCKET_URL ||
+      'ws://localhost:9001/chat/ws'
+    )
+      .trim()
       .replace(
-        /^https:/,
-        'wss:'
-      )
-      .replace(
-        /^http:/,
-        'ws:'
-      )
-      .replace(
-        /\/$/,
+        /\/+$/,
         ''
       )
 
-  const token =
-    encodeURIComponent(
-      getAccessToken()
-    )
+  const accessToken =
+    getAccessToken()
 
   const tenantCode =
-    encodeURIComponent(
-      getTenantCode()
+    getTenantCode()
+
+  if (!accessToken) {
+    throw new Error(
+      'The authentication token is missing.'
     )
+  }
+
+  if (!tenantCode) {
+    throw new Error(
+      'The tenant code is missing.'
+    )
+  }
+
+  const queryParameters =
+    new URLSearchParams({
+      token:
+        accessToken,
+
+      tenantCode:
+        tenantCode,
+    })
 
   return (
-    `${websocketBaseUrl}/chat/ws` +
-    `?token=${token}` +
-    `&tenantCode=${tenantCode}`
+    `${configuredWebSocketUrl}` +
+    `?${queryParameters.toString()}`
   )
 }
+
+
 function connectSocket() {
   const token =
     getAccessToken()
