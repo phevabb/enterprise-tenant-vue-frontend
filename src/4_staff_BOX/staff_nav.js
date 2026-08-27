@@ -49,5 +49,13 @@ export default [
 
 
 
+  { component: 'CNavTitle', name: 'Communication' },
+
+    {
+    component: 'CNavItem',
+    name: 'Chat with Parents',
+    to: { name: 'chatwithparents' },
+    icon: cilAddressBook,
+  },
 
 ]

@@ -1,7 +1,12 @@
 import axios from 'axios'
 
 const configuredTenantApiUrl =
-  import.meta.env.VITE_TENANT_API_BASE_URL
+  import.meta.env.VITE_TENANT_API_BASE_URL ||
+  'http://127.0.0.1:9001/api'
+
+// Production URL:
+// const configuredTenantApiUrl =
+//   'https://your-production-domain.com/api'
 
 const tenantRootUrl =
   configuredTenantApiUrl.replace(
@@ -21,9 +26,19 @@ const tenantInternalApi =
 
 tenantInternalApi.interceptors.request.use(
   (config) => {
+    const token =
+      localStorage.getItem('accessToken') ||
+      localStorage.getItem('token') ||
+      ''
 
     const tenantCode =
-      localStorage.getItem('tenantCode') || ''
+      localStorage.getItem('tenantCode') ||
+      ''
+
+    if (token) {
+      config.headers.Authorization =
+        `Bearer ${token}`
+    }
 
     if (tenantCode) {
       config.headers['X-Tenant-Code'] =

@@ -46,6 +46,15 @@ export default [
     icon: cilCalculator,
   },
 
+   { component: 'CNavTitle', name: 'Communication' },
+
+   {
+    component: 'CNavItem',
+    name: 'Chat with Teachers',
+    to: { name: 'ParentChat' },
+    icon: cilAddressBook,
+  },
+
 
   // { component: 'CNavTitle', name: 'Bills / Book lists' },
 

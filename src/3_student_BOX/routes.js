@@ -22,6 +22,17 @@ export const studentRoutes = {
         import('@/3_student_BOX/views/AcademicRecords.vue'),
       meta: { roles: ['student'] },
     },
+
+    {
+      path: 'parentchat',
+      name: 'ParentChat',
+      component: () =>
+        import('@/3_student_BOX/views/ParentChat.vue'),
+      meta: { roles: ['student'] },
+    },
+
+
+
     {
       path: 'paymenthistory',
       name: 'StudentPaymentHistory',

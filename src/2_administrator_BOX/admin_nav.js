@@ -191,12 +191,18 @@ export default [
   },
   {
     component: 'CNavTitle',
-    name: 'Announcements',
+    name: 'Communications',
   },
   {
     component: 'CNavItem',
     name: 'Announcements',
     to: { name: 'announcements' },
+    icon: cilAddressBook ,
+  },
+  {
+    component: 'CNavItem',
+    name: 'Complaints',
+    to: { name: 'complaints' },
     icon: cilAddressBook ,
   },
 ]

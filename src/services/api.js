@@ -1087,6 +1087,489 @@ export const getStudentsByClass = (classId) =>  api.get(`classes/new/${classId}/
 
 
 
+
+// for parents to chat with staff / teachers
+
+
+
+
+
+export function getStaffOfStudent(
+  studentUserId
+) {
+  return tenantInternalApi.get(
+    `/chat/students/${encodeURIComponent(
+      studentUserId
+    )}/class-teachers`
+  )
+}
+
+
+export function createParentTeacherConversation(
+  payload
+) {
+  return tenantInternalApi.post(
+    '/chat/conversations',
+    payload
+  )
+}
+
+
+export function getParentConversations() {
+  return tenantInternalApi.get(
+    '/chat/conversations'
+  )
+}
+
+export function getParentWards() {
+  // return
+}
+
+
+
+
+// both here and therer
+export function markConversationAsRead(
+  conversationId
+) {
+  return tenantInternalApi.patch(
+    `/chat/conversations/${encodeURIComponent(
+      conversationId
+    )}/read`
+  )
+}
+
+
+
+
+
+
+
+
+// for teachers to caht with studetns / paretns
+
+
+// both here and there
+export function getConversationMessages(
+  conversationId,
+  params = {}
+) {
+  return tenantInternalApi.get(
+    `/chat/conversations/${encodeURIComponent(
+      conversationId
+    )}/messages`,
+    {
+      params: {
+        limit:
+          Number(params.limit || 50),
+      },
+    }
+  )
+}
+export function getStaffAssignedClasses() {
+  // return
+}
+
+
+
+export function getStudentsForStaffClass() {
+  // return
+}
+
+
+
+
+
+export function getStaffAssignedClass(
+  staffUserId
+) {
+  return tenantInternalApi.get(
+    `/staff/chat/assigned-class/${encodeURIComponent(
+      staffUserId
+    )}`
+  )
+}
+
+export function getStaffConversations() {
+  return tenantInternalApi.get(
+    '/chat/conversations'
+  )
+}
+
+export function createStaffParentConversation(
+  payload
+) {
+
+
+  return tenantInternalApi.post(
+    '/chat/conversations',
+    payload
+  )
+}
+
+export async function deleteChatMessage(messageId) {
+  const normalizedMessageId =
+    Number(messageId)
+
+  if (
+    !Number.isInteger(normalizedMessageId) ||
+    normalizedMessageId <= 0
+  ) {
+    throw new Error(
+      'A valid message ID is required.'
+    )
+  }
+
+
+
+  try {
+    const response =
+      await tenantInternalApi.delete(
+        `/chat/messages/${normalizedMessageId}`
+      )
+
+
+
+    return response
+  } catch (error) {
+
+
+    throw error
+  }
+}
+
+
+export async function createParentComplaint(payload) {
+  const studentId =
+    Number(payload?.studentId)
+
+  const category =
+    String(
+      payload?.category || ''
+    )
+      .trim()
+      .toUpperCase()
+
+  const subject =
+    String(
+      payload?.subject || ''
+    )
+      .trim()
+
+  const description =
+    String(
+      payload?.description || ''
+    )
+      .trim()
+
+  const priority =
+    String(
+      payload?.priority ||
+      'NORMAL'
+    )
+      .trim()
+      .toUpperCase()
+
+  if (
+    !Number.isInteger(studentId) ||
+    studentId <= 0
+  ) {
+    throw new Error(
+      'A valid student ID is required.'
+    )
+  }
+
+  if (!category) {
+    throw new Error(
+      'Complaint category is required.'
+    )
+  }
+
+  if (!subject) {
+    throw new Error(
+      'Complaint subject is required.'
+    )
+  }
+
+  if (!description) {
+    throw new Error(
+      'Complaint details are required.'
+    )
+  }
+
+  try {
+    return await tenantInternalApi.post(
+      '/parent/complaints',
+      {
+        studentId,
+        category,
+        subject,
+        description,
+        priority,
+      }
+    )
+  } catch (error) {
+
+
+    throw error
+  }
+}
+
+
+export async function getParentComplaints() {
+  try {
+    return await tenantInternalApi.get(
+      '/parent/complaints'
+    )
+  } catch (error) {
+
+
+    throw error
+  }
+}
+
+
+
+export async function getParentComplaint(
+  complaintId
+) {
+  const normalizedComplaintId =
+    Number(complaintId)
+
+  if (
+    !Number.isInteger(
+      normalizedComplaintId
+    ) ||
+    normalizedComplaintId <= 0
+  ) {
+    throw new Error(
+      'A valid complaint ID is required.'
+    )
+  }
+
+  return tenantInternalApi.get(
+    `/parent/complaints/${normalizedComplaintId}`
+  )
+}
+
+
+export async function replyToParentComplaint(
+  complaintId,
+  content
+) {
+  const normalizedComplaintId =
+    Number(complaintId)
+
+  const normalizedContent =
+    String(content || '')
+      .trim()
+
+  if (
+    !Number.isInteger(
+      normalizedComplaintId
+    ) ||
+    normalizedComplaintId <= 0
+  ) {
+    throw new Error(
+      'A valid complaint ID is required.'
+    )
+  }
+
+  if (!normalizedContent) {
+    throw new Error(
+      'Reply content is required.'
+    )
+  }
+
+  return tenantInternalApi.post(
+    `/parent/complaints/${normalizedComplaintId}/replies`,
+    {
+      content: normalizedContent,
+    }
+  )
+}
+
+
+export async function getAdminComplaints(
+  status = ''
+) {
+  const params = {}
+
+  if (String(status).trim()) {
+    params.status =
+      String(status)
+        .trim()
+        .toUpperCase()
+  }
+
+  return tenantInternalApi.get(
+    '/admin/complaints',
+    {
+      params,
+    }
+  )
+}
+
+
+export async function getAdminComplaint(
+  complaintId
+) {
+  const normalizedComplaintId =
+    Number(complaintId)
+
+  if (
+    !Number.isInteger(
+      normalizedComplaintId
+    ) ||
+    normalizedComplaintId <= 0
+  ) {
+    throw new Error(
+      'A valid complaint ID is required.'
+    )
+  }
+
+  return tenantInternalApi.get(
+    `/admin/complaints/${normalizedComplaintId}`
+  )
+}
+
+
+export async function replyToComplaintAsAdmin(
+  complaintId,
+  payload
+) {
+  const normalizedComplaintId =
+    Number(complaintId)
+
+  const content =
+    String(
+      payload?.content || ''
+    )
+      .trim()
+
+  if (
+    !Number.isInteger(
+      normalizedComplaintId
+    ) ||
+    normalizedComplaintId <= 0
+  ) {
+    throw new Error(
+      'A valid complaint ID is required.'
+    )
+  }
+
+  if (!content) {
+    throw new Error(
+      'Reply content is required.'
+    )
+  }
+
+  return tenantInternalApi.post(
+    `/admin/complaints/${normalizedComplaintId}/replies`,
+    {
+      content,
+
+      isInternal:
+        payload?.isInternal === true,
+
+      nextStatus:
+        payload?.nextStatus ||
+        null,
+    }
+  )
+}
+
+
+export async function updateAdminComplaintStatus(
+  complaintId,
+  status
+) {
+  const normalizedComplaintId =
+    Number(complaintId)
+
+  const normalizedStatus =
+    String(status || '')
+      .trim()
+      .toUpperCase()
+
+  if (
+    !Number.isInteger(
+      normalizedComplaintId
+    ) ||
+    normalizedComplaintId <= 0
+  ) {
+    throw new Error(
+      'A valid complaint ID is required.'
+    )
+  }
+
+  if (!normalizedStatus) {
+    throw new Error(
+      'A complaint status is required.'
+    )
+  }
+
+  return tenantInternalApi.patch(
+    `/admin/complaints/${normalizedComplaintId}/status`,
+    {
+      status:
+        normalizedStatus,
+    }
+  )
+}
+
+
+export async function assignAdminComplaint(
+  complaintId,
+  adminAccountId
+) {
+  const normalizedComplaintId =
+    Number(complaintId)
+
+  const normalizedAdminAccountId =
+    adminAccountId === null
+      ? null
+      : Number(adminAccountId)
+
+  if (
+    !Number.isInteger(
+      normalizedComplaintId
+    ) ||
+    normalizedComplaintId <= 0
+  ) {
+    throw new Error(
+      'A valid complaint ID is required.'
+    )
+  }
+
+  if (
+    normalizedAdminAccountId !== null &&
+    (
+      !Number.isInteger(
+        normalizedAdminAccountId
+      ) ||
+      normalizedAdminAccountId <= 0
+    )
+  ) {
+    throw new Error(
+      'A valid administrator account ID is required.'
+    )
+  }
+
+  return tenantInternalApi.patch(
+    `/admin/complaints/${normalizedComplaintId}/assign`,
+    {
+      adminAccountId:
+        normalizedAdminAccountId,
+    }
+  )
+}
+
+
+
+
+
+
 // ✅ Fetch single category
 
 export default api;

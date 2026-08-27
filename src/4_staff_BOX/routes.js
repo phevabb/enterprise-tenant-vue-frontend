@@ -15,6 +15,15 @@ export const staffRoutes = {
         import('@/4_staff_BOX/views/Dashboard.vue'),
       meta: { roles: ['staff'] },
     },
+{
+      path: 'chatwithparents',
+      name: 'chatwithparents',
+      component: () =>
+        import('@/4_staff_BOX/views/ChatWithParents.vue'),
+      meta: { roles: ['staff'] },
+    },
+
+
     {
       path: 'classanalysis',
       name: 'ClassAnalysis',

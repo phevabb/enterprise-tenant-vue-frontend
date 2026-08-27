@@ -61,6 +61,15 @@ export const adminRoutes = {
       meta: { roles: ['administrator'] },
     },
 
+    {
+      path: 'complaints',
+      name: 'complaints',
+      component: () =>
+        import('@/2_administrator_BOX/views/charts/Complaints.vue'),
+      meta: { roles: ['administrator'] },
+    },
+
+
 
 
 
