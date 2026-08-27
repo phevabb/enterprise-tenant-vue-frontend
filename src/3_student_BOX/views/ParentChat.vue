@@ -448,84 +448,84 @@
             }"
           >
             <div class="message-content-row">
-              <div
-                v-if="
-                  isMyMessage(message) &&
-                  Number(message.id) > 0
-                "
-                class="message-actions"
-                @click.stop
-              >
-                <button
-                  type="button"
-                  class="message-options-btn"
-                  title="Message options"
-                  aria-label="Open message options"
-                  :aria-expanded="
-                    Number(openMessageMenuId) ===
-                    Number(message.id)
-                  "
-                  :disabled="
-                    deletingMessageId !== null
-                  "
-                  @click.stop="
-                    toggleMessageMenu(
-                      message.id
-                    )
-                  "
-                >
-                  <i
-                    class="pi"
-                    :class="
-                      Number(deletingMessageId) ===
-                      Number(message.id)
-                        ? 'pi-spin pi-spinner'
-                        : 'pi-ellipsis-v'
-                    "
-                  ></i>
-                </button>
+            <div
+  v-if="
+    isMyMessage(message) &&
+    Number(message.id) > 0
+  "
+  class="message-actions"
+  @click.stop
+>
+  <button
+    type="button"
+    class="message-options-btn"
+    title="Message options"
+    aria-label="Open message options"
+    :aria-expanded="
+      Number(openMessageMenuId) ===
+      Number(message.id)
+    "
+    :disabled="
+      deletingMessageId !== null
+    "
+    @click.stop="
+      toggleMessageMenu(
+        message.id
+      )
+    "
+  >
+    <i
+      class="pi"
+      :class="
+        Number(deletingMessageId) ===
+        Number(message.id)
+          ? 'pi-spin pi-spinner'
+          : 'pi-ellipsis-v'
+      "
+    ></i>
+  </button>
 
-                <Transition name="message-menu">
-                  <div
-                    v-if="
-                      Number(openMessageMenuId) ===
-                      Number(message.id)
-                    "
-                    class="message-options-menu"
-                    role="menu"
-                    aria-label="Message actions"
-                    @click.stop
-                  >
-                    <button
-                      type="button"
-                      class="message-option-delete"
-                      role="menuitem"
-                      :disabled="
-                        deletingMessageId !== null
-                      "
-                      @click.stop="
-                        confirmDeleteMessage(
-                          message
-                        )
-                      "
-                    >
-                      <span class="message-option-icon">
-                        <i class="pi pi-trash"></i>
-                      </span>
+  <Transition name="message-menu">
+    <div
+      v-if="
+        Number(openMessageMenuId) ===
+        Number(message.id)
+      "
+      class="message-options-menu"
+      role="menu"
+      aria-label="Message actions"
+      @click.stop
+    >
+      <button
+        type="button"
+        class="message-option-delete"
+        role="menuitem"
+        :disabled="
+          deletingMessageId !== null
+        "
+        @click.stop="
+          confirmDeleteMessage(
+            message
+          )
+        "
+      >
+        <span class="message-option-icon">
+          <i class="pi pi-trash"></i>
+        </span>
 
-                      <span class="message-option-text">
-                        <strong>
-                          Delete permanently
-                        </strong>
+        <span class="message-option-text">
+          <strong>
+            Delete permanently
+          </strong>
 
-                        <small>
-                          Remove from the conversation
-                        </small>
-                      </span>
-                    </button>
-                  </div>
-                </Transition>
-              </div>
+          <small>
+            Remove from the conversation
+          </small>
+        </span>
+      </button>
+    </div>
+  </Transition>
+</div>
 
               <div class="message-bubble">
                 <p>
@@ -963,211 +963,108 @@
 
 
 
-  </div>
+    </div>
 
   <Teleport to="body">
-  <Transition name="delete-modal">
-    <div
-      v-if="deleteMessageVisible"
-      class="delete-message-backdrop"
-      role="presentation"
-      @click.self="closeDeleteMessageModal"
-    >
-      <section
-        class="delete-message-modal"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="parent-delete-message-title"
-        aria-describedby="parent-delete-message-description"
+    <Transition name="delete-modal">
+      <div
+        v-if="deleteMessageVisible"
+        class="delete-message-backdrop"
+        role="presentation"
+        @click.self="closeDeleteMessageModal"
       >
-        <button
-          type="button"
-          class="delete-modal-close"
-          title="Close"
-          aria-label="Close delete message dialog"
-          :disabled="Boolean(deletingMessageId)"
-          @click="closeDeleteMessageModal"
+        <section
+          class="delete-message-modal"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="parent-delete-message-title"
+          aria-describedby="parent-delete-message-description"
+          @click.stop
         >
-          <i class="pi pi-times"></i>
-        </button>
-
-        <span class="delete-modal-icon">
-          <i class="pi pi-trash"></i>
-        </span>
-
-        <div class="delete-modal-content">
-          <span class="delete-modal-eyebrow">
-            Permanent deletion
-          </span>
-
-          <h2 id="parent-delete-message-title">
-            Delete this message?
-          </h2>
-
-          <p id="parent-delete-message-description">
-            This message will be permanently removed from the
-            conversation and database for everyone.
-          </p>
-
-          <blockquote
-            v-if="messagePendingDeletion?.content"
-            class="delete-message-preview"
-          >
-            {{
-              messagePendingDeletion.content.length > 160
-                ? `${messagePendingDeletion.content.slice(0, 160)}...`
-                : messagePendingDeletion.content
-            }}
-          </blockquote>
-        </div>
-
-        <div class="delete-modal-notice">
-          <i class="pi pi-exclamation-triangle"></i>
-
-          <span>
-            This action is permanent and cannot be undone.
-          </span>
-        </div>
-
-        <footer class="delete-modal-actions">
           <button
             type="button"
-            class="delete-cancel-btn"
-            :disabled="Boolean(deletingMessageId)"
-            @click="closeDeleteMessageModal"
-          >
-            Keep message
-          </button>
-
-          <button
-            type="button"
-            class="delete-confirm-btn"
-            :disabled="Boolean(deletingMessageId)"
-            @click="deleteSelectedMessage"
-          >
-            <i
-              class="pi"
-              :class="
-                deletingMessageId
-                  ? 'pi-spin pi-spinner'
-                  : 'pi-trash'
-              "
-            ></i>
-
-            <span>
-              {{
-                deletingMessageId
-                  ? 'Deleting...'
-                  : 'Delete permanently'
-              }}
-            </span>
-          </button>
-        </footer>
-      </section>
-    </div>
-  </Transition>
-</Teleport>
-
-
-<Teleport to="body">
-  <Transition name="delete-modal">
-    <div
-      v-if="deleteMessageVisible"
-      class="delete-message-backdrop"
-      role="presentation"
-      @click.self="closeDeleteMessageModal"
-    >
-      <section
-        class="delete-message-modal"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="parent-delete-message-title"
-        aria-describedby="parent-delete-message-description"
-        @click.stop
-      >
-        <button
-          type="button"
-          class="delete-modal-close"
-          title="Close"
-          aria-label="Close delete message dialog"
-          :disabled="deletingMessageId !== null"
-          @click="closeDeleteMessageModal"
-        >
-          <i class="pi pi-times"></i>
-        </button>
-
-        <span class="delete-modal-icon">
-          <i class="pi pi-trash"></i>
-        </span>
-
-        <div class="delete-modal-content">
-          <span class="delete-modal-eyebrow">
-            Permanent deletion
-          </span>
-
-          <h2 id="parent-delete-message-title">
-            Delete this message?
-          </h2>
-
-          <p id="parent-delete-message-description">
-            This message will be permanently removed from the
-            conversation for everyone.
-          </p>
-
-          <blockquote
-            v-if="messagePendingDeletion?.content"
-            class="delete-message-preview"
-          >
-            {{ messagePendingDeletion.content }}
-          </blockquote>
-        </div>
-
-        <div class="delete-modal-notice">
-          <i class="pi pi-exclamation-triangle"></i>
-
-          <span>
-            This action is permanent and cannot be undone.
-          </span>
-        </div>
-
-        <footer class="delete-modal-actions">
-          <button
-            type="button"
-            class="delete-cancel-btn"
+            class="delete-modal-close"
+            title="Close"
+            aria-label="Close delete message dialog"
             :disabled="deletingMessageId !== null"
             @click="closeDeleteMessageModal"
           >
-            Keep message
+            <i class="pi pi-times"></i>
           </button>
 
-          <button
-            type="button"
-            class="delete-confirm-btn"
-            :disabled="deletingMessageId !== null"
-            @click="deleteSelectedMessage"
-          >
-            <i
-              class="pi"
-              :class="
-                deletingMessageId !== null
-                  ? 'pi-spin pi-spinner'
-                  : 'pi-trash'
-              "
-            ></i>
+          <span class="delete-modal-icon">
+            <i class="pi pi-trash"></i>
+          </span>
+
+          <div class="delete-modal-content">
+            <span class="delete-modal-eyebrow">
+              Permanent deletion
+            </span>
+
+            <h2 id="parent-delete-message-title">
+              Delete this message?
+            </h2>
+
+            <p id="parent-delete-message-description">
+              This message will be permanently removed from the
+              conversation for everyone.
+            </p>
+
+            <blockquote
+              v-if="messagePendingDeletion?.content"
+              class="delete-message-preview"
+            >
+              {{ messagePendingDeletion.content }}
+            </blockquote>
+          </div>
+
+          <div class="delete-modal-notice">
+            <i class="pi pi-exclamation-triangle"></i>
 
             <span>
-              {{
-                deletingMessageId !== null
-                  ? 'Deleting...'
-                  : 'Delete permanently'
-              }}
+              This action is permanent and cannot be undone.
             </span>
-          </button>
-        </footer>
-      </section>
-    </div>
-  </Transition>
-</Teleport>
+          </div>
+
+          <footer class="delete-modal-actions">
+            <button
+              type="button"
+              class="delete-cancel-btn"
+              :disabled="deletingMessageId !== null"
+              @click="closeDeleteMessageModal"
+            >
+              Keep message
+            </button>
+
+            <button
+              type="button"
+              class="delete-confirm-btn"
+              :disabled="deletingMessageId !== null"
+              @click="deleteSelectedMessage"
+            >
+              <i
+                class="pi"
+                :class="
+                  deletingMessageId !== null
+                    ? 'pi-spin pi-spinner'
+                    : 'pi-trash'
+                "
+              ></i>
+
+              <span>
+                {{
+                  deletingMessageId !== null
+                    ? 'Deleting...'
+                    : 'Delete permanently'
+                }}
+              </span>
+            </button>
+          </footer>
+        </section>
+      </div>
+    </Transition>
+  </Teleport>
+
 
 
 
