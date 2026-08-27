@@ -1180,10 +1180,17 @@ const reconnectTimer =
 const messageContainer =
   ref(null)
 
-  const openMessageMenuId = ref(null)
-const deletingMessageId = ref(null)
-const deleteMessageVisible = ref(false)
-const messagePendingDeletion = ref(null)
+const openMessageMenuId =
+  ref(null)
+
+const deletingMessageId =
+  ref(null)
+
+const deleteMessageVisible =
+  ref(false)
+
+const messagePendingDeletion =
+  ref(null)
 
 const complaintForm =
   reactive({
@@ -2419,42 +2426,62 @@ function sendMessage() {
 
 
 
-function toggleMessageMenu(messageId) {
+
+
+
+
+
+
+function toggleMessageMenu(
+  messageId
+) {
   const normalizedMessageId =
     Number(messageId)
 
-  if (normalizedMessageId <= 0) {
+  if (
+    !Number.isInteger(
+      normalizedMessageId
+    ) ||
+    normalizedMessageId <= 0 ||
+    deletingMessageId.value !== null
+  ) {
     return
   }
 
-  const menuIsOpen =
-    Number(openMessageMenuId.value) ===
+  const menuIsAlreadyOpen =
+    Number(
+      openMessageMenuId.value
+    ) ===
     normalizedMessageId
 
   openMessageMenuId.value =
-    menuIsOpen
+    menuIsAlreadyOpen
       ? null
       : normalizedMessageId
 }
 
-
-
-
 function closeMessageMenu() {
-  openMessageMenuId.value = null
+  openMessageMenuId.value =
+    null
 }
 
-function confirmDeleteMessage(message) {
-  closeMessageMenu()
-
-  if (!message) {
+function confirmDeleteMessage(
+  message
+) {
+  if (
+    !message ||
+    deletingMessageId.value !== null
+  ) {
     return
   }
 
   const messageId =
     Number(message.id)
 
-  if (messageId <= 0) {
+  if (
+    !Number.isInteger(messageId) ||
+    messageId <= 0
+  ) {
     toast.error(
       'This message does not have a valid ID.'
     )
@@ -2470,23 +2497,38 @@ function confirmDeleteMessage(message) {
     return
   }
 
+  closeMessageMenu()
+
   messagePendingDeletion.value = {
     ...message,
   }
 
-  deleteMessageVisible.value = true
+  deleteMessageVisible.value =
+    true
 }
 
-function closeDeleteMessageModal() {
-  if (deletingMessageId.value) {
+function closeDeleteMessageModal(
+  forceClose = false
+) {
+  if (
+    deletingMessageId.value !== null &&
+    !forceClose
+  ) {
     return
   }
 
-  deleteMessageVisible.value = false
-  messagePendingDeletion.value = null
+  deleteMessageVisible.value =
+    false
+
+  messagePendingDeletion.value =
+    null
+
+  closeMessageMenu()
 }
 
-function applyDeletedMessage(data) {
+function applyDeletedMessage(
+  data
+) {
   const messageId =
     Number(
       data?.messageId ||
@@ -2494,93 +2536,114 @@ function applyDeletedMessage(data) {
       0
     )
 
-  if (messageId <= 0) {
-
+  if (
+    !Number.isInteger(messageId) ||
+    messageId <= 0
+  ) {
+    console.error(
+      '[ParentChat] Invalid deletion event:',
+      data
+    )
 
     return
   }
 
+  const deletedMessage =
+    messages.value.find(
+      (message) => {
+        return (
+          Number(message.id) ===
+          messageId
+        )
+      }
+    )
+
+  messages.value =
+    messages.value.filter(
+      (message) => {
+        return (
+          Number(message.id) !==
+          messageId
+        )
+      }
+    )
+
+  closeMessageMenu()
+
   const conversationId =
     Number(
       data?.conversationId ||
+      deletedMessage?.conversationId ||
       activeConversationId.value ||
       0
     )
 
-  const deletedMessage =
-    messages.value.find((message) => {
-      return (
-        Number(message.id) ===
-        messageId
-      )
-    })
-
-  messages.value =
-    messages.value.filter((message) => {
-      return (
-        Number(message.id) !==
-        messageId
-      )
-    })
-
-  openMessageMenuId.value = null
+  if (
+    !Number.isInteger(
+      conversationId
+    ) ||
+    conversationId <= 0
+  ) {
+    return
+  }
 
   const conversation =
-    conversations.value.find((item) => {
-      return (
-        Number(item.id) ===
-        conversationId
-      )
-    })
+    conversations.value.find(
+      (item) => {
+        return (
+          Number(item.id) ===
+          conversationId
+        )
+      }
+    )
 
-  if (
-    !conversation ||
-    !deletedMessage
-  ) {
+  if (!conversation) {
     return
   }
 
   const remainingMessages =
     messages.value
-      .filter((message) => {
-        return (
-          Number(message.conversationId) ===
-          conversationId
-        )
-      })
-      .sort((first, second) => {
-        return (
-          new Date(
-            second.createdAt
-          ).getTime() -
-          new Date(
-            first.createdAt
-          ).getTime()
-        )
-      })
+      .filter(
+        (message) => {
+          return (
+            Number(
+              message.conversationId
+            ) ===
+            conversationId
+          )
+        }
+      )
+      .slice()
+      .sort(
+        (first, second) => {
+          const firstTime =
+            new Date(
+              first.createdAt
+            ).getTime()
 
-  const latestRemainingMessage =
-    remainingMessages[0] || null
+          const secondTime =
+            new Date(
+              second.createdAt
+            ).getTime()
 
-  const deletedMessageWasLatest =
-    !latestRemainingMessage ||
-    new Date(
-      deletedMessage.createdAt
-    ).getTime() >=
-      new Date(
-        latestRemainingMessage.createdAt
-      ).getTime()
+          return (
+            secondTime -
+            firstTime
+          )
+        }
+      )
 
-  if (!deletedMessageWasLatest) {
-    return
-  }
+  const latestMessage =
+    remainingMessages.length > 0
+      ? remainingMessages[0]
+      : null
 
   conversation.lastMessage =
-    latestRemainingMessage?.content ||
+    latestMessage?.content ||
     ''
 
   conversation.lastMessageAt =
-    latestRemainingMessage?.createdAt ||
+    latestMessage?.createdAt ||
     null
 
   sortConversations()
@@ -2591,6 +2654,10 @@ async function deleteSelectedMessage() {
     messagePendingDeletion.value
 
   if (!message) {
+    toast.error(
+      'No message was selected for deletion.'
+    )
+
     return
   }
 
@@ -2598,8 +2665,18 @@ async function deleteSelectedMessage() {
     Number(message.id)
 
   if (
-    messageId <= 0 ||
-    deletingMessageId.value
+    !Number.isInteger(messageId) ||
+    messageId <= 0
+  ) {
+    toast.error(
+      'The selected message has an invalid ID.'
+    )
+
+    return
+  }
+
+  if (
+    deletingMessageId.value !== null
   ) {
     return
   }
@@ -2614,27 +2691,38 @@ async function deleteSelectedMessage() {
       )
 
     const responseData =
-      response?.data || {}
+      response?.data ||
+      {}
+
+    const deletedMessageId =
+      Number(
+        responseData.messageId ||
+        responseData.id ||
+        messageId
+      )
+
+    const deletedConversationId =
+      Number(
+        responseData.conversationId ||
+        message.conversationId ||
+        activeConversationId.value ||
+        0
+      )
 
     applyDeletedMessage({
       messageId:
-        Number(
-          responseData.messageId ||
-          messageId
-        ),
+        deletedMessageId,
 
       conversationId:
-        Number(
-          responseData.conversationId ||
-          message.conversationId ||
-          activeConversationId.value
-        ),
+        deletedConversationId,
     })
 
-    deleteMessageVisible.value = false
-    messagePendingDeletion.value = null
+    closeDeleteMessageModal(
+      true
+    )
 
     toast.success(
+      responseData.message ||
       'Message permanently deleted.'
     )
   } catch (error) {
@@ -2642,10 +2730,50 @@ async function deleteSelectedMessage() {
       error?.response?.data
 
     const backendMessage =
-      typeof responseData === 'string'
+      typeof responseData ===
+      'string'
         ? responseData
-        : responseData?.message
-  }}
+        : responseData?.message ||
+          responseData?.errorMessage ||
+          responseData?.error
+
+    console.error(
+      '[ParentChat] Message deletion failed:',
+      {
+        messageId:
+          messageId,
+
+        status:
+          error?.response?.status,
+
+        responseData:
+          responseData,
+
+        error:
+          error,
+      }
+    )
+
+    toast.error(
+      backendMessage ||
+      error?.message ||
+      'Unable to delete the message.'
+    )
+  } finally {
+    deletingMessageId.value =
+      null
+  }
+}
+
+
+
+
+
+
+
+
+
+
 
 function sendReadReceipt(
   conversationId
