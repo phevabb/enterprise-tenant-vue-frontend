@@ -598,10 +598,153 @@ function openAddModal() {
   showFormModal.value = true
 }
 
+
+
+
+
+
 function closeFormModal() {
-  if (isSubmitting.value) return
-  showFormModal.value = false
+  if (isSubmitting.value) {
+    return
+  }
+
+  showFormModal.value =
+    false
 }
+
+function openDeleteConfirm(
+  payment
+) {
+  if (
+    !payment ||
+    isDeleting.value
+  ) {
+    return
+  }
+
+  const paymentId =
+    Number(payment.id)
+
+  if (
+    !Number.isInteger(paymentId) ||
+    paymentId <= 0
+  ) {
+    toast.error(
+      "The selected payment has an invalid ID."
+    )
+
+    return
+  }
+
+  deleteTarget.value =
+    payment
+
+  showDeleteSingleModal.value =
+    true
+}
+
+function closeDeleteSingleModal() {
+  if (isDeleting.value) {
+    return
+  }
+
+  showDeleteSingleModal.value =
+    false
+
+  deleteTarget.value =
+    null
+}
+
+async function deleteSingle() {
+  const payment =
+    deleteTarget.value
+
+  if (
+    !payment ||
+    isDeleting.value
+  ) {
+    return
+  }
+
+  const paymentId =
+    Number(payment.id)
+
+  if (
+    !Number.isInteger(paymentId) ||
+    paymentId <= 0
+  ) {
+    toast.error(
+      "The selected payment has an invalid ID."
+    )
+
+    return
+  }
+
+  try {
+    isDeleting.value =
+      true
+
+    await delete_family_payment_ktor(
+      paymentId
+    )
+
+    allPayments.value =
+      allPayments.value.filter(
+        (existingPayment) => {
+          return (
+            Number(
+              existingPayment.id
+            ) !==
+            paymentId
+          )
+        }
+      )
+
+    selectedIds.value =
+      selectedIds.value.filter(
+        (selectedId) => {
+          return (
+            Number(selectedId) !==
+            paymentId
+          )
+        }
+      )
+
+    showDeleteSingleModal.value =
+      false
+
+    deleteTarget.value =
+      null
+
+    ensureValidPage()
+
+    toast.success(
+      "Payment deleted successfully."
+    )
+  } catch (error) {
+    const responseData =
+      error?.response?.data
+
+    const errorMessage =
+      typeof responseData ===
+      "string"
+        ? responseData
+        : responseData?.message ||
+          responseData?.detail ||
+          responseData?.error ||
+          error?.message ||
+          "Failed to delete payment."
+
+    toast.error(
+      errorMessage
+    )
+  } finally {
+    isDeleting.value =
+      false
+  }
+}
+
+
 
 async function savePayment() {
   if (!form.familyFeeRecordId) {

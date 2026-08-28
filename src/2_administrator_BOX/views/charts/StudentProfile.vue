@@ -611,7 +611,7 @@
         </CFormSelect>
       </div>
 
-      <!-- <div class="col-md-6">
+      <div class="col-md-6">
         <CFormLabel>Family (Optional)</CFormLabel>
         <CFormSelect v-model="form.family">
           <option value="">No Family</option>
@@ -623,7 +623,7 @@
             {{ f.label }}
           </option>
         </CFormSelect>
-      </div> -->
+      </div>
 
       <div class="col-md-6">
         <CFormLabel>Date of Birth</CFormLabel>

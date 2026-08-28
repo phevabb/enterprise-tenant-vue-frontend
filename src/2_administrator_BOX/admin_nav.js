@@ -61,28 +61,28 @@ export default [
   // ================================
   // Family Fees
   // ================================
-  // {
-  //   component: 'CNavTitle',
-  //   name: 'Family Fees',
-  // },
-  // {
-  //   component: 'CNavItem',
-  //   name: 'Families',
-  //   to: { name: 'families' },
-  //   icon: cilGroup,
-  // },
-  // {
-  //   component: 'CNavItem',
-  //   name: 'Family Payments',
-  //   to: { name: 'family_fee_payments' },
-  //   icon: cilMoney,
-  // },
-  // {
-  //   component: 'CNavItem',
-  //   name: 'Family Fee Records',
-  //   to: { name: 'family_fee_records' },
-  //   icon: cilCalculator,
-  // },
+  {
+    component: 'CNavTitle',
+    name: 'Family Fees',
+  },
+  {
+    component: 'CNavItem',
+    name: 'Families',
+    to: { name: 'families' },
+    icon: cilGroup,
+  },
+  {
+    component: 'CNavItem',
+    name: 'Family Payments',
+    to: { name: 'family_fee_payments' },
+    icon: cilMoney,
+  },
+  {
+    component: 'CNavItem',
+    name: 'Family Fee Records',
+    to: { name: 'family_fee_records' },
+    icon: cilCalculator,
+  },
 
   // ================================
   // Profiles
