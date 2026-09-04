@@ -1968,28 +1968,29 @@ onMounted(async () => {
         </CButton>
 
         <CButton
-          color="primary"
-          :disabled="updatingRecord"
-          @click="saveRecordChanges"
-        >
-          <CSpinner
-            v-if="updatingRecord"
-            size="sm"
-            class="me-2"
-          />
+  color="primary"
+  class="text-white"
+  :disabled="updatingRecord"
+  @click="saveRecordChanges"
+>
+  <CSpinner
+    v-if="updatingRecord"
+    size="sm"
+    class="me-2"
+  />
 
-          <CIcon
-            v-else
-            :icon="cilSave"
-            class="me-2"
-          />
+  <CIcon
+    v-else
+    :icon="cilSave"
+    class="me-2"
+  />
 
-          {{
-            updatingRecord
-              ? 'Saving...'
-              : 'Save changes'
-          }}
-        </CButton>
+  {{
+    updatingRecord
+      ? 'Saving...'
+      : 'Save changes'
+  }}
+</CButton>
       </CModalFooter>
     </CModal>
 
