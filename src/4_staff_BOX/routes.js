@@ -40,13 +40,7 @@ export const staffRoutes = {
       meta: { roles: ['staff'] },
     },
 
-    {
-      path: 'attendancemanagement',
-      name: 'AttendanceManagement',
-      component: () =>
-        import('@/4_staff_BOX/views/AttendanceManagement.vue'),
-      meta: { roles: ['staff'] },
-    },
+
 
     {
       path: 'attendancehistory',
