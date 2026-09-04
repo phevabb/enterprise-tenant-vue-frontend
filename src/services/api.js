@@ -1571,6 +1571,79 @@ export async function getSmsStaffMembers() {
 }
 
 
+export function save_teacher_attendance(payload) {
+
+  return api.post(
+    '/attendance/teacher/submit',
+    payload,
+
+  )
+
+  // Localhost/testing URL:
+  // return axios.post(
+  //   'http://localhost:8080/api/attendance/teacher/submit',
+  //   payload,
+  //   {
+  //     headers: {
+  //       tenantCode: tenantCode,
+  //     },
+  //   },
+  // )
+}
+
+
+export function update_student_attendance(
+  attendanceId,
+  payload,
+) {
+  return api.patch(
+    `/attendance/${attendanceId}`,
+    payload,
+  )
+
+  // Localhost/testing URL:
+  // return axios.patch(
+  //   `http://localhost:8080/api/attendance/${attendanceId}`,
+  //   payload,
+  // )
+}
+
+export function get_teacher_attendance_history(
+  params,
+) {
+  return api.get(
+    '/attendance/teacher/history',
+    {
+      params,
+    },
+  )
+}
+
+
+
+export function delete_class_attendance(
+  classId,
+  params,
+) {
+  return api.delete(
+    `/attendance/class/${classId}`,
+    {
+      params,
+    },
+  )
+
+  // Localhost/testing URL:
+  // return axios.delete(
+  //   `http://localhost:8080/api/attendance/class/${classId}`,
+  //   {
+  //     params,
+  //   },
+  // )
+}
+
+
+
+
 // ✅ Fetch single category
 
 export default api;

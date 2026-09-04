@@ -26,15 +26,21 @@ export default [
   //   icon: cilSpreadsheet,
   // },
 
-  // { component: 'CNavTitle', name: 'Attendance' },
+  { component: 'CNavTitle', name: 'Attendance' },
 
 
-  // {
-  //   component: 'CNavItem',
-  //   name: 'Class Attendance',
-  //   to: { name: 'Attendance' },
-  //   icon: cilCalculator,
-  // },
+  {
+    component: 'CNavItem',
+    name: 'Take Attendance',
+    to: { name: 'Attendance' },
+    icon: cilCalculator,
+  },
+   {
+    component: 'CNavItem',
+    name: 'Attendance History',
+    to: { name: 'AttendanceHistory' },
+    icon: cilCalculator,
+  },
 
 
   { component: 'CNavTitle', name: 'Remarks' },

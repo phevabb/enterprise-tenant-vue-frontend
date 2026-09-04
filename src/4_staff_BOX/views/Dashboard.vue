@@ -479,6 +479,7 @@ onMounted(async () => {
   try {
     // 1) Load students for teacher
     const ans = await get_teacher_student()
+
     students.value = ans.data ?? []
 
     // 2) Load categories
@@ -494,6 +495,8 @@ onMounted(async () => {
     // 4) Assigned class
     const userId = staff.value.userId
     const { data } = await assigned_class_ktor(userId)
+
+
     const assigned = data?.assignedClass ?? null
     const normalized = normalizeAssignedClass(assigned)
 
@@ -515,6 +518,7 @@ onMounted(async () => {
 
     // 6) Current term + year
     const { data: t } = await get_terms_with_year_ktor()
+
     ctx.termId = t?.id ?? null
     ctx.yearId = t?.academic_year?.id ?? null
 
